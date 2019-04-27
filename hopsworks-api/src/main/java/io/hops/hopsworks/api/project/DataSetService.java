@@ -76,9 +76,12 @@ import io.hops.hopsworks.common.dao.user.security.apiKey.ApiScope;
 import io.hops.hopsworks.common.dataset.DatasetController;
 import io.hops.hopsworks.common.dataset.FilePreviewDTO;
 import io.hops.hopsworks.common.hdfs.FsPermissions;
+import io.hops.hopsworks.common.provenance.hopsfs.HopsFSProvenanceController;
+import io.hops.hopsworks.common.provenance.xml.ProvTypeDTO;
 import io.hops.hopsworks.exceptions.DatasetException;
 import io.hops.hopsworks.exceptions.HopsSecurityException;
 import io.hops.hopsworks.exceptions.ProjectException;
+import io.hops.hopsworks.exceptions.ProvenanceException;
 import io.hops.hopsworks.restutils.RESTCodes;
 import io.hops.hopsworks.common.hdfs.DistributedFileSystemOps;
 import io.hops.hopsworks.common.hdfs.DistributedFsService;
@@ -183,6 +186,8 @@ public class DataSetService {
   private FeaturestoreController featurestoreController;
   @EJB
   private DsUpdateOperations dsUpdateOperations;
+  @EJB
+  private HopsFSProvenanceController fsProvenanceController;
 
   private Integer projectId;
   private Project project;
@@ -586,7 +591,7 @@ public class DataSetService {
   @JWTRequired(acceptedTokens={Audience.API}, allowedUserRoles={"HOPS_ADMIN", "HOPS_USER"})
   @ApiKeyRequired( acceptedScopes = {ApiScope.DATASET_CREATE}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
   public Response createTopLevelDataSet(DataSetDTO dataSet, @Context SecurityContext sc)
-    throws DatasetException, HopsSecurityException {
+    throws DatasetException, HopsSecurityException, ProvenanceException {
 
     Users user = jWTHelper.getUserPrincipal(sc);
     DistributedFileSystemOps dfso = dfs.getDfsOps();
@@ -594,8 +599,19 @@ public class DataSetService {
     DistributedFileSystemOps udfso = dfs.getDfsOps(username);
 
     try {
+      ProvTypeDTO datasetMetaStatus;
+      if(dataSet.isSearchable()) {
+        ProvTypeDTO projectMetaStatus = fsProvenanceController.getProjectProvType(user, project);
+        if(ProvTypeDTO.ProvType.DISABLED.equals(projectMetaStatus)) {
+          datasetMetaStatus = ProvTypeDTO.ProvType.META.dto;
+        } else {
+          datasetMetaStatus = projectMetaStatus;
+        }
+      } else {
+        datasetMetaStatus = ProvTypeDTO.ProvType.DISABLED.dto;
+      }
       datasetController.createDataset(user, project, dataSet.getName(),
-        dataSet.getDescription(), dataSet.getTemplate(), dataSet.isSearchable(),
+        dataSet.getDescription(), dataSet.getTemplate(), datasetMetaStatus,
         false, false, dfso);
       //Generate README.md for the dataset if the user requested it
       if (dataSet.isGenerateReadme()) {
