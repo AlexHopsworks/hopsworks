@@ -73,6 +73,9 @@ import io.hops.hopsworks.common.dao.metadata.Template;
   @NamedQuery(name = "Inode.findById",
           query
           = "SELECT i FROM Inode i WHERE i.id = :id"),
+  @NamedQuery(name = "Inode.findByIdInList",
+          query
+          = "SELECT i FROM Inode i WHERE i.id IN :idList"),
   @NamedQuery(name = "Inode.findByParentId",
           query
           = "SELECT i FROM Inode i WHERE i.inodePK.parentId = :parentId"),
@@ -147,7 +150,7 @@ public class Inode implements Serializable {
   private boolean underConstruction;
   @Column(name = "meta_enabled")
   @NotNull
-  private boolean metaEnabled;
+  private MetaStatus metaStatus;
   @Column(name = "is_dir")
   @NotNull
   private boolean dir;
@@ -173,13 +176,13 @@ public class Inode implements Serializable {
   }
 
   public Inode(InodePK inodePK, Long id, boolean quotaEnabled,
-          boolean underConstruction, boolean metaEnabled,
+          boolean underConstruction, MetaStatus metaStatus,
           boolean dir) {
     this.inodePK = inodePK;
     this.id = id;
     this.quotaEnabled = quotaEnabled;
     this.underConstruction = underConstruction;
-    this.metaEnabled = metaEnabled;
+    this.metaStatus = metaStatus;
     this.dir = dir;
   }
 
@@ -189,7 +192,7 @@ public class Inode implements Serializable {
             getName(), inode.getInodePK().getPartitionId()), inode.getId(),
             inode.isQuotaEnabled(), inode.
             isUnderConstruction(), inode.
-            isMetaEnabled(), inode.isDir());
+            inode.getMetaStatus(), inode.isDir());
   }
 
   public Inode(long parentId, String name, long partitionId) {
@@ -284,12 +287,12 @@ public class Inode implements Serializable {
     return dir;
   }
   
-  public boolean isMetaEnabled() {
-    return metaEnabled;
+  public MetaStatus getMetaStatus() {
+    return metaStatus;
   }
   
-  public void setMetaEnabled(boolean metaEnabled) {
-    this.metaEnabled = metaEnabled;
+  public void setMetaStatus(MetaStatus metaStatus) {
+    this.metaStatus = metaStatus;
   }
   
   public boolean isQuotaEnabled() {
@@ -367,5 +370,12 @@ public class Inode implements Serializable {
   @Override
   public String toString() {
     return "io.hops.hopsworks.common.dao.hdfs.inode.Inode[ inodePK= " + inodePK + " ]";
+  }
+  
+  public enum MetaStatus {
+    DISABLED,
+    META_ENABLED,
+    MIN_PROV_ENABLED,
+    FULL_PROV_ENABLED;
   }
 }

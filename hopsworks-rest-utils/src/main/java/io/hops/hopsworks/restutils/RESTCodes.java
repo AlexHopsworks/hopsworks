@@ -1630,5 +1630,51 @@ public class RESTCodes {
       return range;
     }
   }
-
+  
+  /**
+   * Error codes for the provenance microservice on Hopsworks
+   */
+  public enum ProvenanceErrorCode implements RESTErrorCode {
+    MALFORMED_ENTRY(1, "Provenance entry is malformed",
+      Response.Status.INTERNAL_SERVER_ERROR),
+    BAD_REQUEST(2, "Provenance query request is malformed",
+      Response.Status.INTERNAL_SERVER_ERROR),
+    UNSUPPORTED(3, "Provenance query is not supported",
+      Response.Status.BAD_REQUEST),
+    INTERNAL_ERROR(4, "Provenance logical error",
+      Response.Status.INTERNAL_SERVER_ERROR),
+    ARCHIVAL_STORE(5, "Provenance archival store error",
+      Response.Status.INTERNAL_SERVER_ERROR),
+    FS_ERROR(6, "Provenance xattr - file system error",
+      Response.Status.INTERNAL_SERVER_ERROR);
+    private int code;
+    private String message;
+    private Response.Status respStatus;
+    public final int range = 330000;
+    
+    ProvenanceErrorCode(Integer code, String message, Response.Status respStatus) {
+      this.code = range + code;
+      this.message = message;
+      this.respStatus = respStatus;
+    }
+    
+    @Override
+    public Integer getCode() {
+      return code;
+    }
+    
+    @Override
+    public String getMessage() {
+      return message;
+    }
+    
+    public Response.StatusType getRespStatus() {
+      return respStatus;
+    }
+    
+    @Override
+    public int getRange() {
+      return range;
+    }
+  }
 }

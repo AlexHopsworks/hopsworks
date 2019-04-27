@@ -70,6 +70,8 @@ import io.hops.hopsworks.common.hdfs.FsPermissions;
 import io.hops.hopsworks.common.hdfs.HdfsUsersController;
 import io.hops.hopsworks.common.hdfs.Utils;
 import io.hops.hopsworks.common.hdfs.inode.InodeController;
+import io.hops.hopsworks.common.provenance.hopsfs.HopsFSProvenanceController;
+import io.hops.hopsworks.common.provenance.xml.ProvTypeDTO;
 import io.hops.hopsworks.common.util.HopsUtils;
 import io.hops.hopsworks.common.util.OSProcessExecutor;
 import io.hops.hopsworks.common.util.ProcessDescriptor;
@@ -144,7 +146,9 @@ public class DatasetController {
   private OSProcessExecutor osProcessExecutor;
   @EJB
   private DatasetRequestFacade datasetRequest;
-  
+  @EJB
+  private HopsFSProvenanceController fsProvController;
+
   /**
    * Create a new DataSet. This is, a folder right under the project home
    * folder.
@@ -167,8 +171,9 @@ public class DatasetController {
    * folder names, or the folder already exists.
    */
   public void createDataset(Users user, Project project, String dataSetName, String datasetDescription, int templateId,
-    boolean searchable, boolean stickyBit, boolean defaultDataset, DistributedFileSystemOps dfso)
+    ProvTypeDTO metaStatus, boolean stickyBit, boolean defaultDataset, DistributedFileSystemOps dfso)
     throws DatasetException, HopsSecurityException {
+  
     //Parameter checking.
     if (user == null || project == null || dataSetName == null) {
       throw new IllegalArgumentException("User, project or dataset were not provided");
@@ -192,7 +197,7 @@ public class DatasetController {
       try {
         ds = inodes.findByInodePK(parent, dataSetName, HopsUtils.dataSetPartitionId(parent, dataSetName));
         Dataset newDS = new Dataset(ds, project);
-        newDS.setSearchable(searchable);
+        newDS.setSearchable(isSearchable(metaStatus.getMetaStatus()));
         if (datasetDescription != null) {
           newDS.setDescription(datasetDescription);
         }
@@ -200,12 +205,11 @@ public class DatasetController {
         activityFacade.persistActivity(ActivityFacade.NEW_DATA + dataSetName, project, user, ActivityFlag.DATASET);
         // creates a dataset and adds user as owner.
         hdfsUsersBean.addDatasetUsersGroups(user, project, newDS, dfso);
-        //set the dataset meta enabled. Support 3 level indexing
-        if (searchable) {
-          dfso.setMetaEnabled(dsPath);
-          Dataset logDs = getByProjectAndDsName(project,null, dataSetName);
-          logDataset(project, logDs, OperationType.Add);
-        }
+
+        Dataset logDs = getByProjectAndDsName(project,null, dataSetName);
+        //set the dataset meta enabled(or prov). Support 3 level indexing
+        fsProvController.updateDatasetProvType(logDs, metaStatus, dfso);
+        logDataset(project, logDs, OperationType.Add);
       } catch (Exception e) {
         try {
           dfso.rm(new Path(dsPath), true); //if dataset persist fails rm ds folder.
@@ -220,6 +224,10 @@ public class DatasetController {
       throw new DatasetException(RESTCodes.DatasetErrorCode.DATASET_OPERATION_ERROR, Level.INFO,
         "Could not create dataset: " + dataSetName);
     }
+  }
+  
+  private boolean isSearchable(Inode.MetaStatus metaStatus) {
+    return !Inode.MetaStatus.DISABLED.equals(metaStatus);
   }
 
   /**
@@ -301,7 +309,7 @@ public class DatasetController {
   public boolean deleteDatasetDir(Dataset dataset, Path location,
       DistributedFileSystemOps udfso) throws IOException {
     OperationsLog log = new OperationsLog(dataset, OperationType.Delete);
-    udfso.unsetMetaEnabled(location);
+//    udfso.unsetMetaEnabled(location);
     boolean success = udfso.rm(location, true);
     if (success) {
       operationsLogFacade.persist(log);
