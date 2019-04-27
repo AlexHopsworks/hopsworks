@@ -83,7 +83,7 @@ public class TrainingDatasetController {
   private ExternalTrainingDatasetController externalTrainingDatasetController;
   @EJB
   private FeaturestoreJobController featurestoreJobController;
-
+ 
   /**
    * Gets all trainingDatasets for a particular featurestore and project
    *
@@ -596,5 +596,4 @@ public class TrainingDatasetController {
     trainingDatasets.forEach(td ->
       externalTrainingDatasetController.removeExternalTrainingDataset(td.getExternalTrainingDataset()));
   }
-
 }

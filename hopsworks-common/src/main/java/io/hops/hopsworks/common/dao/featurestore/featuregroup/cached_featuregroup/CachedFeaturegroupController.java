@@ -26,6 +26,7 @@ import io.hops.hopsworks.common.dao.featurestore.featuregroup.FeaturegroupType;
 import io.hops.hopsworks.common.dao.featurestore.featuregroup.cached_featuregroup.online_featuregroup.OnlineFeaturegroup;
 import io.hops.hopsworks.common.dao.featurestore.featuregroup.cached_featuregroup.online_featuregroup.OnlineFeaturegroupController;
 import io.hops.hopsworks.common.dao.featurestore.online_featurestore.OnlineFeaturestoreController;
+import io.hops.hopsworks.common.provenance.v2.HopsFSProvenanceController;
 import io.hops.hopsworks.common.dao.project.Project;
 import io.hops.hopsworks.common.dao.user.Users;
 import io.hops.hopsworks.common.featorestore.FeaturestoreConstants;
@@ -34,6 +35,7 @@ import io.hops.hopsworks.common.security.CertificateMaterializer;
 import io.hops.hopsworks.common.util.Settings;
 import io.hops.hopsworks.exceptions.CryptoPasswordNotFoundException;
 import io.hops.hopsworks.exceptions.FeaturestoreException;
+import io.hops.hopsworks.exceptions.GenericException;
 import io.hops.hopsworks.exceptions.HopsSecurityException;
 import io.hops.hopsworks.restutils.RESTCodes;
 import org.apache.commons.lang3.StringUtils;
@@ -75,7 +77,8 @@ public class CachedFeaturegroupController {
   private OnlineFeaturegroupController onlineFeaturegroupController;
   @EJB
   private OnlineFeaturestoreController onlineFeaturestoreController;
-
+  @EJB
+  private HopsFSProvenanceController fsController;
 
   private static final Logger LOGGER = Logger.getLogger(CachedFeaturegroupController.class.getName());
   private static final String HIVE_DRIVER = "org.apache.hive.jdbc.HiveDriver";
@@ -258,7 +261,7 @@ public class CachedFeaturegroupController {
   @TransactionAttribute(TransactionAttributeType.NEVER)
   public CachedFeaturegroup createCachedFeaturegroup(
       Featurestore featurestore, CachedFeaturegroupDTO cachedFeaturegroupDTO, Users user)
-      throws FeaturestoreException, HopsSecurityException, SQLException {
+    throws FeaturestoreException, HopsSecurityException, SQLException, GenericException {
     //Verify User Input
     verifyCachedFeaturegroupUserInput(cachedFeaturegroupDTO, false);
     
@@ -269,6 +272,7 @@ public class CachedFeaturegroupController {
     
     //Create Hive Table for Offline Cached Feature Group
     createHiveFeaturegroup(cachedFeaturegroupDTO, featurestore, user, hiveFeatureStr, tableName);
+    fsController.featuregroupAttachXAttrs(user, featurestore.getProject(), cachedFeaturegroupDTO);
   
     //Create MySQL Table for Online Cached Feature Group
     OnlineFeaturegroup onlineFeaturegroup = null;

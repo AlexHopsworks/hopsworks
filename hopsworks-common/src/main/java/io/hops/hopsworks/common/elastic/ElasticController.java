@@ -129,7 +129,9 @@ public class ElasticController {
   private DatasetFacade datasetFacade;
   @EJB
   private DatasetController datasetController;
-
+  @EJB
+  private HopsworksElasticClient heClient;
+  
   private static final Logger LOG = Logger.getLogger(ElasticController.class.getName());
 
   private Client elasticClient = null;

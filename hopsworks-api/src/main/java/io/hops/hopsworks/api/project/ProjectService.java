@@ -51,6 +51,7 @@ import io.hops.hopsworks.api.jobs.JobsResource;
 import io.hops.hopsworks.api.kafka.KafkaService;
 import io.hops.hopsworks.api.jupyter.JupyterService;
 import io.hops.hopsworks.api.jwt.JWTHelper;
+import io.hops.hopsworks.api.provenance.ProjectProvenanceResource;
 import io.hops.hopsworks.api.python.PythonResource;
 import io.hops.hopsworks.api.serving.ServingService;
 import io.hops.hopsworks.api.serving.inference.InferenceResource;
@@ -90,6 +91,8 @@ import io.hops.hopsworks.common.project.ProjectController;
 import io.hops.hopsworks.common.project.ProjectDTO;
 import io.hops.hopsworks.common.project.QuotasDTO;
 import io.hops.hopsworks.common.project.TourProjectType;
+import io.hops.hopsworks.common.provenance.v2.HopsFSProvenanceController;
+import io.hops.hopsworks.common.provenance.v3.xml.ProvTypeDTO;
 import io.hops.hopsworks.common.user.AuthController;
 import io.hops.hopsworks.common.user.UsersController;
 import io.hops.hopsworks.common.util.Settings;
@@ -207,6 +210,10 @@ public class ProjectService {
   private ProjectActivitiesResource activitiesResource;
   @Inject
   private FeaturestoreService featurestoreService;
+  @Inject
+  private ProjectProvenanceResource provenance;
+  @EJB
+  private HopsFSProvenanceController fsProvenanceController;
 
   private final static Logger LOGGER = Logger.getLogger(ProjectService.class.getName());
 
@@ -439,7 +446,7 @@ public class ProjectService {
   public Response updateProject(
       ProjectDTO projectDTO, @PathParam("projectId") Integer id,
       @Context SecurityContext sc) throws ProjectException, DatasetException, HopsSecurityException,
-      ServiceException, FeaturestoreException, UserException {
+    ServiceException, FeaturestoreException, UserException, GenericException {
 
     RESTApiJsonResponse json = new RESTApiJsonResponse();
     Users user = jWTHelper.getUserPrincipal(sc);
@@ -467,7 +474,9 @@ public class ProjectService {
       for (String s : projectDTO.getServices()) {
         ProjectServiceEnum se = null;
         se = ProjectServiceEnum.valueOf(s.toUpperCase());
-        List<Future<?>> serviceFutureList = projectController.addService(project, se, user, dfso, udfso);
+        ProvTypeDTO projectMetaStatus = fsProvenanceController.getProjectProvType(user, project);
+        List<Future<?>> serviceFutureList
+          = projectController.addService(project, se, user, dfso, udfso, projectMetaStatus);
         if (serviceFutureList != null) {
           // Wait for the futures
           for (Future f : serviceFutureList) {
@@ -570,7 +579,8 @@ public class ProjectService {
       dfso = dfs.getDfsOps();
       username = hdfsUsersBean.getHdfsUserName(project, user);
       udfso = dfs.getDfsOps(username);
-      projectController.addTourFilesToProject(user.getEmail(), project, dfso, dfso, demoType);
+      ProvTypeDTO projectMetaStatus = fsProvenanceController.getProjectProvType(user, project);
+      projectController.addTourFilesToProject(user.getEmail(), project, dfso, dfso, demoType, projectMetaStatus);
       //TestJob dataset
       datasetController.generateReadme(udfso, "TestJob", readMeMessage, project.getName());
     } catch (Exception ex) {
@@ -628,7 +638,7 @@ public class ProjectService {
     return noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK).entity(json).build();
 
   }
-
+  
   @Path("{projectId}/projectMembers")
   public ProjectMembersService projectMembers(@PathParam("projectId") Integer id) {
     this.projectMembers.setProjectId(id);
@@ -847,5 +857,10 @@ public class ProjectService {
     featurestoreService.setProjectId(projectId);
     return featurestoreService;
   }
-
+  
+  @Path("{projectId}/provenance")
+  public ProjectProvenanceResource provenance(@PathParam("projectId") Integer id) {
+    this.provenance.setProjectId(id);
+    return this.provenance;
+  }
 }

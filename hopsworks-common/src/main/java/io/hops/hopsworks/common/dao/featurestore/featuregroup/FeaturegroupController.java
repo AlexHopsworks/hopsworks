@@ -38,6 +38,7 @@ import io.hops.hopsworks.common.dao.user.Users;
 import io.hops.hopsworks.common.featorestore.FeaturestoreConstants;
 import io.hops.hopsworks.common.hdfs.HdfsUsersController;
 import io.hops.hopsworks.exceptions.FeaturestoreException;
+import io.hops.hopsworks.exceptions.GenericException;
 import io.hops.hopsworks.exceptions.HopsSecurityException;
 import io.hops.hopsworks.restutils.RESTCodes;
 import org.apache.parquet.Strings;
@@ -77,7 +78,7 @@ public class FeaturegroupController {
   private FeaturestoreJobController featurestoreJobController;
   @EJB
   private JobFacade jobFacade;
-
+  
   /**
    * Gets all featuregroups for a particular featurestore and project, using the userCerts to query Hive
    *
@@ -103,7 +104,7 @@ public class FeaturegroupController {
    */
   @TransactionAttribute(TransactionAttributeType.NEVER)
   public FeaturegroupDTO clearFeaturegroup(Featurestore featurestore, FeaturegroupDTO featuregroupDTO, Users user)
-      throws FeaturestoreException, HopsSecurityException, SQLException {
+    throws FeaturestoreException, HopsSecurityException, SQLException, GenericException {
     switch (featuregroupDTO.getFeaturegroupType()) {
       case CACHED_FEATURE_GROUP:
         deleteFeaturegroupIfExists(featurestore, featuregroupDTO, user);
@@ -133,7 +134,7 @@ public class FeaturegroupController {
    */
   @TransactionAttribute(TransactionAttributeType.NEVER)
   public FeaturegroupDTO createFeaturegroup(Featurestore featurestore, FeaturegroupDTO featuregroupDTO, Users user)
-      throws FeaturestoreException, HopsSecurityException, SQLException {
+    throws FeaturestoreException, HopsSecurityException, SQLException, GenericException {
     
     //Verify basic feature group input information
     verifyFeaturegroupUserInput(featuregroupDTO, featurestore);

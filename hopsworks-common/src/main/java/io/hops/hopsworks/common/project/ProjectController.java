@@ -101,6 +101,8 @@ import io.hops.hopsworks.common.jobs.yarn.YarnLogUtil;
 import io.hops.hopsworks.common.jupyter.JupyterController;
 import io.hops.hopsworks.common.kafka.KafkaController;
 import io.hops.hopsworks.common.message.MessageController;
+import io.hops.hopsworks.common.provenance.v2.HopsFSProvenanceController;
+import io.hops.hopsworks.common.provenance.v3.xml.ProvTypeDTO;
 import io.hops.hopsworks.common.python.environment.EnvironmentController;
 import io.hops.hopsworks.common.security.CertificateMaterializer;
 import io.hops.hopsworks.common.security.CertificatesController;
@@ -265,7 +267,8 @@ public class ProjectController {
   private HopsKafkaAdminClient hopsKafkaAdminClient;
   @EJB
   private ProjectTopicsFacade projectTopicsFacade;
-
+  @EJB
+  private HopsFSProvenanceController fsProvController;
 
   /**
    * Creates a new project(project), the related DIR, the different services in
@@ -332,8 +335,7 @@ public class ProjectController {
       verifyProject(project, dfso, sessionId);
 
       LOGGER.log(Level.FINE, "PROJECT CREATION TIME. Step 3 (verify): {0}", System.currentTimeMillis() - startTime);
-
-
+  
       // Run the handlers.
       for (ProjectHandler projectHandler : projectHandlers) {
         try {
@@ -370,8 +372,10 @@ public class ProjectController {
 
       //all the verifications have passed, we can now create the project
       //create the project folder
+      ProvTypeDTO provType = settings.getProvType().dto;
       try {
         mkProjectDIR(projectName, dfso);
+        fsProvController.newProjectProvType(owner, project, provType);
       } catch (IOException | EJBException ex) {
         cleanup(project, sessionId, projectCreationFutures, true, owner);
         throw new ProjectException(RESTCodes.ProjectErrorCode.PROJECT_FOLDER_NOT_CREATED, Level.SEVERE,
@@ -425,7 +429,7 @@ public class ProjectController {
       // enable services
       for (ProjectServiceEnum service : projectServices) {
         try {
-          projectCreationFutures.addAll(addService(project, service, owner, dfso));
+          projectCreationFutures.addAll(addService(project, service, owner, dfso, provType));
         } catch (RESTException ex) {
           cleanup(project, sessionId, projectCreationFutures);
           throw ex;
@@ -531,7 +535,7 @@ public class ProjectController {
     Project project = new Project(projectName, user, now, PaymentType.PREPAID);
     project.setKafkaMaxNumTopics(settings.getKafkaMaxNumTopics());
     project.setDescription(projectDescription);
-
+  
     // set retention period to next 10 years by default
     Calendar cal = Calendar.getInstance();
     cal.setTime(now);
@@ -647,11 +651,11 @@ public class ProjectController {
    * @throws java.io.IOException
    */
   public void createProjectLogResources(Users user, Project project,
-    DistributedFileSystemOps dfso) throws IOException, DatasetException, HopsSecurityException {
+    DistributedFileSystemOps dfso) throws IOException, DatasetException, HopsSecurityException, GenericException {
 
     for (Settings.BaseDataset ds : Settings.BaseDataset.values()) {
       datasetController.createDataset(user, project, ds.getName(), ds.
-        getDescription(), -1, false, true, true, dfso);
+          getDescription(), -1, ProvTypeDTO.ProvType.DISABLED.dto, true, true, dfso);
 
       Path dsPath = new Path(Utils.getProjectPath(project.getName()) + ds.getName());
 
@@ -698,16 +702,16 @@ public class ProjectController {
 
   // Used only during project creation
   private List<Future<?>> addService(Project project, ProjectServiceEnum service,
-    Users user, DistributedFileSystemOps dfso)
+    Users user, DistributedFileSystemOps dfso, ProvTypeDTO metaStatus)
     throws ProjectException, ServiceException, DatasetException, HopsSecurityException,
-    UserException, FeaturestoreException {
-    return addService(project, service, user, dfso, dfso);
+    UserException, FeaturestoreException, GenericException {
+    return addService(project, service, user, dfso, dfso, metaStatus);
   }
 
   public List<Future<?>> addService(Project project, ProjectServiceEnum service,
-    Users user, DistributedFileSystemOps dfso, DistributedFileSystemOps udfso)
+      Users user, DistributedFileSystemOps dfso, DistributedFileSystemOps udfso, ProvTypeDTO metaStatus)
     throws ProjectException, ServiceException, DatasetException, HopsSecurityException,
-    UserException, FeaturestoreException {
+    UserException, FeaturestoreException, GenericException {
 
     List<Future<?>> futureList = new ArrayList<>();
 
@@ -718,33 +722,33 @@ public class ProjectController {
 
     switch (service) {
       case JUPYTER:
-        addServiceDataset(project, user, Settings.ServiceDataset.JUPYTER, dfso, udfso);
+        addServiceDataset(project, user, Settings.ServiceDataset.JUPYTER, dfso, udfso, metaStatus);
         if (!projectServicesFacade.isServiceEnabledForProject(project, ProjectServiceEnum.JOBS)) {
           addKibana(project);
-          addServiceDataset(project, user, Settings.ServiceDataset.EXPERIMENTS, dfso, udfso);
+          addServiceDataset(project, user, Settings.ServiceDataset.EXPERIMENTS, dfso, udfso, metaStatus);
         }
         break;
       case HIVE:
         addServiceHive(project, user, dfso);
         break;
       case SERVING:
-        futureList.add(addServiceServing(project, user, dfso, udfso));
+        futureList.add(addServiceServing(project, user, dfso, udfso, metaStatus));
         break;
       case JOBS:
         if (!projectServicesFacade.isServiceEnabledForProject(project, ProjectServiceEnum.JUPYTER)) {
-          addServiceDataset(project, user, Settings.ServiceDataset.EXPERIMENTS, dfso, udfso);
+          addServiceDataset(project, user, Settings.ServiceDataset.EXPERIMENTS, dfso, udfso, metaStatus);
           addKibana(project);
         }
         break;
       case FEATURESTORE:
         //Note: Order matters here. Training Dataset should be created before the Featurestore
-        addServiceDataset(project, user, Settings.ServiceDataset.TRAININGDATASETS, dfso, udfso);
+        addServiceDataset(project, user, Settings.ServiceDataset.TRAININGDATASETS, dfso, udfso, metaStatus);
         addServiceFeaturestore(project, user, dfso, udfso);
-        addServiceDataset(project, user, Settings.ServiceDataset.DATAVALIDATION, dfso, udfso);
+        addServiceDataset(project, user, Settings.ServiceDataset.DATAVALIDATION, dfso, udfso, metaStatus);
         //Enable Jobs service at the same time as featurestore
         if (!projectServicesFacade.isServiceEnabledForProject(project, ProjectServiceEnum.JOBS)) {
           if (!projectServicesFacade.isServiceEnabledForProject(project, ProjectServiceEnum.JUPYTER)) {
-            addServiceDataset(project, user, Settings.ServiceDataset.EXPERIMENTS, dfso, udfso);
+            addServiceDataset(project, user, Settings.ServiceDataset.EXPERIMENTS, dfso, udfso, metaStatus);
             addKibana(project);
           }
         }
@@ -759,7 +763,8 @@ public class ProjectController {
 
   private void addServiceDataset(Project project, Users user,
     Settings.ServiceDataset ds, DistributedFileSystemOps dfso,
-    DistributedFileSystemOps udfso) throws DatasetException, HopsSecurityException, ProjectException {
+    DistributedFileSystemOps udfso, ProvTypeDTO metaStatus)
+    throws DatasetException, HopsSecurityException, ProjectException, GenericException {
     try {
       String datasetName = ds.getName();
       //Training Datasets should be shareable, prefix with project name to avoid naming conflicts when sharing
@@ -767,7 +772,7 @@ public class ProjectController {
         datasetName = project.getName() + "_" + datasetName;
       }
       datasetController.createDataset(user, project, datasetName, ds.
-        getDescription(), -1, false, false, true, dfso);
+        getDescription(), -1, metaStatus, false, true, dfso);
       datasetController.generateReadme(udfso, datasetName,
         ds.getDescription(), project.getName());
 
@@ -802,10 +807,10 @@ public class ProjectController {
   }
 
   private Future<CertificatesController.CertsResult> addServiceServing(Project project, Users user,
-    DistributedFileSystemOps dfso, DistributedFileSystemOps udfso)
-    throws ProjectException, DatasetException, HopsSecurityException, UserException {
+    DistributedFileSystemOps dfso, DistributedFileSystemOps udfso, ProvTypeDTO metaStatus)
+    throws ProjectException, DatasetException, HopsSecurityException, UserException, GenericException {
 
-    addServiceDataset(project, user, Settings.ServiceDataset.SERVING, dfso, udfso);
+    addServiceDataset(project, user, Settings.ServiceDataset.SERVING, dfso, udfso, metaStatus);
     elasticController.createIndexPattern(project, project.getName().toLowerCase() + "_serving-*");
     // If Kafka is not enabled for the project, enable it
     if (!projectServicesFacade.isServiceEnabledForProject(project, ProjectServiceEnum.KAFKA)) {
@@ -1601,9 +1606,6 @@ public class ProjectController {
             "project: " + project.getName() + ", handler: " + projectHandler.getClassName(), e.getMessage(), e);
         }
       }
-
-      datasetController.unsetMetaEnabledForAllDatasets(dfso, project);
-
       //log removal to notify elastic search
       logProject(project, OperationType.Delete);
       //change the owner and group of the project folder to hdfs super user
@@ -2293,10 +2295,9 @@ public class ProjectController {
     activityFacade.persistActivity(activityPerformed, performedOn, performedBy, flag);
   }
 
-  public void addTourFilesToProject(String username, Project project,
-    DistributedFileSystemOps dfso, DistributedFileSystemOps udfso,
-    TourProjectType projectType) throws DatasetException, HopsSecurityException, ProjectException,
-    JobException, GenericException, ServiceException {
+  public void addTourFilesToProject(String username, Project project, DistributedFileSystemOps dfso,
+    DistributedFileSystemOps udfso, TourProjectType projectType, ProvTypeDTO metaStatus)
+    throws DatasetException, HopsSecurityException, ProjectException, JobException, GenericException, ServiceException {
 
     Users user = userFacade.findByEmail(username);
     if (null != projectType) {
@@ -2305,7 +2306,7 @@ public class ProjectController {
       switch (projectType) {
         case SPARK:
           datasetController.createDataset(user, project, Settings.HOPS_TOUR_DATASET,
-            "files for guide projects", -1, false, true, true, dfso);
+            "files for guide projects", -1, metaStatus, true, true, dfso);
           String exampleDir = settings.getSparkDir() + Settings.SPARK_EXAMPLES_DIR + "/";
           try {
             File dir = new File(exampleDir);
@@ -2336,7 +2337,7 @@ public class ProjectController {
           break;
         case KAFKA:
           datasetController.createDataset(user, project, Settings.HOPS_TOUR_DATASET,
-            "files for guide projects", -1, false, true, true, dfso);
+            "files for guide projects", -1, metaStatus, true, true, dfso);
           // Get the JAR from /user/<super user>
           String kafkaExampleSrc = "/user/" + settings.getSparkUser() + "/"
             + settings.getHopsExamplesSparkFilename();
@@ -2356,7 +2357,7 @@ public class ProjectController {
           break;
         case DEEP_LEARNING:
           datasetController.createDataset(user, project, Settings.HOPS_DL_TOUR_DATASET,
-            "sample training data for notebooks", -1, false, true, true, dfso);
+            "sample training data for notebooks", -1, metaStatus, true, true, dfso);
           String DLDataSrc = "/user/" + settings.getHdfsSuperUser() + "/" + Settings.HOPS_DEEP_LEARNING_TOUR_DATA
             + "/*";
           String DLDataDst = projectPath + Settings.HOPS_DL_TOUR_DATASET;
@@ -2384,7 +2385,7 @@ public class ProjectController {
           break;
         case FEATURESTORE:
           datasetController.createDataset(user, project, Settings.HOPS_TOUR_DATASET,
-            "files for guide projects", -1, false, true, true, dfso);
+            "files for guide projects", -1, metaStatus, true, true, dfso);
           // Get the JAR from /user/<super user>
           String featurestoreExampleJarSrc = "/user/" + settings.getSparkUser() + "/"
             + settings.getHopsExamplesFeaturestoreTourFilename();

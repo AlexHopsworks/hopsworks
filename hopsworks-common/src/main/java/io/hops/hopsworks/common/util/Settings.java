@@ -49,6 +49,8 @@ import io.hops.hopsworks.common.dao.util.Variables;
 import io.hops.hopsworks.common.dela.AddressJSON;
 import io.hops.hopsworks.common.dela.DelaClientType;
 import io.hops.hopsworks.common.hdfs.Utils;
+import io.hops.hopsworks.common.provenance.v3.xml.ProvTypeDTO;
+import io.hops.hopsworks.exceptions.GenericException;
 import io.hops.hopsworks.restutils.RESTLogLevel;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -677,6 +679,7 @@ public class Settings implements Serializable {
       FEATURESTORE_JDBC_URL = setStrVar(VARIABLE_FEATURESTORE_JDBC_URL, FEATURESTORE_JDBC_URL);
       ONLINE_FEATURESTORE = setBoolVar(VARIABLE_ONLINE_FEATURESTORE, ONLINE_FEATURESTORE);
 
+      populateProvenanceCache();
       cached = true;
     }
   }
@@ -1891,6 +1894,10 @@ public class Settings implements Serializable {
   public static final String ELASTIC_BEAMSDKWORKER_INDEX_REGEX =
     ".*_" + ELASTIC_BEAMSDKWORKER + "-\\d{4}.\\d{2}.\\d{2}";
 
+  //Other Elastic indexes
+  public static final String ELASTIC_INDEX_APP_PROVENANCE = "appprovenance";
+  public static final String ELASTIC_INDEX_APP_PROVENANCE_DEFAULT_TYPE = "_doc";
+  
   public String getHopsworksTmpCertDir() {
     return Paths.get(getCertsDir(), "transient").toString();
   }
@@ -3521,4 +3528,70 @@ public class Settings implements Serializable {
     return REQUESTS_VERIFY;
   }
 
+  //-------------------------------- PROVENANCE ----------------------------------------------//
+  private static final String VARIABLE_PROVENANCE_TYPE = "provenance_type"; //disabled/meta/min/full
+  private static final String VARIABLE_PROVENANCE_ARCHIVE_SIZE = "provenance_archive_size";
+  private static final String VARIABLE_PROVENANCE_ARCHIVE_DELAY = "provenance_archive_delay";
+  private static final String VARIABLE_PROVENANCE_CLEANUP_SIZE = "provenance_cleanup_size";
+  
+  public static final String PROV_FILE_DOC_TYPE = "file_prov";
+  public static final String PROV_FILE_INDEX_SUFFIX = "__file_prov";
+  private ProvTypeDTO.ProvType PROVENANCE_TYPE = ProvTypeDTO.ProvType.MIN;
+  private String PROVENANCE_TYPE_S = PROVENANCE_TYPE.name();
+  private Integer PROVENANCE_CLEANUP_SIZE = 5;
+  private Integer PROVENANCE_ARCHIVE_SIZE = 100;
+  private Long PROVENANCE_ARCHIVE_DELAY = 0l;
+  
+  public String getProvFileIndex(Long projectIId) {
+    return projectIId.toString() + Settings.PROV_FILE_INDEX_SUFFIX;
+  }
+  
+  private void populateProvenanceCache() {
+    PROVENANCE_TYPE_S = setStrVar(VARIABLE_PROVENANCE_TYPE, PROVENANCE_TYPE_S);
+    try {
+      PROVENANCE_TYPE = ProvTypeDTO.provTypeFromString(PROVENANCE_TYPE_S);
+    } catch(GenericException e) {
+      LOGGER.log(Level.WARNING, "unknown prov type:" + PROVENANCE_TYPE_S + ", using default");
+      PROVENANCE_TYPE = ProvTypeDTO.ProvType.MIN;
+      PROVENANCE_TYPE_S = PROVENANCE_TYPE.name();
+    }
+    PROVENANCE_ARCHIVE_SIZE = setIntVar(VARIABLE_PROVENANCE_ARCHIVE_SIZE, PROVENANCE_ARCHIVE_SIZE);
+    PROVENANCE_ARCHIVE_DELAY = setLongVar(VARIABLE_PROVENANCE_ARCHIVE_DELAY, PROVENANCE_ARCHIVE_DELAY);
+    PROVENANCE_CLEANUP_SIZE = setIntVar(VARIABLE_PROVENANCE_CLEANUP_SIZE, PROVENANCE_CLEANUP_SIZE);
+  }
+  
+  public synchronized ProvTypeDTO.ProvType getProvType() {
+    checkCache();
+    return PROVENANCE_TYPE;
+  }
+  
+  public synchronized Integer getProvArchiveSize() {
+    checkCache();
+    return PROVENANCE_ARCHIVE_SIZE;
+  }
+  
+  public synchronized void setProvArchiveSize(Integer size) {
+    if(!PROVENANCE_ARCHIVE_SIZE.equals(size)) {
+      em.merge(new Variables(VARIABLE_PROVENANCE_ARCHIVE_SIZE, size.toString()));
+      PROVENANCE_ARCHIVE_SIZE = size;
+    }
+  }
+  
+  public synchronized Long getProvArchiveDelay() {
+    checkCache();
+    return PROVENANCE_ARCHIVE_DELAY;
+  }
+  
+  public synchronized void setProvArchiveDelay(Long delay) {
+    if(!PROVENANCE_ARCHIVE_DELAY.equals(delay)) {
+      em.merge(new Variables(VARIABLE_PROVENANCE_ARCHIVE_DELAY, delay.toString()));
+      PROVENANCE_ARCHIVE_DELAY = delay;
+    }
+  }
+  
+  public synchronized Integer getProvCleanupSize() {
+    checkCache();
+    return PROVENANCE_CLEANUP_SIZE;
+  }
+  //------------------------------ END PROVENANCE --------------------------------------------//
 }
