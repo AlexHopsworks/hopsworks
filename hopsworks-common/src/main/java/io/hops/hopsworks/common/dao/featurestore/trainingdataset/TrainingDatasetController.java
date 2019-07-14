@@ -43,6 +43,7 @@ import io.hops.hopsworks.common.featorestore.FeaturestoreConstants;
 import io.hops.hopsworks.common.hdfs.HdfsUsersController;
 import io.hops.hopsworks.common.util.Settings;
 import io.hops.hopsworks.exceptions.FeaturestoreException;
+import io.hops.hopsworks.exceptions.GenericException;
 import io.hops.hopsworks.restutils.RESTCodes;
 import org.apache.commons.lang3.StringUtils;
 
@@ -53,6 +54,7 @@ import javax.ejb.TransactionAttributeType;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
@@ -134,7 +136,8 @@ public class TrainingDatasetController {
    */
   @TransactionAttribute(TransactionAttributeType.NEVER)
   public TrainingDatasetDTO createTrainingDataset(Users user, Featurestore featurestore,
-    TrainingDatasetDTO trainingDatasetDTO) throws FeaturestoreException {
+    TrainingDatasetDTO trainingDatasetDTO, Optional<String> trainingDatasetHopsPath)
+    throws FeaturestoreException, GenericException {
     
     //Verify input
     verifyTrainingDatasetInput(trainingDatasetDTO, featurestore);
@@ -185,7 +188,8 @@ public class TrainingDatasetController {
       trainingDatasetDTO.getFeaturesHistogram(), trainingDatasetDTO.getClusterAnalysis());
     
     // Store features
-    featurestoreFeatureController.updateTrainingDatasetFeatures(trainingDataset, trainingDatasetDTO.getFeatures());
+    featurestoreFeatureController.updateTrainingDatasetFeatures(trainingDataset, trainingDatasetDTO.getFeatures(),
+      trainingDatasetHopsPath);
   
     //Get jobs
     List<Jobs> jobs = getJobs(trainingDatasetDTO.getJobs(), featurestore.getProject());
@@ -325,8 +329,9 @@ public class TrainingDatasetController {
    * @throws FeaturestoreException
    */
   @TransactionAttribute(TransactionAttributeType.NEVER)
-  public TrainingDatasetDTO updateTrainingDatasetMetadata(
-      Featurestore featurestore, TrainingDatasetDTO trainingDatasetDTO) throws FeaturestoreException {
+  public TrainingDatasetDTO updateTrainingDatasetMetadata(Featurestore featurestore,
+    TrainingDatasetDTO trainingDatasetDTO, Optional<String> trainingDatasetHopsPath)
+    throws FeaturestoreException, GenericException {
     TrainingDataset trainingDataset = verifyTrainingDatasetId(trainingDatasetDTO.getId(), featurestore);
   
     //Get jobs
@@ -335,7 +340,8 @@ public class TrainingDatasetController {
     featurestoreJobController.insertJobs(trainingDataset, jobs);
   
     // Store features
-    featurestoreFeatureController.updateTrainingDatasetFeatures(trainingDataset, trainingDatasetDTO.getFeatures());
+    featurestoreFeatureController.updateTrainingDatasetFeatures(trainingDataset, trainingDatasetDTO.getFeatures(),
+      trainingDatasetHopsPath);
     
     if(!Strings.isNullOrEmpty(trainingDatasetDTO.getDataFormat())){
       verifyTrainingDatasetDataFormat(trainingDatasetDTO.getDataFormat());

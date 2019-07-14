@@ -73,6 +73,7 @@ import javax.ejb.Stateless;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -547,5 +548,16 @@ public class ProvenanceController {
   
   public ArchiveDTO.Base getArchiveDoc(Long inodeId) throws ServiceException, GenericException {
     return elasticCtrl.getArchive(inodeId);
+  }
+  
+  public Long trainingDatasetsUsingFeature(String featureName)
+    throws GenericException, ServiceException, ProjectException {
+    Map<String, String> xattrMap = new HashMap<>();
+    xattrMap.put("features.name", featureName);
+    
+    ProvFileStateParamBuilder params = new ProvFileStateParamBuilder();
+    params.withMlType(Provenance.MLType.TRAINING_DATASET.toString());
+    params.withXAttrs(xattrMap);
+    return provFileStateCount(params);
   }
 }

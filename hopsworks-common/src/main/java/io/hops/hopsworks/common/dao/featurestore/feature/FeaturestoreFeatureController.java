@@ -16,14 +16,25 @@
 
 package io.hops.hopsworks.common.dao.featurestore.feature;
 
+import com.google.gson.Gson;
 import io.hops.hopsworks.common.dao.featurestore.featuregroup.on_demand_featuregroup.OnDemandFeaturegroup;
 import io.hops.hopsworks.common.dao.featurestore.trainingdataset.TrainingDataset;
+import io.hops.hopsworks.common.hdfs.DistributedFileSystemOps;
+import io.hops.hopsworks.common.hdfs.DistributedFsService;
+import io.hops.hopsworks.exceptions.GenericException;
+import io.hops.hopsworks.restutils.RESTCodes;
+import org.apache.hadoop.fs.XAttrSetFlag;
 
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
+import java.io.IOException;
+import java.util.EnumSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 /**
@@ -34,6 +45,8 @@ import java.util.stream.Collectors;
 public class FeaturestoreFeatureController {
   @EJB
   private FeaturestoreFeatureFacade featurestoreFeatureFacade;
+  @EJB
+  private DistributedFsService dfs;
 
   /**
    * Updates the features of a training dataset, first deletes all existing features for the training dataset
@@ -42,13 +55,16 @@ public class FeaturestoreFeatureController {
    * @param trainingDataset the training dataset to update
    * @param features the new features
    */
-  public void updateTrainingDatasetFeatures(
-      TrainingDataset trainingDataset, List<FeatureDTO> features) {
+  public void updateTrainingDatasetFeatures(TrainingDataset trainingDataset, List<FeatureDTO> features,
+    Optional<String> trainingDatasetHopsPath) throws GenericException {
     if(features == null) {
       return;
     }
     removeFeatures((List) trainingDataset.getFeatures());
     insertTrainingDatasetFeatures(trainingDataset, features);
+    if(trainingDatasetHopsPath.isPresent()) {
+      setXAttrTrainingFeatures(trainingDatasetHopsPath.get(), features);
+    }
   }
 
   /**
@@ -143,5 +159,86 @@ public class FeaturestoreFeatureController {
       return featurestoreFeature;
     }).collect(Collectors.toList());
   }
-
+  
+  /**
+   * Attach features as xattrs to the training dataset dir
+   */
+  private void setXAttrTrainingFeatures(String tdPath, List<FeatureDTO> features) throws GenericException {
+    Gson gson = new Gson();
+    XAttrFeatures jsonFeatures = new XAttrFeatures();
+    for(FeatureDTO feature : features) {
+      jsonFeatures.addFeature(feature);
+    }
+  
+    byte[] featuresValue = gson.toJson(jsonFeatures.getFeatures()).getBytes();
+    DistributedFileSystemOps dfso = dfs.getDfsOps();
+    EnumSet<XAttrSetFlag> flags = EnumSet.noneOf(XAttrSetFlag.class);
+    flags.add(XAttrSetFlag.CREATE);
+    try {
+      dfso.setXAttr(tdPath, "provenance.features", featuresValue, flags);
+    } catch (IOException e) {
+      throw new GenericException(RESTCodes.GenericErrorCode.ILLEGAL_STATE, Level.INFO,
+        "xattrs persistance exception");
+    }
+  }
+  
+  private static class XAttrFeatures {
+    private List<XAttrFeature> features = new LinkedList<>();
+    
+    public XAttrFeatures() {}
+    
+    public XAttrFeatures(List<XAttrFeature> features) {
+      this.features = features;
+    }
+    
+    public List<XAttrFeature> getFeatures() {
+      return features;
+    }
+    
+    public void setFeatures(List<XAttrFeature> features) {
+      this.features = features;
+    }
+    
+    public void addFeature(FeatureDTO feature) {
+      features.add(new XAttrFeature("group", feature.getName(), "version"));
+    }
+  }
+  
+  private static class XAttrFeature {
+    private String group;
+    private String name;
+    private String version;
+    
+    public XAttrFeature() {}
+    
+    public XAttrFeature(String group, String name, String version) {
+      this.group = group;
+      this.name = name;
+      this.version = version;
+    }
+    
+    public String getGroup() {
+      return group;
+    }
+    
+    public void setGroup(String group) {
+      this.group = group;
+    }
+    
+    public String getName() {
+      return name;
+    }
+    
+    public void setName(String name) {
+      this.name = name;
+    }
+    
+    public String getVersion() {
+      return version;
+    }
+    
+    public void setVersion(String version) {
+      this.version = version;
+    }
+  }
 }

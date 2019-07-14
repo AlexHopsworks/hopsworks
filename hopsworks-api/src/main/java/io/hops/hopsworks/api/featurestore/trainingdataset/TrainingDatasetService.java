@@ -42,6 +42,7 @@ import io.hops.hopsworks.common.dao.user.activity.ActivityFlag;
 import io.hops.hopsworks.common.dao.user.security.apiKey.ApiScope;
 import io.hops.hopsworks.exceptions.DatasetException;
 import io.hops.hopsworks.exceptions.FeaturestoreException;
+import io.hops.hopsworks.exceptions.GenericException;
 import io.hops.hopsworks.exceptions.HopsSecurityException;
 import io.hops.hopsworks.exceptions.ProjectException;
 import io.hops.hopsworks.jwt.annotation.JWTRequired;
@@ -69,6 +70,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
 
 /**
@@ -162,7 +164,7 @@ public class TrainingDatasetService {
   @ApiOperation(value = "Create training dataset for a featurestore",
       response = TrainingDatasetDTO.class)
   public Response createTrainingDataset(@Context SecurityContext sc, TrainingDatasetDTO trainingDatasetDTO)
-    throws DatasetException, HopsSecurityException, ProjectException, FeaturestoreException {
+    throws DatasetException, HopsSecurityException, ProjectException, FeaturestoreException, GenericException {
     if(trainingDatasetDTO == null){
       throw new IllegalArgumentException("Input JSON for creating a new Training Dataset cannot be null");
     }
@@ -200,10 +202,10 @@ public class TrainingDatasetService {
       Inode inode = inodeFacade.getInodeAtPath(fullPath.toString());
       hopsfsTrainingDatasetDTO.setInodeId(inode.getId());
       createdTrainingDatasetDTO = trainingDatasetController.createTrainingDataset(user, featurestore,
-        hopsfsTrainingDatasetDTO);
+        hopsfsTrainingDatasetDTO, Optional.of(fullPath.toString()));
     } else {
       createdTrainingDatasetDTO = trainingDatasetController.createTrainingDataset(user, featurestore,
-        trainingDatasetDTO);
+        trainingDatasetDTO, Optional.empty());
     }
     activityFacade.persistActivity(ActivityFacade.CREATED_TRAINING_DATASET +
         createdTrainingDatasetDTO.getName(), project, user, ActivityFlag.SERVICE);
@@ -307,7 +309,7 @@ public class TrainingDatasetService {
     @ApiParam(value = "updateStats", example = "true", defaultValue = "false")
     @QueryParam("updateStats") Boolean updateStats,
     TrainingDatasetDTO trainingDatasetDTO)
-      throws FeaturestoreException, DatasetException, ProjectException, HopsSecurityException {
+    throws FeaturestoreException, DatasetException, ProjectException, HopsSecurityException, GenericException {
     if(trainingDatasetDTO == null){
       throw new IllegalArgumentException("Input JSON for updating a Training Dataset cannot be null");
     }
@@ -333,11 +335,11 @@ public class TrainingDatasetService {
         HopsfsTrainingDatasetDTO hopsfsTrainingDatasetDTO = (HopsfsTrainingDatasetDTO) trainingDatasetDTO;
         hopsfsTrainingDatasetDTO.setInodeId(newInode.getId());
         TrainingDatasetDTO newTrainingDatasetDTO = trainingDatasetController.createTrainingDataset(user,
-          featurestore, hopsfsTrainingDatasetDTO);
+          featurestore, hopsfsTrainingDatasetDTO, Optional.of(fullPath.toString()));
         return persistAndReturnEditedTrainingDatsetActivity(newTrainingDatasetDTO, user);
       } else {
         TrainingDatasetDTO updatedTrainingDatasetDTO = trainingDatasetController.updateTrainingDatasetMetadata(
-          featurestore, trainingDatasetDTO);
+          featurestore, trainingDatasetDTO, Optional.empty());
         return persistAndReturnEditedTrainingDatsetActivity(updatedTrainingDatasetDTO, user);
       }
     }

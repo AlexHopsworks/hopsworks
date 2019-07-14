@@ -17,7 +17,6 @@
 package io.hops.hopsworks.common.dao.featurestore;
 
 import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import java.util.Date;
 
@@ -25,7 +24,6 @@ import java.util.Date;
  * DTO containing the human-readable information of a featurestore, can be converted to JSON or XML representation
  * using jaxb.
  */
-@XmlRootElement
 @XmlType(propOrder = {"featurestoreId", "featurestoreName", "featurestoreDescription",
     "created", "hdfsStorePath", "projectName", "projectId", "inodeId"})
 public class FeaturestoreDTO {
