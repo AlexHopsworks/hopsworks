@@ -119,7 +119,10 @@ public class ProvElasticController {
   @EJB
   private Settings settings;
   
-  public Map<String, String> mngIndexGetMapping(String index) throws ServiceException {
+  public Map<String, String> mngIndexGetMapping(String index, boolean forceFetch) throws ServiceException {
+    if(forceFetch) {
+      heClient.clearMapping(index);
+    }
     Map<String, String> mapping = heClient.getMapping(index);
     if(mapping == null) {
       Map<String, Map<String, String>> result = HopsworksElasticClientHelper.mngIndexGetMappings(heClient, index);

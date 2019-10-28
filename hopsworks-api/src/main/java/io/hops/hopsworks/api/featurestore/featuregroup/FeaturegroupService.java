@@ -37,6 +37,7 @@ import io.hops.hopsworks.common.dao.user.activity.ActivityFacade;
 import io.hops.hopsworks.common.dao.user.activity.ActivityFlag;
 import io.hops.hopsworks.common.dao.user.security.apiKey.ApiScope;
 import io.hops.hopsworks.exceptions.FeaturestoreException;
+import io.hops.hopsworks.exceptions.GenericException;
 import io.hops.hopsworks.exceptions.HopsSecurityException;
 import io.hops.hopsworks.jwt.annotation.JWTRequired;
 import io.hops.hopsworks.restutils.RESTCodes;
@@ -168,7 +169,7 @@ public class FeaturegroupService {
       GenericEntity<FeaturegroupDTO> featuregroupGeneric =
           new GenericEntity<FeaturegroupDTO>(createdFeaturegroup) {};
       return noCacheResponse.getNoCacheResponseBuilder(Response.Status.CREATED).entity(featuregroupGeneric).build();
-    } catch (SQLException e) {
+    } catch (SQLException | GenericException e) {
       LOGGER.log(Level.SEVERE, RESTCodes.FeaturestoreErrorCode.COULD_NOT_CREATE_FEATUREGROUP.getMessage(), e);
       throw new FeaturestoreException(RESTCodes.FeaturestoreErrorCode.COULD_NOT_CREATE_FEATUREGROUP, Level.SEVERE,
           "project: " + project.getName() + ", featurestoreId: " + featurestore.getId(), e.getMessage(), e);
@@ -358,7 +359,7 @@ public class FeaturegroupService {
           user);
       GenericEntity<FeaturegroupDTO> featuregroupGeneric = new GenericEntity<FeaturegroupDTO>(newFeaturegroupDTO) {};
       return noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK).entity(featuregroupGeneric).build();
-    } catch (SQLException e) {
+    } catch (SQLException | GenericException e) {
       LOGGER.log(Level.SEVERE, RESTCodes.FeaturestoreErrorCode.COULD_NOT_CLEAR_FEATUREGROUP.getMessage(), e);
       throw new FeaturestoreException(RESTCodes.FeaturestoreErrorCode.COULD_NOT_CLEAR_FEATUREGROUP, Level.SEVERE,
           "project: " + project.getName() + ", featurestoreId: " + featurestore.getId() +

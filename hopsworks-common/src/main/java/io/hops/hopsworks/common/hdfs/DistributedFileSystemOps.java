@@ -273,9 +273,13 @@ public class DistributedFileSystemOps {
    */
   public void insertXAttr(String path, String name, byte[] value) throws IOException {
     Path hdfsPath = new Path(path);
+    insertXAttr(hdfsPath, name, value);
+  }
+  
+  public void insertXAttr(Path path, String name, byte[] value) throws IOException {
     EnumSet<XAttrSetFlag> flags = EnumSet.noneOf(XAttrSetFlag.class);
     flags.add(XAttrSetFlag.CREATE);
-    dfs.setXAttr(hdfsPath, name, value, flags);
+    dfs.setXAttr(path, name, value, flags);
   }
   
   /**
@@ -287,13 +291,17 @@ public class DistributedFileSystemOps {
    */
   public void upsertXAttr(String path, String name, byte[] value) throws IOException {
     Path hdfsPath = new Path(path);
+    upsertXAttr(hdfsPath, name, value);
+  }
+  
+  public void upsertXAttr(Path path, String name, byte[] value) throws IOException {
     EnumSet<XAttrSetFlag> flags = EnumSet.noneOf(XAttrSetFlag.class);
-    if(dfs.getXAttr(hdfsPath, name) != null) {
+    if(dfs.getXAttr(path, name) != null) {
       flags.add(XAttrSetFlag.REPLACE);
     } else {
       flags.add(XAttrSetFlag.CREATE);
     }
-    dfs.setXAttr(hdfsPath, name, value, flags);
+    dfs.setXAttr(path, name, value, flags);
   }
   
   /**
@@ -305,7 +313,7 @@ public class DistributedFileSystemOps {
    */
   public byte[] getXAttr(String path, String name) throws IOException {
     Path hdfsPath = new Path(path);
-    return dfs.getXAttr(hdfsPath, name);
+    return getXAttr(hdfsPath, name);
   }
   
   /**

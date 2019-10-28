@@ -40,6 +40,7 @@ package io.hops.hopsworks.api.provenance;
 
 import io.hops.hopsworks.api.filter.AllowedProjectRoles;
 import io.hops.hopsworks.api.filter.Audience;
+import io.hops.hopsworks.api.jwt.JWTHelper;
 import io.hops.hopsworks.api.provenance.v2.ProvFileOpsBeanParam;
 import io.hops.hopsworks.api.provenance.v2.ProvFileStateBeanParam;
 import io.hops.hopsworks.api.util.Pagination;
@@ -49,19 +50,21 @@ import io.hops.hopsworks.common.dao.hdfs.inode.Inode;
 import io.hops.hopsworks.common.dao.hdfs.inode.InodeFacade;
 import io.hops.hopsworks.common.dao.project.Project;
 import io.hops.hopsworks.common.dao.project.ProjectFacade;
+import io.hops.hopsworks.common.dao.user.Users;
 import io.hops.hopsworks.common.hdfs.DistributedFileSystemOps;
 import io.hops.hopsworks.common.hdfs.DistributedFsService;
 import io.hops.hopsworks.common.hdfs.Utils;
 import io.hops.hopsworks.common.project.ProjectController;
 import io.hops.hopsworks.common.provenance.AppFootprintType;
-import io.hops.hopsworks.common.provenance.ProvDatasetState;
+import io.hops.hopsworks.common.provenance.v2.HopsFSProvenanceController;
+import io.hops.hopsworks.common.provenance.v3.xml.ProvTypeDatasetDTO;
 import io.hops.hopsworks.common.provenance.Provenance;
 import io.hops.hopsworks.common.provenance.ProvenanceController;
 import io.hops.hopsworks.common.provenance.v2.ProvFileQuery;
 import io.hops.hopsworks.common.provenance.v2.xml.ArchiveDTO;
 import io.hops.hopsworks.common.provenance.v2.xml.FileOpDTO;
 import io.hops.hopsworks.common.provenance.v2.xml.MappingDTO;
-import io.hops.hopsworks.common.provenance.v2.xml.ProvTypeDTO;
+import io.hops.hopsworks.common.provenance.v3.xml.ProvTypeDTO;
 import io.hops.hopsworks.common.provenance.v2.ProvFileOpsParamBuilder;
 import io.hops.hopsworks.common.provenance.v2.ProvFileStateParamBuilder;
 import io.hops.hopsworks.exceptions.GenericException;
@@ -94,6 +97,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.GenericEntity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.SecurityContext;
 
 @RequestScoped
 @TransactionAttribute(TransactionAttributeType.NEVER)
@@ -114,6 +118,10 @@ public class ProjectProvenanceResource {
   private DistributedFsService dfs;
   @EJB
   private ProjectController projectCtrl;
+  @EJB
+  private HopsFSProvenanceController fsProvenanceCtrl;
+  @EJB
+  private JWTHelper jWTHelper;
   
   private Project project;
 
@@ -126,9 +134,10 @@ public class ProjectProvenanceResource {
   @Produces(MediaType.APPLICATION_JSON)
   @AllowedProjectRoles({AllowedProjectRoles.ANYONE})
   @JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
-  public Response getProvenanceStatus()
+  public Response getProvenanceStatus(@Context SecurityContext sc)
     throws GenericException {
-    ProvTypeDTO status = projectCtrl.getProvenanceStatus(project).dto;
+    Users user = jWTHelper.getUserPrincipal(sc);
+    ProvTypeDTO status = fsProvenanceCtrl.getProjectProvType(user, project);
     return Response.ok().entity(status).build();
   }
   
@@ -138,13 +147,15 @@ public class ProjectProvenanceResource {
   @AllowedProjectRoles({AllowedProjectRoles.ANYONE})
   @JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
   public Response changeProvenanceType(
-    @PathParam("type") String type)
-    throws GenericException, ServiceException {
+    @PathParam("type") String type,
+    @Context SecurityContext sc)
+    throws GenericException {
+    Users user = jWTHelper.getUserPrincipal(sc);
     if(type == null) {
       throw new GenericException(RESTCodes.GenericErrorCode.ILLEGAL_STATE, Level.INFO,
         "malformed status");
     }
-    projectCtrl.updateProvenanceStatus(project, ProvTypeDTO.provTypeFromString(type));
+    fsProvenanceCtrl.updateProjectProvType(user, project, ProvTypeDTO.provTypeFromString(type).dto);
     return Response.ok().build();
   }
   
@@ -153,9 +164,10 @@ public class ProjectProvenanceResource {
   @Produces(MediaType.APPLICATION_JSON)
   @AllowedProjectRoles({AllowedProjectRoles.ANYONE})
   @JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
-  public Response content() throws GenericException {
-    GenericEntity<List<ProvDatasetState>> result
-      = new GenericEntity<List<ProvDatasetState>>(projectCtrl.getDatasetsProvenanceStatus(project)) {};
+  public Response content(@Context SecurityContext sc) throws GenericException {
+    Users user = jWTHelper.getUserPrincipal(sc);
+    GenericEntity<List<ProvTypeDatasetDTO>> result
+      = new GenericEntity<List<ProvTypeDatasetDTO>>(fsProvenanceCtrl.getDatasetsProvType(user, project)) {};
     return Response.ok().entity(result).build();
   }
   
@@ -244,6 +256,7 @@ public class ProjectProvenanceResource {
       .withQueryParamFileStateSortBy(params.getFileStateSortBy())
       .withQueryParamExactXAttr(params.getExactXAttrParams())
       .withQueryParamLikeXAttr(params.getLikeXAttrParams())
+      .filterByHasXAttr(params.getFilterByHasXAttrs())
       .withQueryParamXAttrSortBy(params.getXattrSortBy())
       .withQueryParamExpansions(params.getExpansions())
       .withQueryParamAppExpansionFilter(params.getAppExpansionParams())
@@ -284,6 +297,7 @@ public class ProjectProvenanceResource {
       .withQueryParamFileStateSortBy(params.getFileStateSortBy())
       .withQueryParamExactXAttr(params.getExactXAttrParams())
       .withQueryParamLikeXAttr(params.getLikeXAttrParams())
+      .filterByHasXAttr(params.getFilterByHasXAttrs())
       .withQueryParamXAttrSortBy(params.getXattrSortBy())
       .withQueryParamExpansions(params.getExpansions())
       .withQueryParamAppExpansionFilter(params.getAppExpansionParams())
@@ -450,7 +464,7 @@ public class ProjectProvenanceResource {
   @JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
   public Response testGetIndexMapping() throws ServiceException {
     String index = Provenance.getProjectIndex(project);
-    Map<String, String> mapping = provenanceCtrl.mngIndexGetMapping(index);
+    Map<String, String> mapping = provenanceCtrl.mngIndexGetMapping(index, true);
     return Response.ok().entity(new MappingDTO(index, mapping)).build();
   }
   

@@ -49,7 +49,8 @@ import io.hops.hopsworks.common.dataset.DatasetController;
 import io.hops.hopsworks.common.dataset.FilePreviewDTO;
 import io.hops.hopsworks.common.hdfs.DistributedFileSystemOps;
 import io.hops.hopsworks.common.project.ProjectController;
-import io.hops.hopsworks.common.provenance.v2.xml.ProvTypeDTO;
+import io.hops.hopsworks.common.provenance.v2.HopsFSProvenanceController;
+import io.hops.hopsworks.common.provenance.v3.xml.ProvTypeDTO;
 import io.hops.hopsworks.exceptions.DatasetException;
 import io.hops.hopsworks.exceptions.GenericException;
 import io.hops.hopsworks.exceptions.HopsSecurityException;
@@ -88,6 +89,8 @@ public class DelaDatasetController {
   private DistributedFsService dfs;
   @EJB
   private ProjectController projectController;
+  @EJB
+  private HopsFSProvenanceController fsProvenanceController;
 
   public Dataset uploadToHops(Dataset dataset, String publicDSId) {
     dataset.setPublicDsState(Dataset.SharedState.HOPS);
@@ -154,7 +157,7 @@ public class DelaDatasetController {
     throws DatasetException, HopsSecurityException, GenericException {
     DistributedFileSystemOps dfso = null;
     try {
-      ProvTypeDTO.ProvType projectMetaStatus = projectController.getProvenanceStatus(project, dfso);
+      ProvTypeDTO projectMetaStatus = fsProvenanceController.getProjectProvType(user, project);
       datasetCtrl.createDataset(user, project, name, description, -1, projectMetaStatus,
         false, false, dfso);
       return datasetController.getByProjectAndDsName(project, null, name);

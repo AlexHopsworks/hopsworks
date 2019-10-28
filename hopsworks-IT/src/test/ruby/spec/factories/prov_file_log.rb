@@ -13,7 +13,10 @@
  You should have received a copy of the GNU Affero General Public License along with this program.
  If not, see <https://www.gnu.org/licenses/>.
 =end
+require "composite_primary_keys"
+
 class FileProv < ActiveRecord::Base
+  self.primary_keys = :inode_id, :inode_operation, :io_logical_time, :io_timestamp, :io_app_id, :io_user_id
   def self.table_name
     "hops.hdfs_file_provenance_log"
   end

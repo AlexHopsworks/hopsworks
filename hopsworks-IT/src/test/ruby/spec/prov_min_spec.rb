@@ -60,6 +60,13 @@ describe "On #{ENV['OS']}" do
     @xattrV8 = JSON['{"name": "fashion mnist gridsearch"}']
   end
 
+  def fix_json(json)
+    json1 = json.gsub(/([a-zA-Z_1-9]+)=/, '"\1"=')
+    json2 = json1.gsub(/=([a-zA-Z_1-9]+)/, '="\1"')
+    json3 = json2.gsub('=', ':')
+    json4 = JSON.parse(json3)
+  end
+
   describe 'test suite - 2 projects' do
     before :all do
       pp "create project: #{@project1_name}"
@@ -68,7 +75,13 @@ describe "On #{ENV['OS']}" do
       @project2 = create_project_by_name(@project2_name)
     end
 
+    before :each do
+      prov_wait_for_epipe()
+    end
+
     after :each do
+      prov_wait_for_epipe()
+
       pp "cleanup cycle"
       ops1 = cleanup_cycle(@project1)
       ops2 = cleanup_cycle(@project2)
@@ -87,6 +100,8 @@ describe "On #{ENV['OS']}" do
 
       expect(ops1["count"]).to eq 0
       expect(ops2["count"]).to eq 0
+
+      prov_wait_for_epipe()
     end
 
     after :all do
@@ -97,7 +112,7 @@ describe "On #{ENV['OS']}" do
       @project2 = nil
     end
 
-    describe 'provenance tests - experiments' do
+    describe 'experiments' do
       it 'simple experiments'  do
         pp "check epipe"
         execute_remotely @hostname, "sudo systemctl restart epipe"
@@ -128,6 +143,96 @@ describe "On #{ENV['OS']}" do
         get_ml_asset_in_project(@project1, "EXPERIMENT", false, 0)
         get_ml_asset_in_project(@project2, "EXPERIMENT", false, 0)
         check_no_ml_asset_by_id(@project1, "EXPERIMENT", prov_experiment_id(@experiment_app1_name1), false)
+      end
+
+      it 'not experiment in Experiments' do
+        pp "create not experiment dir"
+        prov_create_experiment(@project1, @not_experiment_name)
+
+        pp "check not experiment"
+        prov_wait_for_epipe()
+        get_ml_asset_in_project(@project1, "EXPERIMENT", false, 0)
+
+        pp "delete not experiment"
+        prov_delete_experiment(@project1, @not_experiment_name)
+      end
+
+      it 'experiment with app states' do
+        pp "stop epipe"
+        execute_remotely @hostname, "sudo systemctl stop epipe"
+
+        pp "create experiment with app states"
+        prov_create_experiment(@project1, @experiment_app1_name1)
+        experiment1_record = FileProv.where("project_name": @project1["inode_name"], "i_name": @experiment_app1_name1)
+        expect(experiment1_record.length).to eq 1
+        prov_add_xattr(experiment1_record[0], "appId", "#{@app1_id}", "XATTR_ADD", 1)
+
+        prov_create_experiment(@project1, @experiment_app1_name2)
+        experiment2_record = FileProv.where("project_name": @project1["inode_name"], "i_name": @experiment_app1_name2)
+        expect(experiment2_record.length).to eq 1
+        prov_add_xattr(experiment2_record[0], "appId", "#{@app1_id}", "XATTR_ADD", 1)
+
+        prov_create_experiment(@project1, @experiment_app2_name1)
+        experiment3_record = FileProv.where("project_name": @project1["inode_name"], "i_name": @experiment_app2_name1)
+        expect(experiment3_record.length).to eq 1
+        prov_add_xattr(experiment3_record[0], "appId", "#{@app2_id}", "XATTR_ADD", 1)
+
+        user_name = experiment1_record[0]["io_user_name"]
+        prov_add_app_states1(@app1_id, user_name)
+        prov_add_app_states2(@app2_id, user_name)
+
+        pp "restart epipe"
+        execute_remotely @hostname, "sudo systemctl restart epipe"
+
+        pp "check experiment"
+        prov_wait_for_epipe()
+        result1 = get_ml_asset_in_project(@project1, "EXPERIMENT", true, 3)["items"]
+        prov_check_experiment3(result1, prov_experiment_id(@experiment_app1_name1), "RUNNING")
+        prov_check_experiment3(result1, prov_experiment_id(@experiment_app1_name2), "RUNNING")
+        prov_check_experiment3(result1, prov_experiment_id(@experiment_app2_name1), "FINISHED")
+
+        pp "cleanup hops"
+        prov_delete_experiment(@project1, @experiment_app1_name1)
+        prov_delete_experiment(@project1, @experiment_app1_name2)
+        prov_delete_experiment(@project1, @experiment_app2_name1)
+
+        pp "check hops cleanup"
+        prov_wait_for_epipe()
+        get_ml_asset_in_project(@project1, "EXPERIMENT", true, 0)
+      end
+
+      it 'experiment with xattr add, update and delete' do
+        pp "stop epipe"
+        execute_remotely @hostname, "sudo systemctl stop epipe"
+
+        pp "create experiment with xattr"
+        prov_create_experiment(@project1, @experiment_app1_name1)
+        experimentRecord = FileProv.where("project_name": @project1["inode_name"], "i_name": @experiment_app1_name1)
+        expect(experimentRecord.length).to eq 1
+        prov_add_xattr(experimentRecord[0], "xattr_key_1", "xattr_value_1", "XATTR_ADD", 1)
+        prov_add_xattr(experimentRecord[0], "xattr_key_2", "xattr_value_2", "XATTR_ADD", 2)
+        prov_add_xattr(experimentRecord[0], "xattr_key_3", "xattr_value_3", "XATTR_ADD", 3)
+        prov_add_xattr(experimentRecord[0], "xattr_key_1", "xattr_value_1_updated", "XATTR_UPDATE", 4)
+        prov_add_xattr(experimentRecord[0], "xattr_key_2", "", "XATTR_DELETE", 5)
+
+        pp "restart epipe"
+        execute_remotely @hostname, "sudo systemctl restart epipe"
+
+        pp "check experiment"
+        prov_wait_for_epipe()
+        result1 = get_ml_asset_in_project(@project1, "EXPERIMENT", false, 1)["items"]
+        #pp result1
+        xattrsExact = Hash.new
+        xattrsExact["xattr_key_1"] = "xattr_value_1_updated"
+        xattrsExact["xattr_key_3"] = "xattr_value_3"
+        prov_check_asset_with_xattrs(result1, prov_experiment_id(@experiment_app1_name1), xattrsExact)
+
+        pp "cleanup hops"
+        prov_delete_experiment(@project1, @experiment_app1_name1)
+
+        pp "check hops cleanup"
+        prov_wait_for_epipe()
+        get_ml_asset_in_project(@project1, "EXPERIMENT", false, 0)
       end
     end
     describe "models" do
@@ -297,25 +402,31 @@ describe "On #{ENV['OS']}" do
       pp "create project: #{@project1_name}"
       @project1 = create_project_by_name(@project1_name)
     end
-    
-#     after :each do
-#       pp "cleanup cycle"
-#       ops = cleanup_cycle(@project1)
-#
-#       #pp ops
-#       if ops["count"] != 0
-#         pp "secondary cleanup cycle"
-#         sleep(1)
-#         ops = cleanup_cycle(@project1)
-#       end
-#       expect(ops["count"]).to eq 0
-#     end
-#
-#     after :all do
-#       pp "delete projects"
-#       delete_project(@project1)
-#       @project1 = nil
-#     end
+
+    before :each do
+      prov_wait_for_epipe()
+    end
+    # after :each do
+    #   prov_wait_for_epipe()
+    #   pp "cleanup cycle"
+    #   ops = cleanup_cycle(@project1)
+    #
+    #   #pp ops
+    #   if ops["count"] != 0
+    #     pp "secondary cleanup cycle"
+    #     sleep(1)
+    #     ops = cleanup_cycle(@project1)
+    #   end
+    #   expect(ops["count"]).to eq 0
+    #
+    #   prov_wait_for_epipe()
+    # end
+    #
+    # after :all do
+    #   pp "delete projects"
+    #   delete_project(@project1)
+    #   @project1 = nil
+    # end
 
     describe 'experiments' do
       it 'experiment with xattr' do
@@ -377,82 +488,57 @@ describe "On #{ENV['OS']}" do
         prov_wait_for_epipe()
         get_ml_asset_in_project(@project1, "EXPERIMENT", false, 0)
       end
-      it 'experiment - app expansion - no app id' do
-        pp "stop epipe"
-        execute_remotely @hostname, "sudo systemctl stop epipe"
 
-        pp "setup"
-        project = @project1
-        #no app id
-        prov_create_experiment(project, @experiment_app1_name1)
-        #app id attached as xattr
-        prov_create_experiment(project, @experiment_app2_name1)
-        experiment2_record = prov_get_experiment_record(project, @experiment_app2_name1)
-        expect(experiment2_record.length).to eq 1
-        prov_add_xattr(experiment2_record[0], "app_id", @app2_id, "XATTR_ADD", 1)
-        #setup fake app
-        user_name = experiment2_record[0]["io_user_name"]
-        prov_add_app_states2(@app2_id, user_name)
-        #app id (tls) created by app
-        prov_create_experiment(project, @experiment_app3_name1)
-        experiment3_record = prov_get_experiment_record(project, @experiment_app3_name1)
-        expect(experiment3_record.length).to eq 1
-        experiment3_record[0]["io_app_id"] = @app3_id
-        pp experiment3_record[0]
-        experiment3_record[0].save!
-        #setup fake app
-        user_name = experiment3_record[0]["io_user_name"]
-        prov_add_app_states2(@app3_id, user_name)
-
-        pp "restart epipe"
+      it 'experiment - sort xattr - string and number' do
+        pp "check epipe"
         execute_remotely @hostname, "sudo systemctl restart epipe"
         prov_wait_for_epipe()
 
-        pp "test query"
-        query = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/file/state?filter_by=ML_TYPE:EXPERIMENT&expand=APP"
-        pp "#{query}"
-        result = get "#{query}"
-        expect_status(200)
-        parsed_result = JSON.parse(result)
-        expect(parsed_result["count"]).to eq 3
-        pp parsed_result
-        prov_check_experiment3(parsed_result["items"], @experiment_app1_name1, "UNKNOWN")
-        prov_check_experiment3(parsed_result["items"], @experiment_app2_name1, "FINISHED")
-        prov_check_experiment3(parsed_result["items"], @experiment_app3_name1, "FINISHED")
-
-        pp "cleanup hops"
-        prov_delete_experiment(@project1, @experiment_app1_name1)
-        prov_delete_experiment(@project1, @experiment_app2_name1)
-        prov_delete_experiment(@project1, @experiment_app3_name1)
-
-        pp "check hops cleanup"
-        prov_wait_for_epipe()
-        get_ml_asset_in_project(@project1, "EXPERIMENT", false, 0)
-      end
-
-      it 'experiment - sort xattr - string and number', focus: true do
-        pp "setup"
+        pp "change mapping"
         project = @project1
-        prov_create_experiment(project, @experiment_app1_name1)
-        experiment1_record = prov_get_experiment_record(project, @experiment_app1_name1)
-        expect(experiment1_record.length).to eq 1
-        prov_add_xattr(experiment1_record[0], "xattr_string", "some text", "XATTR_ADD", 1)
-        prov_add_xattr(experiment1_record[0], "xattr_long", 24, "XATTR_ADD", 2)
-        jsonVal = JSON['{"xattr_string":"some other text","xattr_long": 12}']
-        prov_add_xattr(experiment1_record[0], "xattr_json", JSON[jsonVal], "XATTR_ADD", 3)
+        experiment = "#{@app1_id}_#{short_random_id}"
+        prov_create_experiment(project, experiment)
+        experiment_record = prov_get_experiment_record(project, experiment)
+        expect(experiment_record.length).to eq 1
+        prov_add_xattr(experiment_record[0], "xattr_string", "some text", "XATTR_ADD", 1)
+        prov_add_xattr(experiment_record[0], "xattr_long", 24, "XATTR_ADD", 2)
 
         pp "restart epipe"
         execute_remotely @hostname, "sudo systemctl restart epipe"
         prov_wait_for_epipe()
 
         pp "check mapping"
+        sleep(5)
         query = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/index/mapping"
         pp "#{query}"
         result = get "#{query}"
         expect_status(200)
         parsed_result = JSON.parse(result)
-        #pp parsed_result["mapping"]["entry"]
-        e1 = parsed_result["mapping"]["entry"].select { |e| e["key"] == "xattr_prov.xattr_string.raw" }
+        pp parsed_result["mapping"]["entry"]
+        e1 = parsed_result["mapping"]["entry"].select { |e| e["key"] == "xattr_prov.xattr_string.value" }
+        expect(e1[0]["value"]).to eq "text"
+        e2 = parsed_result["mapping"]["entry"].select { |e| e["key"] == "xattr_prov.xattr_long.value" }
+        expect(e2[0]["value"]).to eq "long"
+        e3 = parsed_result["mapping"]["entry"].select { |e| e["key"] == "xattr_prov.xattr_json.value.xattr_long" }
+        expect(e3.length).to eq 0
+
+        pp "change mapping again"
+        jsonVal = JSON['{"xattr_string":"some other text","xattr_long": 12}']
+        prov_add_xattr(experiment_record[0], "xattr_json", JSON[jsonVal], "XATTR_ADD", 3)
+
+        pp "restart epipe"
+        execute_remotely @hostname, "sudo systemctl restart epipe"
+        prov_wait_for_epipe()
+
+        pp "check mapping"
+        sleep (5)
+        query = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/index/mapping"
+        pp "#{query}"
+        result = get "#{query}"
+        expect_status(200)
+        parsed_result = JSON.parse(result)
+        pp parsed_result["mapping"]["entry"]
+        e1 = parsed_result["mapping"]["entry"].select { |e| e["key"] == "xattr_prov.xattr_string.value" }
         expect(e1[0]["value"]).to eq "text"
         e2 = parsed_result["mapping"]["entry"].select { |e| e["key"] == "xattr_prov.xattr_long.value" }
         expect(e2[0]["value"]).to eq "long"
@@ -481,6 +567,663 @@ describe "On #{ENV['OS']}" do
         pp "#{query}"
         result = get "#{query}"
         expect_status(200)
+
+        pp "cleanup hops"
+        prov_delete_experiment(@project1, experiment)
+
+        pp "check hops cleanup"
+        prov_wait_for_epipe()
+        get_ml_asset_in_project(@project1, "EXPERIMENT", false, 0)
+      end
+    end
+
+    describe 'elastic - dynamic field - no such mapping' do
+      it 'mapping not found - query includes dynamic fields (xattr)' do
+        mlType = "EXPERIMENT"
+        xattr = "no_such_xattr"
+        resource = "#{ENV['HOPSWORKS_API']}/project/#{@project1[:id]}/provenance/file/state"
+        query_params = "?filter_by=ML_TYPE:#{mlType}&xattr_sort_by=#{xattr}:asc"
+        pp "#{resource}#{query_params}"
+        result = get "#{resource}#{query_params}"
+        expect_status(400)
+        parsed_result = JSON.parse(result)
+        expect(parsed_result["errorCode"]).to eq 100047
+      end
+    end
+
+    describe 'file state' do
+      it 'file state pagination' do
+        pp "check epipe"
+        execute_remotely @hostname, "sudo systemctl restart epipe"
+        prov_wait_for_epipe()
+
+        pp "create experiments - pagination"
+        prov_create_experiment(@project1, "#{@app1_id}_1")
+        prov_create_experiment(@project1, "#{@app1_id}_2")
+        prov_create_experiment(@project1, "#{@app1_id}_3")
+        prov_create_experiment(@project1, "#{@app1_id}_4")
+        prov_create_experiment(@project1, "#{@app1_id}_5")
+        prov_create_experiment(@project1, "#{@app1_id}_6")
+        prov_create_experiment(@project1, "#{@app1_id}_7")
+        prov_create_experiment(@project1, "#{@app1_id}_8")
+        prov_create_experiment(@project1, "#{@app1_id}_9")
+        prov_create_experiment(@project1, "#{@app1_id}_10")
+
+        pp "wait epipe"
+        prov_wait_for_epipe()
+
+        pp "check experiments pagination"
+        result1 = get_ml_asset_in_project_page(@project1, "EXPERIMENT", false, 0, 7)
+        expect(result1["items"].length).to eq 7
+        expect(result1["count"]).to eq 10
+        result2 = get_ml_asset_in_project_page(@project1, "EXPERIMENT", false, 7, 14)
+        expect(result2["items"].length).to eq 3
+        expect(result2["count"]).to eq 10
+
+        pp "cleanup hops"
+        prov_delete_experiment(@project1, "#{@app1_id}_1")
+        prov_delete_experiment(@project1, "#{@app1_id}_2")
+        prov_delete_experiment(@project1, "#{@app1_id}_3")
+        prov_delete_experiment(@project1, "#{@app1_id}_4")
+        prov_delete_experiment(@project1, "#{@app1_id}_5")
+        prov_delete_experiment(@project1, "#{@app1_id}_6")
+        prov_delete_experiment(@project1, "#{@app1_id}_7")
+        prov_delete_experiment(@project1, "#{@app1_id}_8")
+        prov_delete_experiment(@project1, "#{@app1_id}_9")
+        prov_delete_experiment(@project1, "#{@app1_id}_10")
+
+        pp "check cleanup"
+        prov_wait_for_epipe()
+        check_no_ml_asset_by_id(@project1, "EXPERIMENT", prov_experiment_id(@experiment_app1_name1), false)
+        check_no_ml_asset_by_id(@project1, "EXPERIMENT", prov_experiment_id(@experiment_app2_name1), false)
+      end
+
+      it "search by like file name" do
+        pp "stop epipe"
+        execute_remotely @hostname, "sudo systemctl stop epipe"
+
+        pp "create experiment"
+        prov_create_experiment(@project1, @experiment_app1_name1)
+        prov_create_experiment(@project1, @experiment_app2_name1)
+
+        pp "restart epipe"
+        execute_remotely @hostname, "sudo systemctl restart epipe"
+        prov_wait_for_epipe()
+
+        pp "check - ok - search result"
+        experiment1_id = prov_experiment_id(@experiment_app1_name1)
+        experiment2_id = prov_experiment_id(@experiment_app2_name1)
+
+        experiments1 = get_ml_asset_like_name(@project1, "EXPERIMENT", @experiment_app1_name1)
+        #pp experiment
+        expect(experiments1.length).to eq 1
+        prov_check_asset_with_id(experiments1, experiment1_id)
+
+        experiments2 = get_ml_asset_like_name(@project1, "EXPERIMENT", @experiment_app2_name1)
+        #pp experiment
+        expect(experiments2.length).to eq 1
+        prov_check_asset_with_id(experiments2, experiment2_id)
+
+        experiments3 = get_ml_asset_like_name(@project1, "EXPERIMENT", @app1_id)
+        #pp experiment
+        expect(experiments3.length).to eq 1
+        prov_check_asset_with_id(experiments3, experiment1_id)
+
+        experiments4 = get_ml_asset_like_name(@project1, "EXPERIMENT", "application_")
+        #pp experiment
+        expect(experiments4.length).to eq 2
+        prov_check_asset_with_id(experiments4, experiment1_id)
+        prov_check_asset_with_id(experiments4, experiment2_id)
+
+        pp "cleanup hops"
+        prov_delete_experiment(@project1, @experiment_app1_name1)
+        prov_delete_experiment(@project1, @experiment_app2_name1)
+
+        pp "check hops cleanup"
+        prov_wait_for_epipe()
+        experiment_id1 = prov_experiment_id(@experiment_app1_name1)
+        experiment_id2 = prov_experiment_id(@experiment_app2_name1)
+        check_no_ml_asset_by_id(@project1, "EXPERIMENT", experiment_id1, false)
+        check_no_ml_asset_by_id(@project1, "EXPERIMENT", experiment_id2, false)
+      end
+
+      it 'timestamp range query' do
+        pp "stop epipe"
+        execute_remotely @hostname, "sudo systemctl stop epipe"
+
+        pp "create mock file history"
+        prov_create_experiment(@project1, prov_experiment_id("#{@app1_id}_1"))
+        sleep(1)
+        prov_create_experiment(@project1, prov_experiment_id("#{@app1_id}_2"))
+        sleep(1)
+        prov_create_experiment(@project1, prov_experiment_id("#{@app1_id}_3"))
+        sleep(1)
+        prov_create_experiment(@project1, prov_experiment_id("#{@app1_id}_4"))
+        sleep(1)
+        prov_create_experiment(@project1, prov_experiment_id("#{@app1_id}_5"))
+
+        pp "restart epipe"
+        execute_remotely @hostname, "sudo systemctl restart epipe"
+        prov_wait_for_epipe()
+
+        pp "check file history"
+        exp1 = get_ml_asset_by_id(@project1, "EXPERIMENT", prov_experiment_id("#{@app1_id}_1"), false)
+        # pp exp1
+        exp3 = get_ml_asset_by_id(@project1, "EXPERIMENT", prov_experiment_id("#{@app1_id}_3"), false)
+        # pp exp3
+        exp5 = get_ml_asset_by_id(@project1, "EXPERIMENT", prov_experiment_id("#{@app1_id}_5"), false)
+        # pp exp5
+        get_ml_in_create_range(@project1, "EXPERIMENT", exp1["createTime"], exp5["createTime"], 3)
+        get_ml_in_create_range(@project1, "EXPERIMENT", exp3["createTime"], exp5["createTime"], 1)
+
+        pp "cleanup hops"
+        prov_delete_experiment(@project1, prov_experiment_id("#{@app1_id}_1"))
+        prov_delete_experiment(@project1, prov_experiment_id("#{@app1_id}_2"))
+        prov_delete_experiment(@project1, prov_experiment_id("#{@app1_id}_3"))
+        prov_delete_experiment(@project1, prov_experiment_id("#{@app1_id}_4"))
+        prov_delete_experiment(@project1, prov_experiment_id("#{@app1_id}_5"))
+
+        pp "check hops cleanup"
+        prov_wait_for_epipe()
+        check_no_ml_asset_by_id(@project1, "EXPERIMENT", prov_experiment_id("#{@app1_id}_1"), false)
+        check_no_ml_asset_by_id(@project1, "EXPERIMENT", prov_experiment_id("#{@app1_id}_2"), false)
+        check_no_ml_asset_by_id(@project1, "EXPERIMENT", prov_experiment_id("#{@app1_id}_3"), false)
+        check_no_ml_asset_by_id(@project1, "EXPERIMENT", prov_experiment_id("#{@app1_id}_4"), false)
+        check_no_ml_asset_by_id(@project1, "EXPERIMENT", prov_experiment_id("#{@app1_id}_5"), false)
+      end
+
+      it "search by like xattr 2" do
+        pp "stop epipe"
+        execute_remotely @hostname, "sudo systemctl stop epipe"
+
+        pp "create experiment with xattr"
+        prov_create_experiment(@project1, @experiment_app1_name1)
+        experiment_record1 = prov_get_experiment_record(@project1, @experiment_app1_name1)
+        expect(experiment_record1.length).to eq 1
+        prov_add_xattr(experiment_record1[0], "config", JSON[@xattrV8], "XATTR_ADD", 1)
+        prov_create_experiment(@project1, @experiment_app1_name2)
+        experiment_record2 = prov_get_experiment_record(@project1, @experiment_app1_name2)
+        expect(experiment_record2.length).to eq 1
+        prov_add_xattr(experiment_record2[0], "config", JSON[@xattrV8], "XATTR_ADD", 1)
+        prov_create_experiment(@project1, @experiment_app1_name3)
+        experiment_record3 = prov_get_experiment_record(@project1, @experiment_app1_name3)
+        expect(experiment_record3.length).to eq 1
+        prov_add_xattr(experiment_record3[0], "config", JSON[@xattrV8], "XATTR_ADD", 1)
+
+        pp "restart epipe"
+        execute_remotely @hostname, "sudo systemctl restart epipe"
+        prov_wait_for_epipe()
+
+        pp "check not json - ok - search result"
+        experiment1_id = prov_experiment_id(@experiment_app1_name1)
+        experiment2_id = prov_experiment_id(@experiment_app1_name2)
+        experiment3_id = prov_experiment_id(@experiment_app1_name3)
+        experiments1 = get_ml_asset_like_xattr(@project1, "EXPERIMENT", "config.name", "mnist")
+        #pp experiment
+        expect(experiments1.length).to eq 3
+        prov_check_asset_with_id(experiments1, experiment1_id)
+        prov_check_asset_with_id(experiments1, experiment2_id)
+        prov_check_asset_with_id(experiments1, experiment3_id)
+
+        pp "cleanup hops"
+        prov_delete_experiment(@project1, @experiment_app1_name1)
+        prov_delete_experiment(@project1, @experiment_app1_name2)
+        prov_delete_experiment(@project1, @experiment_app1_name3)
+
+        pp "check hops cleanup"
+        prov_wait_for_epipe()
+        experiment_id1 = prov_experiment_id(@experiment_app1_name1)
+        experiment_id2 = prov_experiment_id(@experiment_app1_name2)
+        experiment_id3 = prov_experiment_id(@experiment_app1_name3)
+        check_no_ml_asset_by_id(@project1, "EXPERIMENT", experiment_id1, false)
+        check_no_ml_asset_by_id(@project1, "EXPERIMENT", experiment_id2, false)
+        check_no_ml_asset_by_id(@project1, "EXPERIMENT", experiment_id3, false)
+      end
+
+      it "search by like xattr" do
+        pp "stop epipe"
+        execute_remotely @hostname, "sudo systemctl stop epipe"
+
+        pp "create experiment with xattr"
+        prov_create_experiment(@project1, @experiment_app1_name1)
+        experiment_record1 = prov_get_experiment_record(@project1, @experiment_app1_name1)
+        expect(experiment_record1.length).to eq 1
+        prov_add_xattr(experiment_record1[0], "test_xattr", @xattrV4, "XATTR_ADD", 1)
+        prov_create_experiment(@project1, @experiment_app2_name1)
+        experiment_record2 = prov_get_experiment_record(@project1, @experiment_app2_name1)
+        expect(experiment_record2.length).to eq 1
+        prov_add_xattr(experiment_record2[0], "test_xattr", @xattrV6, "XATTR_ADD", 1)
+        prov_create_experiment(@project1, @experiment_app1_name2)
+        experiment_record3 = prov_get_experiment_record(@project1, @experiment_app1_name2)
+        expect(experiment_record3.length).to eq 1
+        prov_add_xattr(experiment_record3[0], "test_xattr", @xattrV7, "XATTR_ADD", 1)
+        prov_add_xattr(experiment_record3[0], "config", JSON[@xattrV8], "XATTR_ADD", 2)
+
+        pp "restart epipe"
+        execute_remotely @hostname, "sudo systemctl restart epipe"
+        prov_wait_for_epipe()
+
+        pp "check not json - ok - search result"
+        experiment1_id = prov_experiment_id(@experiment_app1_name1)
+        experiment2_id = prov_experiment_id(@experiment_app2_name1)
+        experiment3_id = prov_experiment_id(@experiment_app1_name2)
+        experiments1 = get_ml_asset_by_xattr(@project1, "EXPERIMENT", "test_xattr", "notJson")
+        #pp experiment
+        expect(experiments1.length).to eq 1
+        prov_check_asset_with_id(experiments1, experiment1_id)
+        experiments2 = get_ml_asset_like_xattr(@project1, "EXPERIMENT", "test_xattr", "notJson")
+        #pp experiment
+        expect(experiments2.length).to eq 1
+        prov_check_asset_with_id(experiments2, experiment1_id)
+        experiments3 = get_ml_asset_like_xattr(@project1, "EXPERIMENT", "test_xattr", "notJs")
+        #pp experiment
+        expect(experiments3.length).to eq 1
+        prov_check_asset_with_id(experiments3, experiment1_id)
+        experiments4 = get_ml_asset_like_xattr(@project1, "EXPERIMENT", "test_xattr", "not")
+        #pp experiment
+        expect(experiments4.length).to eq 3
+        prov_check_asset_with_id(experiments4, experiment1_id)
+        prov_check_asset_with_id(experiments4, experiment2_id)
+        prov_check_asset_with_id(experiments4, experiment3_id)
+        experiments5 = get_ml_asset_like_xattr(@project1, "EXPERIMENT", "test_xattr", "Json")
+        #pp experiment
+        expect(experiments5.length).to eq 2
+        prov_check_asset_with_id(experiments5, experiment1_id)
+        prov_check_asset_with_id(experiments5, experiment3_id)
+        experiments6 = get_ml_asset_like_xattr(@project1, "EXPERIMENT", "config.name", "mnist")
+        #pp experiment
+        expect(experiments6.length).to eq 1
+        prov_check_asset_with_id(experiments6, experiment3_id)
+
+        pp "cleanup hops"
+        prov_delete_experiment(@project1, @experiment_app1_name1)
+        prov_delete_experiment(@project1, @experiment_app2_name1)
+        prov_delete_experiment(@project1, @experiment_app1_name2)
+
+        pp "check hops cleanup"
+        prov_wait_for_epipe()
+        experiment_id1 = prov_experiment_id(@experiment_app1_name1)
+        experiment_id2 = prov_experiment_id(@experiment_app2_name1)
+        experiment_id3 = prov_experiment_id(@experiment_app1_name2)
+        check_no_ml_asset_by_id(@project1, "EXPERIMENT", experiment_id1, false)
+        check_no_ml_asset_by_id(@project1, "EXPERIMENT", experiment_id2, false)
+        check_no_ml_asset_by_id(@project1, "EXPERIMENT", experiment_id3, false)
+      end
+
+      it "search by xattr" do
+        pp "stop epipe"
+        execute_remotely @hostname, "sudo systemctl stop epipe"
+
+        pp "create experiment with xattr"
+        prov_create_experiment(@project1, @experiment_app1_name1)
+        experiment_record = prov_get_experiment_record(@project1, @experiment_app1_name1)
+        expect(experiment_record.length).to eq 1
+        prov_add_xattr(experiment_record[0], "test_xattr1", JSON[@xattrV1], "XATTR_ADD", 1)
+        prov_add_xattr(experiment_record[0], "test_xattr2", JSON[@xattrV3], "XATTR_ADD", 2)
+        prov_add_xattr(experiment_record[0], "test_xattr4", @xattrV4, "XATTR_ADD", 3)
+        prov_add_xattr(experiment_record[0], "test_xattr5", JSON[@xattrV5], "XATTR_ADD", 4)
+
+        pp "restart epipe"
+        execute_remotely @hostname, "sudo systemctl restart epipe"
+
+        pp "check simple json - ok - search result"
+        prov_wait_for_epipe()
+        experiment_id = prov_experiment_id(@experiment_app1_name1)
+
+        experiment = get_ml_asset_by_xattr(@project1, "EXPERIMENT", "test_xattr1.f1_1", "v1")
+        #pp experiment
+        expect(experiment.length).to eq 1
+        prov_check_asset_with_id(experiment, experiment_id)
+
+        experiment = get_ml_asset_by_xattr(@project1, "EXPERIMENT", "test_xattr1.f1_2.f2_1", "val1")
+        #pp experiment
+        expect(experiment.length).to eq 1
+        prov_check_asset_with_id(experiment, experiment_id)
+
+        pp "check simple json - not ok - search result"
+        experiment_id = prov_experiment_id(@experiment_app1_name1)
+        #bad key
+        experiment = get_ml_asset_by_xattr(@project1, "EXPERIMENT", "test_xattr1.f1_1_1", "v1")
+        #pp experiment
+        expect(experiment.length).to eq 0
+        #bad value
+        experiment = get_ml_asset_by_xattr(@project1, "EXPERIMENT", "test_xattr1.f1_1", "val12")
+        #pp experiment
+        expect(experiment.length).to eq 0
+
+        pp "check json array - ok - search result"
+        experiment_id = prov_experiment_id(@experiment_app1_name1)
+        experiment = get_ml_asset_by_xattr(@project1, "EXPERIMENT", "test_xattr2.f3_1", "val1")
+        #pp experiment
+        expect(experiment.length).to eq 1
+        prov_check_asset_with_id(experiment, experiment_id)
+        experiment = get_ml_asset_by_xattr(@project1, "EXPERIMENT", "test_xattr5.f3_1", "val1")
+        #pp experiment
+        expect(experiment.length).to eq 1
+        prov_check_asset_with_id(experiment, experiment_id)
+        experiment = get_ml_asset_by_xattr(@project1, "EXPERIMENT", "test_xattr5.f3_1", "val2")
+        #pp experiment
+        expect(experiment.length).to eq 1
+        prov_check_asset_with_id(experiment, experiment_id)
+
+        pp "check not json - ok - search result"
+        experiment_id = prov_experiment_id(@experiment_app1_name1)
+        experiment = get_ml_asset_by_xattr(@project1, "EXPERIMENT", "test_xattr4", "notJson")
+        #pp experiment
+        expect(experiment.length).to eq 1
+        prov_check_asset_with_id(experiment, experiment_id)
+
+        pp "check not json - not ok - search result"
+        experiment_id = prov_experiment_id(@experiment_app1_name1)
+        experiment = get_ml_asset_by_xattr(@project1, "EXPERIMENT", "test_xattr4", "notJson1")
+        #pp experiment
+        expect(experiment.length).to eq 0
+
+        pp "cleanup hops"
+        prov_delete_experiment(@project1, @experiment_app1_name1)
+
+        pp "check hops cleanup"
+        prov_wait_for_epipe()
+        experiment_id = prov_experiment_id(@experiment_app1_name1)
+        check_no_ml_asset_by_id(@project1, "EXPERIMENT", experiment_id, false)
+      end
+
+      it "not json xattr" do
+        pp "stop epipe"
+        execute_remotely @hostname, "sudo systemctl stop epipe"
+
+        pp "create experiment with xattr"
+        prov_create_experiment(@project1, @experiment_app1_name1)
+        experiment_record = prov_get_experiment_record(@project1, @experiment_app1_name1)
+        expect(experiment_record.length).to eq 1
+        prov_add_xattr(experiment_record[0], "test_xattr_string", @xattrV4, "XATTR_ADD", 1)
+
+        pp "restart epipe"
+        execute_remotely @hostname, "sudo systemctl restart epipe"
+
+        pp "check experiment dataset"
+        prov_wait_for_epipe()
+        experiment_id = prov_experiment_id(@experiment_app1_name1)
+        experiment = get_ml_asset_by_id(@project1, "EXPERIMENT", experiment_id, false)
+        #pp experiment
+        prov_xattr = experiment["map"]["entry"].select { |e| e["key"] == "xattr_prov"}
+        expect(prov_xattr.length).to eq 1
+        fixed_json = fix_json(prov_xattr[0]["value"])
+        test_xattr_field = fixed_json["test_xattr_string"]["raw"]
+        expect(test_xattr_field).to eq @xattrV4
+
+        pp "cleanup hops"
+        prov_delete_experiment(@project1, @experiment_app1_name1)
+
+        pp "check hops cleanup"
+        prov_wait_for_epipe()
+        experiment_id = prov_experiment_id(@experiment_app1_name1)
+        check_no_ml_asset_by_id(@project1, "EXPERIMENT", experiment_id, false)
+      end
+    end
+
+    describe 'each test depends on the mapping not clashing with the other tests' do
+      it "array xattr" do
+        pp "stop epipe"
+        execute_remotely @hostname, "sudo systemctl stop epipe"
+
+        pp "create experiment with xattr"
+        prov_create_experiment(@project1, @experiment_app1_name1)
+        experiment_record = prov_get_experiment_record(@project1, @experiment_app1_name1)
+        expect(experiment_record.length).to eq 1
+        xattr_key = "test_xattr_json_1"
+        prov_add_xattr(experiment_record[0], xattr_key, JSON[@xattrV3], "XATTR_ADD", 1)
+
+        pp "restart epipe"
+        execute_remotely @hostname, "sudo systemctl restart epipe"
+
+        pp "check experiment dataset"
+        prov_wait_for_epipe()
+        experiment_id = prov_experiment_id(@experiment_app1_name1)
+        experiment = get_ml_asset_by_id(@project1, "EXPERIMENT", experiment_id, false)
+        #pp experiment
+
+        prov_xattr = experiment["map"]["entry"].select { |e| e["key"] == "xattr_prov"}
+        expect(prov_xattr.length).to eq 1
+        fixed_json = fix_json(prov_xattr[0]["value"])
+        test_xattr_field = fixed_json[xattr_key]["value"]
+        expect(test_xattr_field).to eq @xattrV3
+
+        pp "cleanup hops"
+        prov_delete_experiment(@project1, @experiment_app1_name1)
+
+        pp "check hops cleanup"
+        prov_wait_for_epipe()
+        experiment_id = prov_experiment_id(@experiment_app1_name1)
+        check_no_ml_asset_by_id(@project1, "EXPERIMENT", experiment_id, false)
+      end
+
+      it "delete xattr" do
+        pp "stop epipe"
+        execute_remotely @hostname, "sudo systemctl stop epipe"
+
+        pp "create experiment with xattr"
+        prov_create_experiment(@project1, @experiment_app1_name1)
+        experiment1_record = prov_get_experiment_record(@project1, @experiment_app1_name1)
+        expect(experiment1_record.length).to eq 1
+        xattr_key = "test_delete_xattr"
+        prov_add_xattr(experiment1_record[0], xattr_key, JSON[@xattrV1], "XATTR_ADD", 1)
+        prov_add_xattr(experiment1_record[0], xattr_key, "", "XATTR_DELETE", 2)
+
+        prov_create_experiment(@project1, @experiment_app2_name1)
+        experiment2_record = prov_get_experiment_record(@project1, @experiment_app2_name1)
+        expect(experiment2_record.length).to eq 1
+        prov_add_xattr(experiment2_record[0], xattr_key, JSON[@xattrV1], "XATTR_ADD", 1)
+        prov_add_xattr(experiment2_record[0], xattr_key, JSON[@xattrV2], "XATTR_UPDATE", 2)
+        prov_add_xattr(experiment2_record[0], xattr_key, "", "XATTR_DELETE", 3)
+
+        pp "restart epipe"
+        execute_remotely @hostname, "sudo systemctl restart epipe"
+
+        pp "check experiment dataset"
+        prov_wait_for_epipe()
+        experiment1_id = prov_experiment_id(@experiment_app1_name1)
+        experiment1 = get_ml_asset_by_id(@project1, "EXPERIMENT", experiment1_id, false)
+        #pp experiment
+        prov_xattr1 = experiment1["map"]["entry"].select { |e| e["key"] == "xattr_prov"}
+        expect(prov_xattr1.length).to eq 1
+        expect(prov_xattr1[0]["value"]).to eq "{}"
+
+        experiment2_id = prov_experiment_id(@experiment_app2_name1)
+        experiment2 = get_ml_asset_by_id(@project1, "EXPERIMENT", experiment2_id, false)
+        #pp experiment
+        prov_xattr2 = experiment2["map"]["entry"].select { |e| e["key"] == "xattr_prov"}
+        expect(prov_xattr2.length).to eq 1
+        expect(prov_xattr2[0]["value"]).to eq "{}"
+
+        pp "cleanup hops"
+        prov_delete_experiment(@project1, @experiment_app1_name1)
+        prov_delete_experiment(@project1, @experiment_app2_name1)
+
+        pp "check hops cleanup"
+        prov_wait_for_epipe()
+        experiment1_id = prov_experiment_id(@experiment_app1_name1)
+        check_no_ml_asset_by_id(@project1, "EXPERIMENT", experiment1_id, false)
+        experiment2_id = prov_experiment_id(@experiment_app2_name1)
+        check_no_ml_asset_by_id(@project1, "EXPERIMENT", experiment2_id, false)
+      end
+
+      it "update xattr" do
+        pp "stop epipe"
+        execute_remotely @hostname, "sudo systemctl stop epipe"
+
+        pp "create experiment with xattr"
+        prov_create_experiment(@project1, @experiment_app1_name1)
+        experiment_record = prov_get_experiment_record(@project1, @experiment_app1_name1)
+        expect(experiment_record.length).to eq 1
+        xattr_key = "test_update_xattr"
+        prov_add_xattr(experiment_record[0], xattr_key, JSON[@xattrV1], "XATTR_ADD", 1)
+        prov_add_xattr(experiment_record[0], xattr_key, JSON[@xattrV2], "XATTR_UPDATE", 2)
+
+        pp "restart epipe"
+        execute_remotely @hostname, "sudo systemctl restart epipe"
+
+        pp "check experiment dataset"
+        prov_wait_for_epipe()
+        experiment_id = prov_experiment_id(@experiment_app1_name1)
+        experiment = get_ml_asset_by_id(@project1, "EXPERIMENT", experiment_id, false)
+        #pp experiment
+        prov_xattr = experiment["map"]["entry"].select { |e| e["key"] == "xattr_prov"}
+        expect(prov_xattr.length).to eq 1
+        fixed_json = fix_json(prov_xattr[0]["value"])
+        test_xattr_field = fixed_json[xattr_key]["value"]
+        expect(test_xattr_field).to eq @xattrV2
+
+        pp "cleanup hops"
+        prov_delete_experiment(@project1, @experiment_app1_name1)
+
+        pp "check hops cleanup"
+        prov_wait_for_epipe()
+        experiment_id = prov_experiment_id(@experiment_app1_name1)
+        check_no_ml_asset_by_id(@project1, "EXPERIMENT", experiment_id, false)
+      end
+
+      it "experiment add xattr" do
+        pp "stop epipe"
+        execute_remotely @hostname, "sudo systemctl stop epipe"
+
+        pp "create experiment with xattr"
+        prov_create_experiment(@project1, @experiment_app1_name1)
+        experiment_record = prov_get_experiment_record(@project1, @experiment_app1_name1)
+        expect(experiment_record.length).to eq 1
+        xattr_key = "test_add_xattr"
+        prov_add_xattr(experiment_record[0], xattr_key, JSON[@xattrV1], "XATTR_ADD", 1)
+
+        pp "restart epipe"
+        execute_remotely @hostname, "sudo systemctl restart epipe"
+
+        pp "check experiment dataset"
+        prov_wait_for_epipe()
+        experiment_id = prov_experiment_id(@experiment_app1_name1)
+        experiment = get_ml_asset_by_id(@project1, "EXPERIMENT", experiment_id, false)
+        #pp experiment
+        prov_xattr = experiment["map"]["entry"].select { |e| e["key"] == "xattr_prov"}
+        expect(prov_xattr.length).to eq 1
+        fixed_json = fix_json(prov_xattr[0]["value"])
+        test_xattr_field = fixed_json[xattr_key]["value"]
+        expect(test_xattr_field).to eq @xattrV1
+
+        pp "cleanup hops"
+        prov_delete_experiment(@project1, @experiment_app1_name1)
+
+        pp "check hops cleanup"
+        prov_wait_for_epipe()
+        experiment_id = prov_experiment_id(@experiment_app1_name1)
+        check_no_ml_asset_by_id(@project1, "EXPERIMENT", experiment_id, false)
+      end
+
+      it 'training dataset add xattr' do
+        pp "stop epipe"
+        execute_remotely @hostname, "sudo systemctl stop epipe"
+
+        pp "create training dataset with xattr"
+        prov_create_td(@project1, @td1_name, @td_version1)
+        td_record = prov_get_td_record(@project1, @td1_name, @td_version1)
+        expect(td_record.length).to eq 1
+        xattr_key1 = "test_xattr_add_td_1"
+        xattr_key2 = "test_xattr_add_td_2"
+        prov_add_xattr(td_record[0], xattr_key1, "xattr_value_1", "XATTR_ADD", 1)
+        prov_add_xattr(td_record[0], xattr_key2, "xattr_value_2", "XATTR_ADD", 2)
+
+        pp "restart epipe"
+        execute_remotely @hostname, "sudo systemctl restart epipe"
+
+        pp "check training dataset"
+        prov_wait_for_epipe()
+        result1 = get_ml_asset_in_project(@project1, "TRAINING_DATASET", false, 1)["items"]
+        xattrsExact = Hash.new
+        xattrsExact[xattr_key1] = "xattr_value_1"
+        xattrsExact[xattr_key2] = "xattr_value_2"
+        prov_check_asset_with_xattrs(result1, prov_td_id(@td1_name, @td_version1), xattrsExact)
+
+        pp "cleanup hops"
+        prov_delete_td(@project1, @td1_name, @td_version1)
+
+        pp "check hops cleanup"
+        prov_wait_for_epipe()
+        get_ml_asset_in_project(@project1, "TRAINING_DATASET", false, 0)
+      end
+
+      it 'model with xattr' do
+        pp "stop epipe"
+        execute_remotely @hostname, "sudo systemctl stop epipe"
+
+        pp "create model with xattr"
+        prov_create_model(@project1, @model1_name)
+        prov_create_model_version(@project1, @model1_name, @model_version1)
+        modelRecord = FileProv.where("project_name": @project1["inode_name"], "i_parent_name": @model1_name, "i_name": @model_version1)
+        expect(modelRecord.length).to eq 1
+        xattr_key1 = "test_xattr_add_m_1"
+        xattr_key2 = "test_xattr_add_m_2"
+        prov_add_xattr(modelRecord[0], xattr_key1, "xattr_value_1", "XATTR_ADD", 1)
+        prov_add_xattr(modelRecord[0], xattr_key2, "xattr_value_2", "XATTR_ADD", 2)
+
+        pp "restart epipe"
+        execute_remotely @hostname, "sudo systemctl restart epipe"
+
+        pp "check model"
+        prov_wait_for_epipe()
+        result1 = get_ml_asset_in_project(@project1, "MODEL", false, 1)["items"]
+        xattrsExact = Hash.new
+        xattrsExact[xattr_key1] = "xattr_value_1"
+        xattrsExact[xattr_key2] = "xattr_value_2"
+        prov_check_asset_with_xattrs(result1, prov_model_id(@model1_name, @model_version1), xattrsExact)
+
+        pp "cleanup hops"
+        prov_delete_model(@project1, @model1_name)
+
+        pp "check hops cleanup"
+        prov_wait_for_epipe()
+        get_ml_asset_in_project(@project1, "MODEL", false, 0)
+      end
+
+      it 'filter by - has xattr' do
+        pp "stop epipe"
+        execute_remotely @hostname, "sudo systemctl stop epipe"
+
+        pp "create experiment with xattr"
+        prov_create_experiment(@project1, @experiment_app1_name1)
+        prov_create_experiment(@project1, @experiment_app2_name1)
+        prov_create_experiment(@project1, @experiment_app3_name1)
+
+        experiment_record = prov_get_experiment_record(@project1, @experiment_app1_name1)
+        expect(experiment_record.length).to eq 1
+        xattr_key1 = "filter_by_has_xattr_1"
+        xattr_val = "some value"
+        prov_add_xattr(experiment_record[0], xattr_key1, xattr_val, "XATTR_ADD", 1)
+
+        experiment_record = prov_get_experiment_record(@project1, @experiment_app2_name1)
+        expect(experiment_record.length).to eq 1
+        xattr_key2 = "filter_by_has_xattr_2"
+        xattr_val = "some value"
+        prov_add_xattr(experiment_record[0], xattr_key2, xattr_val, "XATTR_ADD", 1)
+
+        pp "restart epipe"
+        execute_remotely @hostname, "sudo systemctl restart epipe"
+
+        pp "query with filter by - has xattr"
+        query = "#{ENV['HOPSWORKS_API']}/project/#{@project1[:id]}/provenance/file/state?filter_by_has_xattr=#{xattr_key1}"
+        pp "#{query}"
+        result = get "#{query}"
+        expect_status(200)
+        parsed_result = JSON.parse(result)
+        expect(parsed_result.length).to eq 2
+
+        pp "cleanup hops"
+        prov_delete_experiment(@project1, @experiment_app1_name1)
+        prov_delete_experiment(@project1, @experiment_app2_name1)
+        prov_delete_experiment(@project1, @experiment_app3_name1)
+
+        pp "check hops cleanup"
+        prov_wait_for_epipe()
+        check_no_ml_asset_by_id(@project1, "EXPERIMENT", prov_experiment_id(@experiment_app1_name1), false)
+        check_no_ml_asset_by_id(@project1, "EXPERIMENT", prov_experiment_id(@experiment_app2_name1), false)
+        check_no_ml_asset_by_id(@project1, "EXPERIMENT", prov_experiment_id(@experiment_app3_name1), false)
       end
     end
   end

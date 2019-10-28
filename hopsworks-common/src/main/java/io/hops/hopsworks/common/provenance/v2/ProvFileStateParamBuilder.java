@@ -281,6 +281,14 @@ public class ProvFileStateParamBuilder {
     return this;
   }
   
+  public ProvFileStateParamBuilder filterByHasXAttr(Set<String> keys) {
+    for(String key : keys) {
+      String xattrKey = ProvFileQuery.processXAttrKey(key);
+      hasXAttrFilter.add(xattrKey);
+    }
+    return this;
+  }
+  
   public boolean hasAppExpansion() {
     return expansions.contains(ProvFileQuery.FileExpansions.APP);
   }

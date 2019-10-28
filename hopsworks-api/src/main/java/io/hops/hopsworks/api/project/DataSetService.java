@@ -77,7 +77,8 @@ import io.hops.hopsworks.common.dataset.DatasetController;
 import io.hops.hopsworks.common.dataset.FilePreviewDTO;
 import io.hops.hopsworks.common.hdfs.FsPermissions;
 import io.hops.hopsworks.common.project.ProjectController;
-import io.hops.hopsworks.common.provenance.v2.xml.ProvTypeDTO;
+import io.hops.hopsworks.common.provenance.v2.HopsFSProvenanceController;
+import io.hops.hopsworks.common.provenance.v3.xml.ProvTypeDTO;
 import io.hops.hopsworks.exceptions.DatasetException;
 import io.hops.hopsworks.exceptions.GenericException;
 import io.hops.hopsworks.exceptions.HopsSecurityException;
@@ -188,6 +189,8 @@ public class DataSetService {
   private FeaturestoreController featurestoreController;
   @EJB
   private DsUpdateOperations dsUpdateOperations;
+  @EJB
+  private HopsFSProvenanceController fsProvenanceController;
 
   private Integer projectId;
   private Project project;
@@ -599,16 +602,16 @@ public class DataSetService {
     DistributedFileSystemOps udfso = dfs.getDfsOps(username);
 
     try {
-      ProvTypeDTO.ProvType datasetMetaStatus;
+      ProvTypeDTO datasetMetaStatus;
       if(dataSet.isSearchable()) {
-        ProvTypeDTO.ProvType projectMetaStatus = projectCtrl.getProvenanceStatus(project, dfso);
+        ProvTypeDTO projectMetaStatus = fsProvenanceController.getProjectProvType(user, project);
         if(ProvTypeDTO.ProvType.DISABLED.equals(projectMetaStatus)) {
-          datasetMetaStatus = ProvTypeDTO.ProvType.META;
+          datasetMetaStatus = ProvTypeDTO.ProvType.META.dto;
         } else {
           datasetMetaStatus = projectMetaStatus;
         }
       } else {
-        datasetMetaStatus = ProvTypeDTO.ProvType.DISABLED;
+        datasetMetaStatus = ProvTypeDTO.ProvType.DISABLED.dto;
       }
       datasetController.createDataset(user, project, dataSet.getName(),
         dataSet.getDescription(), dataSet.getTemplate(), datasetMetaStatus,

@@ -39,5 +39,13 @@
 package io.hops.hopsworks.common.provenance.v2;
 
 public class ProvXAttrs {
-  public static final String PROV_TYPE = "provenance.prov_type";
+  public static final String PROV_XATTR_CORE = "provenance.core";
+  public static final String PROV_TYPE_KEY = "prov_type";
+  public static final String PROV_PROJECT_IID_KEY = "project_iid";
+  public static final String PROV_META_STATUS_KEY = "meta_status";
+  public static final String PROV_STATUS_KEY = "prov_status";
+  
+  public static final String PROV_XATTR_FEATURES = "provenance.features";
+  
+  
 }

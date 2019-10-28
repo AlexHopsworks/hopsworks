@@ -39,7 +39,6 @@
 
 package io.hops.hopsworks.common.project;
 
-import com.google.gson.Gson;
 import io.hops.hopsworks.common.airflow.AirflowManager;
 import io.hops.hopsworks.common.constants.auth.AllowedRoles;
 import io.hops.hopsworks.common.dao.certificates.CertsFacade;
@@ -102,10 +101,8 @@ import io.hops.hopsworks.common.jobs.yarn.YarnLogUtil;
 import io.hops.hopsworks.common.jupyter.JupyterController;
 import io.hops.hopsworks.common.kafka.KafkaController;
 import io.hops.hopsworks.common.message.MessageController;
-import io.hops.hopsworks.common.provenance.ProvDatasetState;
-import io.hops.hopsworks.common.provenance.ProvenanceController;
-import io.hops.hopsworks.common.provenance.v2.ProvXAttrs;
-import io.hops.hopsworks.common.provenance.v2.xml.ProvTypeDTO;
+import io.hops.hopsworks.common.provenance.v2.HopsFSProvenanceController;
+import io.hops.hopsworks.common.provenance.v3.xml.ProvTypeDTO;
 import io.hops.hopsworks.common.python.environment.EnvironmentController;
 import io.hops.hopsworks.common.security.CertificateMaterializer;
 import io.hops.hopsworks.common.security.CertificatesController;
@@ -271,7 +268,7 @@ public class ProjectController {
   @EJB
   private ProjectTopicsFacade projectTopicsFacade;
   @EJB
-  private ProvenanceController provCtrl;
+  private HopsFSProvenanceController fsProvController;
 
   /**
    * Creates a new project(project), the related DIR, the different services in
@@ -375,10 +372,10 @@ public class ProjectController {
 
       //all the verifications have passed, we can now create the project
       //create the project folder
-      ProvTypeDTO.ProvType provType = settings.getProvType();
+      ProvTypeDTO provType = settings.getProvType().dto;
       try {
         mkProjectDIR(projectName, dfso);
-        updateProvenanceStatusInt(project, provType, dfso);
+        fsProvController.newProjectProvType(owner, project, provType);
       } catch (IOException | EJBException ex) {
         cleanup(project, sessionId, projectCreationFutures, true, owner);
         throw new ProjectException(RESTCodes.ProjectErrorCode.PROJECT_FOLDER_NOT_CREATED, Level.SEVERE,
@@ -658,7 +655,7 @@ public class ProjectController {
 
     for (Settings.BaseDataset ds : Settings.BaseDataset.values()) {
       datasetController.createDataset(user, project, ds.getName(), ds.
-          getDescription(), -1, ProvTypeDTO.ProvType.DISABLED, true, true, dfso);
+          getDescription(), -1, ProvTypeDTO.ProvType.DISABLED.dto, true, true, dfso);
 
       Path dsPath = new Path(Utils.getProjectPath(project.getName()) + ds.getName());
 
@@ -705,14 +702,14 @@ public class ProjectController {
 
   // Used only during project creation
   private List<Future<?>> addService(Project project, ProjectServiceEnum service,
-    Users user, DistributedFileSystemOps dfso, ProvTypeDTO.ProvType metaStatus)
+    Users user, DistributedFileSystemOps dfso, ProvTypeDTO metaStatus)
     throws ProjectException, ServiceException, DatasetException, HopsSecurityException,
     UserException, FeaturestoreException, GenericException {
     return addService(project, service, user, dfso, dfso, metaStatus);
   }
 
   public List<Future<?>> addService(Project project, ProjectServiceEnum service,
-      Users user, DistributedFileSystemOps dfso, DistributedFileSystemOps udfso, ProvTypeDTO.ProvType metaStatus)
+      Users user, DistributedFileSystemOps dfso, DistributedFileSystemOps udfso, ProvTypeDTO metaStatus)
     throws ProjectException, ServiceException, DatasetException, HopsSecurityException,
     UserException, FeaturestoreException, GenericException {
 
@@ -766,7 +763,7 @@ public class ProjectController {
 
   private void addServiceDataset(Project project, Users user,
     Settings.ServiceDataset ds, DistributedFileSystemOps dfso,
-    DistributedFileSystemOps udfso, ProvTypeDTO.ProvType metaStatus)
+    DistributedFileSystemOps udfso, ProvTypeDTO metaStatus)
     throws DatasetException, HopsSecurityException, ProjectException, GenericException {
     try {
       String datasetName = ds.getName();
@@ -810,7 +807,7 @@ public class ProjectController {
   }
 
   private Future<CertificatesController.CertsResult> addServiceServing(Project project, Users user,
-    DistributedFileSystemOps dfso, DistributedFileSystemOps udfso, ProvTypeDTO.ProvType metaStatus)
+    DistributedFileSystemOps dfso, DistributedFileSystemOps udfso, ProvTypeDTO metaStatus)
     throws ProjectException, DatasetException, HopsSecurityException, UserException, GenericException {
 
     addServiceDataset(project, user, Settings.ServiceDataset.SERVING, dfso, udfso, metaStatus);
@@ -1609,9 +1606,6 @@ public class ProjectController {
             "project: " + project.getName() + ", handler: " + projectHandler.getClassName(), e.getMessage(), e);
         }
       }
-      updateProvenanceStatus(project, ProvTypeDTO.ProvType.DISABLED, dfso);
-      datasetController.disableMetaForAllDatasets(dfso, project);
-
       //log removal to notify elastic search
       logProject(project, OperationType.Delete);
       //change the owner and group of the project folder to hdfs super user
@@ -2302,7 +2296,7 @@ public class ProjectController {
   }
 
   public void addTourFilesToProject(String username, Project project, DistributedFileSystemOps dfso,
-    DistributedFileSystemOps udfso, TourProjectType projectType, ProvTypeDTO.ProvType metaStatus)
+    DistributedFileSystemOps udfso, TourProjectType projectType, ProvTypeDTO metaStatus)
     throws DatasetException, HopsSecurityException, ProjectException, JobException, GenericException, ServiceException {
 
     Users user = userFacade.findByEmail(username);
@@ -2797,94 +2791,4 @@ public class ProjectController {
       }
     }
   }
-  
-  // PROVENANCE
-  public void updateProvenanceStatus(Project project, ProvTypeDTO.ProvType status)
-    throws GenericException {
-    DistributedFileSystemOps dfso = dfs.getDfsOps();
-    try {
-      updateProvenanceStatus(project, status, dfso);
-    } finally {
-      if (dfso != null) {
-        dfso.close();
-      }
-    }
-  }
-  
-  private void updateProvenanceStatus(Project project, ProvTypeDTO.ProvType status, DistributedFileSystemOps dfso)
-    throws GenericException {
-    ProvTypeDTO.ProvType previousStatus = getProvenanceStatus(project, dfso);
-    if (status.equals(previousStatus)) {
-      return;
-    }
-    updateProvenanceStatusInt(project, status, dfso);
-    try {
-      updateDatasetsProvenanceStatus(project, dfso, status);
-    } catch (GenericException e) {
-      throw new GenericException(RESTCodes.GenericErrorCode.ILLEGAL_STATE, Level.INFO,
-        "project provenance persistance exception", "project provenance persistance exception", e);
-    }
-  }
-  
-  private void updateProvenanceStatusInt(Project project, ProvTypeDTO.ProvType status, DistributedFileSystemOps dfso)
-    throws GenericException {
-    try {
-      String projectPath = Utils.getProjectPath(project.getName());
-      Gson gson = new Gson();
-      dfso.upsertXAttr(projectPath, ProvXAttrs.PROV_TYPE, gson.toJson(status.dto).getBytes());
-    } catch (IOException e) {
-      throw new GenericException(RESTCodes.GenericErrorCode.ILLEGAL_STATE, Level.INFO,
-        "project provenance persistance exception", "project provenance persistance exception", e);
-    }
-  }
-  
-  private void updateDatasetsProvenanceStatus(Project project, DistributedFileSystemOps dfso,
-    ProvTypeDTO.ProvType status)
-    throws GenericException {
-    for (Dataset dataset : project.getDatasetCollection()) {
-      datasetController.updateProvenanceStatus(dataset, status, dfso);
-    }
-  }
-  
-  public ProvTypeDTO.ProvType getProvenanceStatus(Project project) throws GenericException {
-    DistributedFileSystemOps dfso = dfs.getDfsOps();
-    try {
-      return getProvenanceStatus(project, dfso);
-    } finally {
-      if (dfso != null) {
-        dfso.close();
-      }
-    }
-  }
-  
-  public ProvTypeDTO.ProvType getProvenanceStatus(Project project, DistributedFileSystemOps dfso)
-    throws GenericException {
-    String projectPath = Utils.getProjectPath(project.getName());
-    try {
-      byte[] bVal = dfso.getXAttr(projectPath, ProvXAttrs.PROV_TYPE);
-      ProvTypeDTO.ProvType status;
-      if(bVal == null) {
-        status = ProvTypeDTO.ProvType.META;
-      } else {
-        Gson gson = new Gson();
-        ProvTypeDTO aux = gson.fromJson(new String(bVal), ProvTypeDTO.class);
-        status = ProvTypeDTO.getProvType(aux);
-      }
-      return status;
-    } catch (IOException e) {
-      throw new GenericException(RESTCodes.GenericErrorCode.ILLEGAL_STATE, Level.INFO,
-        "project provenance xattr persistance exception");
-    }
-  }
-  
-  public List<ProvDatasetState> getDatasetsProvenanceStatus(Project project) throws GenericException {
-    List<ProvDatasetState> result = new ArrayList<>();
-    for (Dataset ds : project.getDatasetCollection()) {
-      ProvDatasetState dsState = new ProvDatasetState(ds.getName(), ds.getInode().getId(),
-        datasetController.getProvenanceStatus(ds).dto);
-      result.add(dsState);
-    }
-    return result;
-  }
-  //PROVENANCE END
 }

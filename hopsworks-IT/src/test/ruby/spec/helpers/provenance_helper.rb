@@ -124,13 +124,20 @@ module ProvenanceHelper
   end
 
   def prov_add_xattr(original, xattr_name, xattr_value, xattr_op, increment)
+#     pp original
     xattrRecord = original.dup
-    xattrRecord["inode_operation"] = xattr_op
-    xattrRecord["io_logical_time"] = original["io_logical_time"]+increment
-    xattrRecord["io_timestamp"] = original["io_timestamp"]+increment
+#     pp xattrRecord
+    xattrRecord[:inode_id] = original[:inode_id]
+    xattrRecord[:inode_operation] = xattr_op
+    xattrRecord[:io_logical_time] = original[:io_logical_time]+increment
+    xattrRecord[:io_timestamp] = original[:io_timestamp]+increment
+    xattrRecord[:io_app_id] = original[:io_app_id]
+    xattrRecord[:io_user_id] = original[:io_user_id]
+#     pp xattrRecord
     xattrRecord["i_xattr_name"] = xattr_name
     xattrRecord["io_logical_time_batch"] = original["io_logical_time_batch"]+increment
     xattrRecord["io_timestamp_batch"] = original["io_timestamp_batch"]+increment
+#     pp xattrRecord
     xattrRecord.save!
 
     FileProvXAttr.create(inode_id: xattrRecord["inode_id"], namespace: 5, name: xattr_name, inode_logical_time: xattrRecord["io_logical_time"], value: xattr_value)

@@ -91,7 +91,8 @@ import io.hops.hopsworks.common.project.ProjectController;
 import io.hops.hopsworks.common.project.ProjectDTO;
 import io.hops.hopsworks.common.project.QuotasDTO;
 import io.hops.hopsworks.common.project.TourProjectType;
-import io.hops.hopsworks.common.provenance.v2.xml.ProvTypeDTO;
+import io.hops.hopsworks.common.provenance.v2.HopsFSProvenanceController;
+import io.hops.hopsworks.common.provenance.v3.xml.ProvTypeDTO;
 import io.hops.hopsworks.common.user.AuthController;
 import io.hops.hopsworks.common.user.UsersController;
 import io.hops.hopsworks.common.util.Settings;
@@ -211,6 +212,8 @@ public class ProjectService {
   private FeaturestoreService featurestoreService;
   @Inject
   private ProjectProvenanceResource provenance;
+  @EJB
+  private HopsFSProvenanceController fsProvenanceController;
 
   private final static Logger LOGGER = Logger.getLogger(ProjectService.class.getName());
 
@@ -471,7 +474,7 @@ public class ProjectService {
       for (String s : projectDTO.getServices()) {
         ProjectServiceEnum se = null;
         se = ProjectServiceEnum.valueOf(s.toUpperCase());
-        ProvTypeDTO.ProvType projectMetaStatus = projectController.getProvenanceStatus(project, dfso);
+        ProvTypeDTO projectMetaStatus = fsProvenanceController.getProjectProvType(user, project);
         List<Future<?>> serviceFutureList
           = projectController.addService(project, se, user, dfso, udfso, projectMetaStatus);
         if (serviceFutureList != null) {
@@ -576,7 +579,7 @@ public class ProjectService {
       dfso = dfs.getDfsOps();
       username = hdfsUsersBean.getHdfsUserName(project, user);
       udfso = dfs.getDfsOps(username);
-      ProvTypeDTO.ProvType projectMetaStatus = projectController.getProvenanceStatus(project, dfso);
+      ProvTypeDTO projectMetaStatus = fsProvenanceController.getProjectProvType(user, project);
       projectController.addTourFilesToProject(user.getEmail(), project, dfso, dfso, demoType, projectMetaStatus);
       //TestJob dataset
       datasetController.generateReadme(udfso, "TestJob", readMeMessage, project.getName());

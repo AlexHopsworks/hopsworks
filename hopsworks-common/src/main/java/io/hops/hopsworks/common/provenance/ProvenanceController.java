@@ -94,8 +94,8 @@ public class ProvenanceController {
   @EJB
   private Settings settings;
   
-  public Map<String, String> mngIndexGetMapping(String indexRegex) throws ServiceException {
-    return elasticCtrl.mngIndexGetMapping(indexRegex);
+  public Map<String, String> mngIndexGetMapping(String indexRegex, boolean forceFetch) throws ServiceException {
+    return elasticCtrl.mngIndexGetMapping(indexRegex, forceFetch);
   }
   
 //  public void createIndex(Project project) throws ServiceException, GenericException {
@@ -152,12 +152,17 @@ public class ProvenanceController {
   private void checkMapping(Project project, ProvFileStateParamBuilder params)
     throws GenericException, ServiceException {
     String index = Provenance.getProjectIndex(project);
-    Map<String, String> mapping = elasticCtrl.mngIndexGetMapping(index);
+    Map<String, String> mapping = elasticCtrl.mngIndexGetMapping(index, false);
     if(mapping == null) {
       throw new GenericException(RESTCodes.GenericErrorCode.ILLEGAL_STATE, Level.INFO,
         "provenance file state - no index");
     }
-    params.fixSortBy(index, mapping);
+    try {
+      params.fixSortBy(index, mapping);
+    } catch(ServiceException e) {
+      mapping = elasticCtrl.mngIndexGetMapping(index, true);
+      params.fixSortBy(index, mapping);
+    }
   }
   
   public Pair<Map<Long, FileStateTree>, Map<Long, FileStateTree>> provFileStateTree(Project project,

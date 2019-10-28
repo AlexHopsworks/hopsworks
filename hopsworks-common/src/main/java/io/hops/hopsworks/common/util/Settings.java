@@ -49,7 +49,7 @@ import io.hops.hopsworks.common.dao.util.Variables;
 import io.hops.hopsworks.common.dela.AddressJSON;
 import io.hops.hopsworks.common.dela.DelaClientType;
 import io.hops.hopsworks.common.hdfs.Utils;
-import io.hops.hopsworks.common.provenance.v2.xml.ProvTypeDTO;
+import io.hops.hopsworks.common.provenance.v3.xml.ProvTypeDTO;
 import io.hops.hopsworks.exceptions.GenericException;
 import io.hops.hopsworks.restutils.RESTLogLevel;
 import org.apache.commons.codec.digest.DigestUtils;

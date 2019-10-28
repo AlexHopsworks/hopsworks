@@ -70,11 +70,11 @@ angular.module('hopsWorksApp')
 
       self.unmarshalProvStatus = function(response) {
         var provenanceStatus;
-        switch(response.provStatus) {
+        switch(response.prov_status) {
           case "NONE":
-            if(response.metaStatus === "DISABLED") {
+            if(response.meta_status === "DISABLED") {
               provenanceStatus = "DISABLED";
-            } else if(response.metaStatus === "META_ENABLED") {
+            } else if(response.meta_status === "META_ENABLED") {
               provenanceStatus = "META_ENABLED";
             } break;
           case "STATE": provenanceStatus = "MIN_PROV_ENABLED"; break;
@@ -86,10 +86,10 @@ angular.module('hopsWorksApp')
       self.marshalProvStatus = function(status) {
         var provenanceStatus;
         switch(status) {
-          case "DISABLED": provenanceStatus = {metaStatus:"DISABLED", provStatus:"NONE"}; break;
-          case "META_ENABLED": provenanceStatus = {metaStatus:"META_ENABLED", provStatus:"NONE"}; break;
-          case "MIN_PROV_ENABLED": provenanceStatus = {metaStatus:"MIN_PROV_ENABLED", provStatus:"STATE"}; break;
-          case "FULL_PROV_ENABLED": provenanceStatus = {metaStatus:"FULL_PROV_ENABLED", provStatus:"ALL"}; break;
+          case "DISABLED": provenanceStatus = {meta_status:"DISABLED", prov_status:"NONE"}; break;
+          case "META_ENABLED": provenanceStatus = {meta_status:"META_ENABLED", prov_status:"NONE"}; break;
+          case "MIN_PROV_ENABLED": provenanceStatus = {meta_status:"MIN_PROV_ENABLED", prov_status:"STATE"}; break;
+          case "FULL_PROV_ENABLED": provenanceStatus = {meta_status:"FULL_PROV_ENABLED", prov_status:"ALL"}; break;
         };
         return provenanceStatus;
       };

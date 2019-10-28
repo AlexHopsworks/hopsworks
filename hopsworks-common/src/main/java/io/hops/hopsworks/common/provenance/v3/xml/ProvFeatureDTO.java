@@ -13,24 +13,30 @@
  * You should have received a copy of the GNU Affero General Public License along with this program.
  * If not, see <https://www.gnu.org/licenses/>.
  */
-package io.hops.hopsworks.common.provenance;
-
-import io.hops.hopsworks.common.provenance.v2.xml.ProvTypeDTO;
+package io.hops.hopsworks.common.provenance.v3.xml;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement
-public class ProvDatasetState {
+public class ProvFeatureDTO {
+  private String group;
   private String name;
-  private long inodeId;
-  private ProvTypeDTO status;
+  private Integer version;
   
-  public ProvDatasetState() {}
+  public ProvFeatureDTO() {}
   
-  public ProvDatasetState(String name, long inodeId, ProvTypeDTO status) {
+  public ProvFeatureDTO(String group, String name, Integer version) {
+    this.group = group;
     this.name = name;
-    this.inodeId = inodeId;
-    this.status = status;
+    this.version = version;
+  }
+  
+  public String getGroup() {
+    return group;
+  }
+  
+  public void setGroup(String group) {
+    this.group = group;
   }
   
   public String getName() {
@@ -41,19 +47,11 @@ public class ProvDatasetState {
     this.name = name;
   }
   
-  public long getInodeId() {
-    return inodeId;
+  public Integer getVersion() {
+    return version;
   }
   
-  public void setInodeId(long inodeId) {
-    this.inodeId = inodeId;
-  }
-  
-  public ProvTypeDTO getStatus() {
-    return status;
-  }
-  
-  public void setStatus(ProvTypeDTO status) {
-    this.status = status;
+  public void setVersion(Integer version) {
+    this.version = version;
   }
 }
