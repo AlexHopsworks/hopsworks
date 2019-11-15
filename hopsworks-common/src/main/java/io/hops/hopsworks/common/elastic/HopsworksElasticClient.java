@@ -69,6 +69,7 @@ import java.util.logging.Logger;
  * cases for 50-100 parallel ongoing hopsworks elastic based requests it end up with upwards of 2000 tcp connections
  * used by elastic clients - this can also saturate the amount of tcp connection configured by the elastic node
  * ending up with a NoNodeAvailableException
+ * Use HopsworksElasticClientHelper to have blocking calls that also manage Elastic Exceptions
  */
 @Singleton
 @TransactionAttribute(TransactionAttributeType.NOT_SUPPORTED)
@@ -95,7 +96,7 @@ public class HopsworksElasticClient {
         .build();
       getClient();
     } catch (ServiceException ex) {
-      LOG.log(Level.SEVERE, null, ex);
+      LOG.log(Level.SEVERE, "", ex);
     }
   }
 
@@ -126,9 +127,7 @@ public class HopsworksElasticClient {
       List<String> elasticAddrs = getElasticIpsAsString();
       TransportClient _client = new PreBuiltTransportClient(settings);
       for(String addr : elasticAddrs){
-        _client.addTransportAddress(new TransportAddress(
-          new InetSocketAddress(addr,
-            this.settings.getElasticPort())));
+        _client.addTransportAddress(new TransportAddress(new InetSocketAddress(addr, this.settings.getElasticPort())));
       }
       elasticClient = _client;
       
@@ -166,8 +165,7 @@ public class HopsworksElasticClient {
         try {
           InetAddress.getByName(addr);
         } catch (UnknownHostException ex) {
-          throw new ServiceException(
-            RESTCodes.ServiceErrorCode.ELASTIC_SERVER_NOT_AVAILABLE,
+          throw new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_SERVER_NOT_AVAILABLE,
             Level.SEVERE, null, ex.getMessage(), ex);
         }
       }
@@ -223,7 +221,8 @@ public class HopsworksElasticClient {
   
   public void processException(ServiceException ex) {
     LOG.log(Level.WARNING, "elastic client exception", ex);
-    shutdownClient();
+    //decide if exception requires restart of client
+    //shutdownClient();
   }
 }
 

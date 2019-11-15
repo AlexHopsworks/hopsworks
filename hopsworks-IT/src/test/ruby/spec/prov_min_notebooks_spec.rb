@@ -129,13 +129,22 @@ describe "On #{ENV['OS']}" do
         }
 
         prov_run_job(project, job_name, job_conf)
-        query = "#{ENV['HOPSWORKS_API']}/project/#{@project1[:id]}/provenance/file/state?filter_by=ML_TYPE:TRAINING_DATASET
+        query = "#{ENV['HOPSWORKS_API']}/project/#{@project1[:id]}/provenance/file/state?filter_by=ML_TYPE:FEATURE"
+        pp "#{query}"
+        result = get "#{query}"
+        expect_status(200)
+        parsed_result = JSON.parse(result)
+        expect(parsed_result["count"]).to eq 2
+        expect(parsed_result["items"][0]["xattrs"]["entry"][0]["key"]).to eq "features"
+        expect(parsed_result["items"][1]["xattrs"]["entry"][0]["key"]).to eq "features"
+
+        query = "#{ENV['HOPSWORKS_API']}/project/#{@project1[:id]}/provenance/file/state?filter_by=ML_TYPE:TRAINING_DATASET"
         pp "#{query}"
         result = get "#{query}"
         expect_status(200)
         parsed_result = JSON.parse(result)
         expect(parsed_result["count"]).to eq 1
-        expect(parsed_result["items"]["xattrs"]["entry"][0]["key"]).to eq "features"
+        expect(parsed_result["items"][0]["xattrs"]["entry"][0]["key"]).to eq "features"
       end
     end
   end

@@ -102,8 +102,8 @@ import io.hops.hopsworks.common.jobs.yarn.YarnLogUtil;
 import io.hops.hopsworks.common.jupyter.JupyterController;
 import io.hops.hopsworks.common.kafka.KafkaController;
 import io.hops.hopsworks.common.message.MessageController;
-import io.hops.hopsworks.common.provenance.v2.HopsFSProvenanceController;
-import io.hops.hopsworks.common.provenance.v3.xml.ProvTypeDTO;
+import io.hops.hopsworks.common.provenance.hopsfs.HopsFSProvenanceController;
+import io.hops.hopsworks.common.provenance.xml.ProvTypeDTO;
 import io.hops.hopsworks.common.python.environment.EnvironmentController;
 import io.hops.hopsworks.common.security.CertificateMaterializer;
 import io.hops.hopsworks.common.security.CertificatesController;
@@ -124,6 +124,7 @@ import io.hops.hopsworks.exceptions.HopsSecurityException;
 import io.hops.hopsworks.exceptions.JobException;
 import io.hops.hopsworks.exceptions.KafkaException;
 import io.hops.hopsworks.exceptions.ProjectException;
+import io.hops.hopsworks.exceptions.ProvenanceException;
 import io.hops.hopsworks.exceptions.PythonException;
 import io.hops.hopsworks.exceptions.ServiceException;
 import io.hops.hopsworks.exceptions.ServingException;
@@ -379,7 +380,7 @@ public class ProjectController {
       try {
         mkProjectDIR(projectName, dfso);
         fsProvController.updateProjectProvType(project, provType, dfso);
-      } catch (IOException | EJBException ex) {
+      } catch (IOException | EJBException | ProvenanceException ex) {
         cleanup(project, sessionId, projectCreationFutures, true, owner);
         throw new ProjectException(RESTCodes.ProjectErrorCode.PROJECT_FOLDER_NOT_CREATED, Level.SEVERE,
           "project: " + projectName, ex.getMessage(), ex);

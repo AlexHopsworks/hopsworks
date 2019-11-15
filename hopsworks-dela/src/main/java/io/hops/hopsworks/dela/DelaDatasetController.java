@@ -49,11 +49,11 @@ import io.hops.hopsworks.common.dataset.DatasetController;
 import io.hops.hopsworks.common.dataset.FilePreviewDTO;
 import io.hops.hopsworks.common.hdfs.DistributedFileSystemOps;
 import io.hops.hopsworks.common.project.ProjectController;
-import io.hops.hopsworks.common.provenance.v2.HopsFSProvenanceController;
-import io.hops.hopsworks.common.provenance.v3.xml.ProvTypeDTO;
+import io.hops.hopsworks.common.provenance.hopsfs.HopsFSProvenanceController;
+import io.hops.hopsworks.common.provenance.xml.ProvTypeDTO;
 import io.hops.hopsworks.exceptions.DatasetException;
-import io.hops.hopsworks.exceptions.GenericException;
 import io.hops.hopsworks.exceptions.HopsSecurityException;
+import io.hops.hopsworks.exceptions.ProvenanceException;
 import io.hops.hopsworks.restutils.RESTCodes;
 import io.hops.hopsworks.common.hdfs.DistributedFsService;
 import io.hops.hopsworks.common.hdfs.HdfsUsersController;
@@ -111,7 +111,7 @@ public class DelaDatasetController {
   }
   
   public Dataset download(Project project, Users user, String publicDSId, String name)
-    throws DelaException, GenericException {
+    throws DelaException, ProvenanceException {
     Dataset dataset;
     try {
       dataset = createDataset(user, project, name, "");
@@ -154,7 +154,7 @@ public class DelaDatasetController {
   }
 
   public Dataset createDataset(Users user, Project project, String name, String description)
-    throws DatasetException, HopsSecurityException, GenericException {
+    throws DatasetException, HopsSecurityException, ProvenanceException {
     DistributedFileSystemOps dfso = null;
     try {
       ProvTypeDTO projectMetaStatus = fsProvenanceController.getProjectProvType(user, project);

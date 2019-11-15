@@ -43,7 +43,7 @@ import io.hops.hopsworks.common.dao.dataset.Dataset;
 import io.hops.hopsworks.common.dao.dataset.DatasetFacade;
 import io.hops.hopsworks.common.dao.dataset.DatasetType;
 import io.hops.hopsworks.common.dao.featurestore.Featurestore;
-import io.hops.hopsworks.common.provenance.v2.HopsFSProvenanceController;
+import io.hops.hopsworks.common.provenance.hopsfs.HopsFSProvenanceController;
 import io.hops.hopsworks.common.dao.hdfs.inode.Inode;
 import io.hops.hopsworks.common.dao.hdfs.inode.InodeFacade;
 import io.hops.hopsworks.common.dao.hdfsUser.HdfsUsers;
@@ -60,7 +60,7 @@ import io.hops.hopsworks.common.hdfs.FsPermissions;
 import io.hops.hopsworks.common.hdfs.HdfsUsersController;
 import io.hops.hopsworks.common.security.BaseHadoopClientsService;
 import io.hops.hopsworks.common.util.Settings;
-import io.hops.hopsworks.exceptions.GenericException;
+import io.hops.hopsworks.exceptions.ProvenanceException;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 
@@ -211,7 +211,7 @@ public class HiveController {
           break;
       }
       projectFacade.setTimestampQuotaUpdate(project, new Date());
-    } catch (IOException | GenericException e) {
+    } catch (IOException | ProvenanceException e) {
       logger.log(Level.SEVERE, "Cannot assign Hive database directory " + dbPath.toString() +
           " to correct user/group. Trace: " + e);
 

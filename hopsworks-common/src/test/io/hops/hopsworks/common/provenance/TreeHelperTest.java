@@ -15,9 +15,9 @@
 // */
 //package io.hops.hopsworks.common.provenance;
 //
-//import io.hops.hopsworks.common.provenance.v2.xml.FootprintFileState;
+//import io.hops.hopsworks.common.provenance3.elastic.FootprintFileState;
 //import io.hops.hopsworks.common.provenance.v2.xml.FootprintFileStateTree;
-//import io.hops.hopsworks.common.provenance.v2.xml.TreeHelper;
+//import io.hops.hopsworks.common.provenance3.elastic.TreeHelper;
 //import io.hops.hopsworks.exceptions.GenericException;
 //import org.junit.Test;
 //

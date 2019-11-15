@@ -15,12 +15,16 @@
  */
 package io.hops.hopsworks.common.provenance;
 
+import io.hops.hopsworks.common.provenance.xml.ProvFeatureDTO;
 import io.hops.hopsworks.common.util.HopsworksJAXBContext;
-import io.hops.hopsworks.common.provenance.v3.xml.ProvCoreDTO;
-import io.hops.hopsworks.common.provenance.v3.xml.ProvTypeDTO;
+import io.hops.hopsworks.common.provenance.xml.ProvCoreDTO;
+import io.hops.hopsworks.common.provenance.xml.ProvTypeDTO;
 import io.hops.hopsworks.exceptions.GenericException;
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class ConverterTest {
   @Test
@@ -33,5 +37,17 @@ public class ConverterTest {
     System.out.println(json);
     ProvCoreDTO coreAux = pc.unmarshal(json, ProvCoreDTO.class);
     Assert.assertEquals(core.getType(), coreAux.getType());
+  }
+  
+  @Test
+  public void testList() throws GenericException {
+    List<ProvFeatureDTO> featureList = new ArrayList<>();
+    featureList.add(new ProvFeatureDTO("group", "name", 1));
+    HopsworksJAXBContext pc = new HopsworksJAXBContext();
+    pc.init();
+    String json = pc.marshal(featureList);
+    System.out.println(json);
+    List<ProvFeatureDTO> featureListAux = pc.unmarshalList(json, ProvFeatureDTO.class);
+    Assert.assertEquals(featureList.size(), featureListAux.size());
   }
 }

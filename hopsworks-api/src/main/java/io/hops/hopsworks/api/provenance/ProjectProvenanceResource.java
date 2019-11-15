@@ -41,8 +41,6 @@ package io.hops.hopsworks.api.provenance;
 import io.hops.hopsworks.api.filter.AllowedProjectRoles;
 import io.hops.hopsworks.api.filter.Audience;
 import io.hops.hopsworks.api.jwt.JWTHelper;
-import io.hops.hopsworks.api.provenance.v2.ProvFileOpsBeanParam;
-import io.hops.hopsworks.api.provenance.v2.ProvFileStateBeanParam;
 import io.hops.hopsworks.api.util.Pagination;
 import io.hops.hopsworks.common.dao.dataset.Dataset;
 import io.hops.hopsworks.common.dao.dataset.DatasetFacade;
@@ -54,20 +52,19 @@ import io.hops.hopsworks.common.dao.user.Users;
 import io.hops.hopsworks.common.hdfs.DistributedFileSystemOps;
 import io.hops.hopsworks.common.hdfs.DistributedFsService;
 import io.hops.hopsworks.common.hdfs.Utils;
-import io.hops.hopsworks.common.project.ProjectController;
-import io.hops.hopsworks.common.provenance.AppFootprintType;
-import io.hops.hopsworks.common.provenance.v2.HopsFSProvenanceController;
-import io.hops.hopsworks.common.provenance.v3.xml.ProvTypeDatasetDTO;
-import io.hops.hopsworks.common.provenance.Provenance;
-import io.hops.hopsworks.common.provenance.ProvenanceController;
-import io.hops.hopsworks.common.provenance.v2.ProvFileQuery;
-import io.hops.hopsworks.common.provenance.v2.xml.ArchiveDTO;
-import io.hops.hopsworks.common.provenance.v2.xml.FileOpDTO;
-import io.hops.hopsworks.common.provenance.v2.xml.MappingDTO;
-import io.hops.hopsworks.common.provenance.v3.xml.ProvTypeDTO;
-import io.hops.hopsworks.common.provenance.v2.ProvFileOpsParamBuilder;
-import io.hops.hopsworks.common.provenance.v2.ProvFileStateParamBuilder;
-import io.hops.hopsworks.exceptions.GenericException;
+import io.hops.hopsworks.common.provenance.apiToElastic.ProvMLParamBuilder;
+import io.hops.hopsworks.common.provenance.hopsfs.HopsFSProvenanceController;
+import io.hops.hopsworks.common.provenance.xml.ProvDatasetDTO;
+import io.hops.hopsworks.common.provenance.core.Provenance;
+import io.hops.hopsworks.common.provenance.elastic.ProvenanceController;
+import io.hops.hopsworks.common.provenance.apiToElastic.ProvFileQuery;
+import io.hops.hopsworks.common.provenance.xml.ProvArchiveDTO;
+import io.hops.hopsworks.common.provenance.xml.ProvFileOpDTO;
+import io.hops.hopsworks.common.provenance.xml.ElasticIndexMappingDTO;
+import io.hops.hopsworks.common.provenance.xml.ProvTypeDTO;
+import io.hops.hopsworks.common.provenance.apiToElastic.ProvFileOpsParamBuilder;
+import io.hops.hopsworks.common.provenance.apiToElastic.ProvFileStateParamBuilder;
+import io.hops.hopsworks.exceptions.ProvenanceException;
 import io.hops.hopsworks.exceptions.ServiceException;
 import io.hops.hopsworks.jwt.annotation.JWTRequired;
 import io.hops.hopsworks.restutils.RESTCodes;
@@ -105,26 +102,26 @@ import javax.ws.rs.core.SecurityContext;
 public class ProjectProvenanceResource {
 
   private static final Logger logger = Logger.getLogger(ProjectProvenanceResource.class.getName());
-
+  
+  @EJB
+  private ProjectFacade projectFacade;
+  @EJB
+  private JWTHelper jWTHelper;
   @EJB
   private ProvenanceController provenanceCtrl;
   @EJB
-  private ProjectFacade projectFacade;
+  private HopsFSProvenanceController fsProvenanceCtrl;
+  
+  private Project project;
+  
+  //Testing
   @EJB
   private InodeFacade inodeFacade;
   @EJB
   private DatasetFacade datasetFacade;
   @EJB
   private DistributedFsService dfs;
-  @EJB
-  private ProjectController projectCtrl;
-  @EJB
-  private HopsFSProvenanceController fsProvenanceCtrl;
-  @EJB
-  private JWTHelper jWTHelper;
   
-  private Project project;
-
   public void setProjectId(Integer projectId) {
     this.project = projectFacade.find(projectId);
   }
@@ -135,7 +132,7 @@ public class ProjectProvenanceResource {
   @AllowedProjectRoles({AllowedProjectRoles.ANYONE})
   @JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
   public Response getProvenanceStatus(@Context SecurityContext sc)
-    throws GenericException {
+    throws ProvenanceException {
     Users user = jWTHelper.getUserPrincipal(sc);
     ProvTypeDTO status = fsProvenanceCtrl.getProjectProvType(user, project);
     return Response.ok().entity(status).build();
@@ -149,10 +146,10 @@ public class ProjectProvenanceResource {
   public Response changeProvenanceType(
     @PathParam("type") String type,
     @Context SecurityContext sc)
-    throws GenericException {
+    throws ProvenanceException {
     Users user = jWTHelper.getUserPrincipal(sc);
     if(type == null) {
-      throw new GenericException(RESTCodes.GenericErrorCode.ILLEGAL_STATE, Level.INFO,
+      throw new ProvenanceException(RESTCodes.ProvenanceErrorCode.BAD_REQUEST, Level.INFO,
         "malformed status");
     }
     fsProvenanceCtrl.updateProjectProvType(user, project, ProvTypeDTO.provTypeFromString(type).dto);
@@ -164,10 +161,10 @@ public class ProjectProvenanceResource {
   @Produces(MediaType.APPLICATION_JSON)
   @AllowedProjectRoles({AllowedProjectRoles.ANYONE})
   @JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
-  public Response content(@Context SecurityContext sc) throws GenericException {
+  public Response content(@Context SecurityContext sc) throws ProvenanceException {
     Users user = jWTHelper.getUserPrincipal(sc);
-    GenericEntity<List<ProvTypeDatasetDTO>> result
-      = new GenericEntity<List<ProvTypeDatasetDTO>>(fsProvenanceCtrl.getDatasetsProvType(user, project)) {};
+    GenericEntity<List<ProvDatasetDTO>> result
+      = new GenericEntity<List<ProvDatasetDTO>>(fsProvenanceCtrl.getDatasetsProvType(user, project)) {};
     return Response.ok().entity(result).build();
   }
   
@@ -176,7 +173,7 @@ public class ProjectProvenanceResource {
   @Produces(MediaType.APPLICATION_JSON)
   @AllowedProjectRoles({AllowedProjectRoles.DATA_SCIENTIST, AllowedProjectRoles.DATA_OWNER})
   @JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
-  public Response getFileOpsSize() throws ServiceException, GenericException {
+  public Response getFileOpsSize() throws ServiceException, ProvenanceException {
     ProvFileOpsParamBuilder paramBuilder = new ProvFileOpsParamBuilder()
       .withProjectInodeId(project.getInode().getId());
     return ProvenanceResourceHelper.getFileOps(provenanceCtrl, project, paramBuilder,
@@ -188,8 +185,8 @@ public class ProjectProvenanceResource {
   @Produces(MediaType.APPLICATION_JSON)
   @AllowedProjectRoles({AllowedProjectRoles.DATA_SCIENTIST, AllowedProjectRoles.DATA_OWNER})
   @JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
-  public Response getFileOpsCleanupSize() throws ServiceException, GenericException {
-    FileOpDTO.Count result = provenanceCtrl.cleanupSize(project);
+  public Response getFileOpsCleanupSize() throws ServiceException, ProvenanceException {
+    ProvFileOpDTO.Count result = provenanceCtrl.cleanupSize(project);
     return Response.ok().entity(result).build();
   }
   
@@ -201,7 +198,7 @@ public class ProjectProvenanceResource {
   public Response getFileOps(
     @BeanParam ProvFileOpsBeanParam params,
     @BeanParam Pagination pagination,
-    @Context HttpServletRequest req) throws ServiceException, GenericException {
+    @Context HttpServletRequest req) throws ServiceException, ProvenanceException {
     ProvFileOpsParamBuilder paramBuilder = new ProvFileOpsParamBuilder()
       .withProjectInodeId(project.getInode().getId())
       .withQueryParamFilterBy(params.getFileOpsFilterBy())
@@ -225,7 +222,7 @@ public class ProjectProvenanceResource {
     @PathParam("inodeId") Long fileInodeId,
     @BeanParam ProvFileOpsBeanParam params,
     @BeanParam Pagination pagination,
-    @Context HttpServletRequest req) throws ServiceException, GenericException {
+    @Context HttpServletRequest req) throws ServiceException, ProvenanceException {
     ProvFileOpsParamBuilder paramBuilder = new ProvFileOpsParamBuilder()
       .withProjectInodeId(project.getInode().getId())
       .withFileInodeId(fileInodeId)
@@ -249,7 +246,7 @@ public class ProjectProvenanceResource {
   public Response getFileStates(
     @BeanParam ProvFileStateBeanParam params,
     @BeanParam Pagination pagination,
-    @Context HttpServletRequest req) throws ServiceException, GenericException {
+    @Context HttpServletRequest req) throws ServiceException, ProvenanceException {
     ProvFileStateParamBuilder paramBuilder = new ProvFileStateParamBuilder()
       .withProjectInodeId(project.getInode().getId())
       .withQueryParamFileStateFilterBy(params.getFileStateFilterBy())
@@ -273,7 +270,7 @@ public class ProjectProvenanceResource {
   @JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
   public Response getDatasetStatesSize(
     @PathParam("type") Provenance.MLType type)
-    throws ServiceException, GenericException {
+    throws ServiceException, ProvenanceException {
     ProvFileStateParamBuilder paramBuilder = new ProvFileStateParamBuilder()
       .withProjectInodeId(project.getInode().getId())
       .filterByStateField(ProvFileQuery.FileState.ML_TYPE, type.toString());
@@ -289,7 +286,7 @@ public class ProjectProvenanceResource {
     @PathParam("inodeId") Long fileInodeId,
     @BeanParam ProvFileStateBeanParam params,
     @BeanParam Pagination pagination,
-    @Context HttpServletRequest req) throws GenericException, ServiceException {
+    @Context HttpServletRequest req) throws ProvenanceException, ServiceException {
     ProvFileStateParamBuilder paramBuilder = new ProvFileStateParamBuilder()
       .withProjectInodeId(project.getInode().getId())
       .withFileInodeId(fileInodeId)
@@ -314,10 +311,11 @@ public class ProjectProvenanceResource {
   @JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
   public Response appProvenance(
     @PathParam("appId") String appId,
-    @PathParam("type") @DefaultValue("ALL") AppFootprintType footprintType,
+    @PathParam("type") @DefaultValue("ALL")
+      Provenance.FootprintType footprintType,
     @BeanParam ProvFileOpsBeanParam params,
     @BeanParam Pagination pagination,
-    @Context HttpServletRequest req) throws ServiceException, GenericException {
+    @Context HttpServletRequest req) throws ServiceException, ProvenanceException {
     ProvFileOpsParamBuilder paramBuilder = new ProvFileOpsParamBuilder()
       .withProjectInodeId(project.getInode().getId())
       .withAppId(appId)
@@ -332,29 +330,25 @@ public class ProjectProvenanceResource {
       params.getReturnType());
   }
   
-  @DELETE
-  @Path("file/{inodeId}/ops/cleanup")
+  @GET
+  @Path("ml/{from_type}/from/{id}/to/{to_type}")
   @Produces(MediaType.APPLICATION_JSON)
   @AllowedProjectRoles({AllowedProjectRoles.DATA_SCIENTIST, AllowedProjectRoles.DATA_OWNER})
   @JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
-  public Response testArchival(
-    @PathParam("inodeId") Long inodeId)
-    throws ServiceException, GenericException {
-    ArchiveDTO.Round result = provenanceCtrl.provCleanupFilePrefix(project, inodeId);
-    return Response.ok().entity(result).build();
-  }
-  
-  @DELETE
-  @Path("file/{inodeId}/ops/cleanup/upto/{timestamp}")
-  @Produces(MediaType.APPLICATION_JSON)
-  @AllowedProjectRoles({AllowedProjectRoles.DATA_SCIENTIST, AllowedProjectRoles.DATA_OWNER})
-  @JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
-  public Response testArchival(
-    @PathParam("inodeId") Long inodeId,
-    @PathParam("timestamp") Long timestamp)
-    throws ServiceException, GenericException {
-    ArchiveDTO.Round result = provenanceCtrl.provCleanupFilePrefix(project, inodeId, timestamp);
-    return Response.ok().entity(result).build();
+  public Response mlLink(
+    @PathParam("from_type") String fromType,
+    @PathParam("id") String fromId,
+    @PathParam("to_type") String toType,
+    @Context HttpServletRequest req) throws ProvenanceException {
+    ProvMLParamBuilder paramBuilder = new ProvMLParamBuilder()
+      .fromType(fromType)
+      .fromId(fromId)
+      .toType(toType);
+    logger.log(Level.INFO, "Local content path:{0} file state params:{1} ",
+      new Object[]{req.getRequestURL().toString(), paramBuilder});
+//    String result =  provenanceCtrl.mlLink(project, paramBuilder);
+//    return Response.ok().entity(result).build();
+    return Response.ok().build();
   }
   
   public enum FileStructReturnType {
@@ -371,13 +365,38 @@ public class ProjectProvenanceResource {
   }
   
   //TESTING
+  @DELETE
+  @Path("file/{inodeId}/ops/cleanup")
+  @Produces(MediaType.APPLICATION_JSON)
+  @AllowedProjectRoles({AllowedProjectRoles.DATA_SCIENTIST, AllowedProjectRoles.DATA_OWNER})
+  @JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
+  public Response testArchival(
+    @PathParam("inodeId") Long inodeId)
+    throws ServiceException, ProvenanceException {
+    ProvArchiveDTO.Round result = provenanceCtrl.provCleanupFilePrefix(project, inodeId);
+    return Response.ok().entity(result).build();
+  }
+  
+  @DELETE
+  @Path("file/{inodeId}/ops/cleanup/upto/{timestamp}")
+  @Produces(MediaType.APPLICATION_JSON)
+  @AllowedProjectRoles({AllowedProjectRoles.DATA_SCIENTIST, AllowedProjectRoles.DATA_OWNER})
+  @JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
+  public Response testArchival(
+    @PathParam("inodeId") Long inodeId,
+    @PathParam("timestamp") Long timestamp)
+    throws ServiceException, ProvenanceException {
+    ProvArchiveDTO.Round result = provenanceCtrl.provCleanupFilePrefix(project, inodeId, timestamp);
+    return Response.ok().entity(result).build();
+  }
+  
   @POST
   @Path("test/xattr/{inodeId}")
   @Produces(MediaType.APPLICATION_JSON)
   @AllowedProjectRoles({AllowedProjectRoles.DATA_SCIENTIST, AllowedProjectRoles.DATA_OWNER})
   @JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
   public Response testXAttr(
-    @PathParam("inodeId") Long inodeId) throws GenericException {
+    @PathParam("inodeId") Long inodeId) throws ProvenanceException {
     Inode inode = inodeFacade.findById(inodeId);
     Dataset dataset = datasetFacade.findByProjectAndInode(project, inode);
     Inode inode2 = inode;
@@ -386,7 +405,7 @@ public class ProjectProvenanceResource {
     }
     dataset = datasetFacade.findByProjectAndInode(project, inode);
     if(dataset == null) {
-      throw new GenericException(RESTCodes.GenericErrorCode.ILLEGAL_STATE, Level.INFO,
+      throw new ProvenanceException(RESTCodes.ProvenanceErrorCode.BAD_REQUEST, Level.INFO,
         "not dataset or child of dataset");
     }
     DistributedFileSystemOps dfso = dfs.getDfsOps();
@@ -404,35 +423,35 @@ public class ProjectProvenanceResource {
   
   private void xattrOp(DistributedFileSystemOps dfso, String datasetPath, EnumSet<XAttrSetFlag> flags,
     String key, String val)
-    throws GenericException {
+    throws ProvenanceException {
     try {
       dfso.setXAttr(datasetPath, key, val.getBytes(), flags);
     } catch (IOException e) {
-      throw new GenericException(RESTCodes.GenericErrorCode.ILLEGAL_STATE, Level.INFO,
+      throw new ProvenanceException(RESTCodes.ProvenanceErrorCode.FS_ERROR, Level.INFO,
         "xattrs persistance exception");
     }
   }
   
   private void createXAttr(DistributedFileSystemOps dfso, String datasetPath, String key, String val)
-    throws GenericException {
+    throws ProvenanceException {
     EnumSet<XAttrSetFlag> flags = EnumSet.noneOf(XAttrSetFlag.class);
     flags.add(XAttrSetFlag.CREATE);
     xattrOp(dfso, datasetPath, flags, key, val);
   }
   
   private void updateXAttr(DistributedFileSystemOps dfso, String datasetPath, String key, String val)
-    throws GenericException {
+    throws ProvenanceException {
     EnumSet<XAttrSetFlag> flags = EnumSet.noneOf(XAttrSetFlag.class);
     flags.add(XAttrSetFlag.REPLACE);
     xattrOp(dfso, datasetPath, flags, key, val);
   }
   
   private void deleteXAttr(DistributedFileSystemOps dfso, String datasetPath, String key)
-    throws GenericException {
+    throws ProvenanceException {
     try {
       dfso.removeXAttr(datasetPath, key);
     } catch (IOException e) {
-      throw new GenericException(RESTCodes.GenericErrorCode.ILLEGAL_STATE, Level.INFO,
+      throw new ProvenanceException(RESTCodes.ProvenanceErrorCode.FS_ERROR, Level.WARNING,
         "xattrs persistance exception");
     }
   }
@@ -445,10 +464,10 @@ public class ProjectProvenanceResource {
   public Response testExpAddAppId(
     @PathParam("expName") String expName,
     @PathParam("appId") String appId)
-    throws GenericException {
+    throws ProvenanceException {
     Inode inode = findExp(expName);
     if(inode == null) {
-      throw new GenericException(RESTCodes.GenericErrorCode.ILLEGAL_STATE, Level.INFO,
+      throw new ProvenanceException(RESTCodes.ProvenanceErrorCode.FS_ERROR, Level.INFO,
         "experiment not found");
     }
     String path = inodeFacade.getPath(inode);
@@ -465,7 +484,7 @@ public class ProjectProvenanceResource {
   public Response testGetIndexMapping() throws ServiceException {
     String index = Provenance.getProjectIndex(project);
     Map<String, String> mapping = provenanceCtrl.mngIndexGetMapping(index, true);
-    return Response.ok().entity(new MappingDTO(index, mapping)).build();
+    return Response.ok().entity(new ElasticIndexMappingDTO(index, mapping)).build();
   }
   
   private Inode findExp(String expName) {

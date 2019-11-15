@@ -17,10 +17,11 @@ package io.hops.hopsworks.common.elastic;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import io.hops.hopsworks.common.provenance.util.CheckedFunction;
+import io.hops.hopsworks.common.provenance.elastic.ProvElasticHelper;
 import io.hops.hopsworks.exceptions.GenericException;
+import io.hops.hopsworks.exceptions.ProvenanceException;
 import io.hops.hopsworks.exceptions.ServiceException;
 import io.hops.hopsworks.restutils.RESTCodes;
-import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
@@ -43,7 +44,6 @@ import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.query.QueryShardException;
-import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.transport.RemoteTransportException;
 import org.javatuples.Pair;
 
@@ -57,6 +57,11 @@ import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * This is a class made to be used by threads calling the ElasticClient. Methods in here are blocking and will wait
+ * for the future responses, which is why we do not include these in the Singleton ElasticClient which contains
+ * short, non-blocking methods.
+ */
 public class HopsworksElasticClientHelper {
   private static final Logger LOG = Logger.getLogger(HopsworksElasticClientHelper.class.getName());
   
@@ -64,16 +69,12 @@ public class HopsworksElasticClientHelper {
     throws ServiceException {
     GetIndexResponse response;
     try {
-      LOG.log(Level.INFO, "request:{0}", request.toString());
+      LOG.log(Level.FINE, "request:{0}", request.toString());
       response = heClient.mngIndexGet(request).get();
     } catch (InterruptedException | ExecutionException e) {
       String msg = "elastic index:" + request.indices() + "error during index get";
-      LOG.log(Level.INFO, msg, e);
-      throw new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_SERVER_NOT_FOUND, Level.WARNING, msg, msg, e);
-    } catch (ServiceException e) {
-      String msg = "elastic index:" + request.indices() + "error during index get";
-      LOG.log(Level.INFO, msg, e);
-      throw e;
+      ServiceException se = processException(heClient, e, msg);
+      throw se;
     }
     return response;
   }
@@ -121,31 +122,28 @@ public class HopsworksElasticClientHelper {
     if(request.index().length() > 255) {
       String msg = "elastic index name is too long:" + request.index();
       LOG.log(Level.INFO, msg);
-      throw new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_SERVER_NOT_FOUND, Level.WARNING, msg);
+      throw new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_QUERY_ERROR, Level.INFO, msg);
     }
     if(!request.index().equals(request.index().toLowerCase())) {
       String msg = "elastic index names can only contain lower case:" + request.index();
       LOG.log(Level.INFO, msg);
-      throw new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_SERVER_NOT_FOUND, Level.WARNING, msg);
+      throw new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_QUERY_ERROR, Level.INFO, msg);
     }
     CreateIndexResponse response;
     try {
-      LOG.log(Level.INFO, "request:{0}", request.toString());
+      LOG.log(Level.FINE, "request:{0}", request.toString());
       response = heClient.mngIndexCreate(request).get();
     } catch (InterruptedException | ExecutionException e) {
       String msg = "elastic index:" + request.index() + "error during index create";
-      LOG.log(Level.INFO, msg, e);
-      throw new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_SERVER_NOT_FOUND, Level.WARNING, msg, msg, e);
-    } catch (ServiceException e) {
-      String msg = "elastic index:" + request.index() + "error during index create";
-      LOG.log(Level.INFO, msg, e);
-      throw e;
+      ServiceException se = processException(heClient, e, msg);
+      throw se;
     }
     if(response.isAcknowledged()) {
       return response;
     } else {
       String msg = "elastic index:" + request.index() + "creation could not be acknowledged";
-      throw new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_INDEX_CREATION_ERROR, Level.WARNING, msg);
+      LOG.log(Level.INFO, msg);
+      throw new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_QUERY_ERROR, Level.INFO, msg);
     }
   }
   
@@ -153,44 +151,32 @@ public class HopsworksElasticClientHelper {
     throws ServiceException {
     DeleteIndexResponse response;
     try {
-      LOG.log(Level.INFO, "request:{0}", request.toString());
+      LOG.log(Level.FINE, "request:{0}", request.toString());
       response = heClient.mngIndexDelete(request).get();
     } catch (InterruptedException | ExecutionException e) {
       String msg = "elastic index:" + request.indices()[0] + "error during index delete";
-      LOG.log(Level.INFO, msg, e);
-      throw new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_SERVER_NOT_FOUND, Level.WARNING, msg, msg, e);
-    } catch (ElasticsearchException e) {
-      if(e.status() == RestStatus.NOT_FOUND) {
-        //no retries maybe?
-      }
-      String msg = "elastic index:" + request.indices()[0] + "error during index delete";
-      throw new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_SERVER_NOT_FOUND, Level.WARNING, msg, msg, e);
-    } catch (ServiceException e) {
-      String msg = "elastic index:" + request.indices()[0] + "error during index delete";
-      LOG.log(Level.INFO, msg, e);
-      throw e;
+      ServiceException se = processException(heClient, e, msg);
+      throw se;
     }
     if(response.isAcknowledged()) {
       return response;
     } else {
       String msg = "elastic index:" + request.indices()[0] + "deletion could not be acknowledged";
-      throw new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_SERVER_NOT_FOUND, Level.WARNING, msg);
+      LOG.log(Level.INFO, msg);
+      throw new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_QUERY_ERROR, Level.INFO, msg);
     }
   }
   
-  public static <S> S getFileDoc(HopsworksElasticClient heClient, GetRequest request,
-    CheckedFunction<Map<String, Object>, S, GenericException> resultParser) throws ServiceException, GenericException {
+  public static <S, E extends Exception> S getFileDoc(HopsworksElasticClient heClient, GetRequest request,
+    CheckedFunction<Map<String, Object>, S, E> resultParser) throws ServiceException, E {
     GetResponse response;
     try {
-      LOG.log(Level.INFO, "request:{0}", request.toString());
+      LOG.log(Level.FINE, "request:{0}", request.toString());
       response = heClient.get(request).get();
     } catch (InterruptedException | ExecutionException e) {
-      LOG.log(Level.INFO, "error during file doc get", e);
-      throw new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_SERVER_NOT_FOUND, Level.WARNING,
-        "error during file doc get", "error during file doc get", e);
-    } catch (ServiceException e) {
-      LOG.log(Level.INFO, "error during file doc get", e);
-      throw e;
+      String msg =  "error during get doc:" + request.id();
+      ServiceException se = processException(heClient, e, msg);
+      throw se;
     }
     if(response.isExists()) {
       return resultParser.apply(response.getSource());
@@ -203,21 +189,17 @@ public class HopsworksElasticClientHelper {
     IndexResponse response;
     
     try {
+      LOG.log(Level.FINE, "request:{0}", request.toString());
       response = heClient.index(request).get();
     } catch (InterruptedException | ExecutionException e) {
-      LOG.log(Level.INFO, "error during file doc index", e);
-      ServiceException ex = new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_SERVER_NOT_FOUND, Level.WARNING,
-        "error during file doc index", "error during file doc index", e);
-      heClient.processException(ex);
-      throw ex;
-    } catch (ServiceException e) {
-      LOG.log(Level.INFO, "error during file doc index", e);
-      throw e;
+      String msg = "error during index doc:" + request.id();
+      ServiceException se = processException(heClient, e, msg);
+      throw se;
     }
     if (response.status().getStatus() != 201) {
-      LOG.log(Level.INFO, "doc index - bad status response:{0}", response.status().getStatus());
-      throw new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_SERVER_NOT_FOUND, Level.WARNING,
-        "doc index - bad status response:" + response.status().getStatus());
+      String msg = "doc index - bad status response:" + response.status().getStatus();
+      LOG.log(Level.INFO, msg);
+      throw new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_QUERY_ERROR, Level.INFO, msg);
     }
   }
   
@@ -225,49 +207,42 @@ public class HopsworksElasticClientHelper {
     UpdateResponse response;
     
     try {
+      LOG.log(Level.FINE, "request:{0}", request.toString());
       response = heClient.update(request).get();
     } catch (InterruptedException | ExecutionException e) {
-      LOG.log(Level.INFO, "error during file doc update", e);
-      ServiceException ex = new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_SERVER_NOT_FOUND, Level.WARNING,
-        "error during file doc update", "error during file doc update", e);
-      heClient.processException(ex);
-      throw ex;
-    } catch (ServiceException e) {
-      LOG.log(Level.INFO, "error during file doc update", e);
-      throw e;
+      String msg = "error during update doc:" + request.id();
+      ServiceException se = processException(heClient, e, msg);
+      throw se;
     }
     if (response.status().getStatus() != 200) {
-      LOG.log(Level.INFO, "doc update - bad status response:{0}", response.status().getStatus());
-      throw new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_SERVER_NOT_FOUND, Level.WARNING,
-        "doc update - bad status response:" + response.status().getStatus());
+      String msg = "doc update - bad status response:" + response.status().getStatus();
+      LOG.log(Level.INFO, msg);
+      throw new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_QUERY_ERROR, Level.INFO, msg);
     }
   }
   
   public static <H> Pair<H, Long> searchBasic(HopsworksElasticClient heClient, SearchRequest request,
     ProvElasticHelper.ElasticBasicResultProcessor<H> resultProcessor)
-    throws ServiceException, GenericException {
+    throws ServiceException, ProvenanceException {
     SearchResponse response;
-    try {
-      LOG.log(Level.INFO, "request:{0}", request.toString());
-      response = searchBasicInt(heClient, request);
-      resultProcessor.apply(response.getHits().getHits());
-      Pair<H, Long> result = Pair.with(resultProcessor.get(), response.getHits().getTotalHits());
-      return result;
-    } catch (ServiceException e) {
-      throw e;
-    }
+    LOG.log(Level.FINE, "request:{0}", request.toString());
+    response = searchBasicInt(heClient, request);
+    resultProcessor.apply(response.getHits().getHits());
+    Pair<H, Long> result = Pair.with(resultProcessor.get(), response.getHits().getTotalHits());
+    return result;
   }
   
   public static <S> Pair<S, Long> searchScrollingWithBasicAction(HopsworksElasticClient heClient, SearchRequest request,
     ProvElasticHelper.ElasticBasicResultProcessor<S> resultProcessor)
-    throws ServiceException, GenericException {
+    throws ServiceException, ProvenanceException {
     SearchResponse response;
     long leftover;
-    LOG.log(Level.INFO, "request:{0}", request.toString());
+    LOG.log(Level.FINE, "request:{0}", request.toString());
     response = searchBasicInt(heClient, request);
     if(response.getHits().getTotalHits() > HopsworksElasticClient.MAX_PAGE_SIZE) {
-      throw new GenericException(RESTCodes.GenericErrorCode.ILLEGAL_ARGUMENT, Level.WARNING,
-        "Elasticsearch query items size is too big: " + response.getHits().getTotalHits());
+      String msg = "Elasticsearch query items size is too big: " + response.getHits().getTotalHits();
+      LOG.log(Level.INFO, msg);
+      throw new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_QUERY_ERROR, Level.INFO, msg);
     }
     long totalHits = response.getHits().totalHits;
     leftover = totalHits - response.getHits().getHits().length;
@@ -284,21 +259,22 @@ public class HopsworksElasticClientHelper {
   
   public static <S> S searchScrollingWithComplexAction(HopsworksElasticClient heClient, SearchRequest request,
     ProvElasticHelper.ElasticComplexResultProcessor<S> resultProcessor)
-    throws ServiceException, GenericException {
+    throws ServiceException, ProvenanceException {
     SearchResponse response;
     long leftover;
-    LOG.log(Level.INFO, "request:{0}", request.toString());
+    LOG.log(Level.FINE, "request:{0}", request.toString());
     response = searchBasicInt(heClient, request);
     if(response.getHits().getTotalHits() > HopsworksElasticClient.MAX_PAGE_SIZE) {
-      throw new GenericException(RESTCodes.GenericErrorCode.ILLEGAL_ARGUMENT, Level.WARNING,
-        "Elasticsearch query items size is too big: " + response.getHits().getTotalHits());
+      String msg = "Elasticsearch query items size is too big: " + response.getHits().getTotalHits();
+      LOG.log(Level.INFO, msg);
+      throw new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_QUERY_ERROR, Level.INFO, msg);
     }
     leftover = response.getHits().totalHits - response.getHits().getHits().length;
     resultProcessor.apply(response.getHits().getHits());
     
     while (leftover > 0) {
       SearchScrollRequest next = nextScrollPage(response.getScrollId());
-      LOG.log(Level.INFO, "request:{0}", next.toString());
+      LOG.log(Level.FINE, "request:{0}", next.toString());
       response = searchScrollingInt(heClient, next);
       leftover = leftover - response.getHits().getHits().length;
       resultProcessor.apply(response.getHits().getHits());
@@ -312,16 +288,14 @@ public class HopsworksElasticClientHelper {
     try {
       response = heClient.searchScroll(request).get();
     } catch (InterruptedException | ExecutionException e) {
-      LOG.log(Level.WARNING, "error querying elastic", e);
-      ServiceException ex = new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_SERVER_NOT_FOUND, Level.WARNING,
-        "error querying elastic", "error querying elastic", e);
-      heClient.processException(ex);
-      throw ex;
+      String msg = "error querying elastic";
+      ServiceException se = processException(heClient, e, msg);
+      throw se;
     }
     if (response.status().getStatus() != 200) {
-      LOG.log(Level.INFO, "searchBasic query - bad status response:{0}", response.status().getStatus());
-      throw new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_SERVER_NOT_FOUND, Level.WARNING,
-        "searchBasic query - bad status response:" + response.status().getStatus());
+      String msg = "searchBasic query - bad status response:" + response.status().getStatus();
+      LOG.log(Level.INFO, msg);
+      throw new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_QUERY_ERROR, Level.INFO, msg);
     }
     return response;
   }
@@ -334,11 +308,11 @@ public class HopsworksElasticClientHelper {
   
   public static Pair<Long, List<Pair<ProvElasticHelper.ProvAggregations, List>>> searchCount(
     HopsworksElasticClient heClient, SearchRequest request, List<ProvElasticHelper.ProvAggregations> aggregations)
-    throws ServiceException, GenericException {
+    throws ServiceException, ProvenanceException {
     SearchResponse response;
-    LOG.log(Level.INFO, "request:{0}", request.toString());
+    LOG.log(Level.FINE, "request:{0}", request.toString());
     response = searchBasicInt(heClient, request);
-    LOG.log(Level.INFO, "response:{0}", response.toString());
+    LOG.log(Level.FINE, "response:{0}", response.toString());
     if(aggregations.isEmpty()) {
       return Pair.with(response.getHits().getTotalHits(), Collections.emptyList());
     } else {
@@ -351,25 +325,20 @@ public class HopsworksElasticClientHelper {
   }
   
   public static void bulkDelete(HopsworksElasticClient heClient, BulkRequest request)
-    throws ServiceException, GenericException {
+    throws ServiceException {
     BulkResponse response;
     try {
-      LOG.log(Level.INFO, "request:{0}", request.toString());
+      LOG.log(Level.FINE, "request:{0}", request.toString());
       response = heClient.bulkOp(request).get();
     } catch (InterruptedException | ExecutionException e) {
-      LOG.log(Level.INFO, "error during bulk delete", e);
-      ServiceException ex = new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_SERVER_NOT_FOUND, Level.WARNING,
-        "error during bulk delete", "error during bulk delete", e);
-      heClient.processException(ex);
-      throw ex;
-    } catch (ServiceException e) {
-      LOG.log(Level.INFO, "service error during bulk delete", e);
-      throw e;
+      String msg = "error during bulk delete";
+      ServiceException se = processException(heClient, e, msg);
+      throw se;
     }
     if(response.hasFailures()) {
-      LOG.log(Level.INFO, "failures during bulk delete");
-      throw new GenericException(RESTCodes.GenericErrorCode.ILLEGAL_ARGUMENT, Level.WARNING,
-        "failures during bulk delete");
+      String msg = "failures during bulk delete";
+      LOG.log(Level.INFO, msg);
+      throw new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_QUERY_ERROR, Level.INFO, msg);
     }
   }
   
@@ -378,27 +347,20 @@ public class HopsworksElasticClientHelper {
     SearchResponse response;
     try {
       response = heClient.search(request).get();
-    } catch (ExecutionException e) {
-      ServiceException ex = processException(e, request.indices()[0], heClient);
-      throw ex;
-    } catch (InterruptedException e) {
-      String msg = "error querying elastic index:" + request.indices()[0];
-      LOG.log(Level.WARNING, msg, e);
-      ServiceException ex = new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_SERVER_NOT_FOUND, Level.WARNING,
-        msg, e.getMessage(), e);
-      heClient.processException(ex);
-      throw ex;
+    } catch (ExecutionException | InterruptedException e) {
+      String msg = "error querying elastic index";
+      ServiceException se = processException(heClient, e, msg);
+      throw se;
     }
     if (response.status().getStatus() != 200) {
-      LOG.log(Level.INFO, "searchBasic query - bad status response:{0}", response.status().getStatus());
-      throw new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_SERVER_NOT_FOUND, Level.WARNING,
-        "searchBasic query - bad status response:" + response.status().getStatus());
+      String msg = "searchBasic query - bad status response:" + response.status().getStatus();
+      LOG.log(Level.INFO, msg);
+      throw new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_QUERY_ERROR, Level.INFO, msg);
     }
     return response;
   }
   
-  private static ServiceException processException(ExecutionException e, String index,
-    HopsworksElasticClient heClient) {
+  private static ServiceException processException(HopsworksElasticClient heClient, Exception e, String msg) {
     if(e.getCause() instanceof RemoteTransportException) {
       RemoteTransportException e1 = (RemoteTransportException)e.getCause();
       if(e1.getCause() instanceof SearchPhaseExecutionException) {
@@ -410,10 +372,10 @@ public class HopsworksElasticClientHelper {
             int idx2 = e3.getMessage().indexOf("]");
             if (idx1 != -1 && idx2 != -1 && idx1 < idx2) {
               String field = e3.getMessage().substring(idx1 + 1, idx2);
-              String devMsg = "index[" + index + "] - error querying - index missing mapping for field[" + field + "]";
-              String usrMsg = "elastic query error - bad field[" + field + "]";
+              String devMsg = "index[" + e1.getIndex().getName() + "] - " +
+                "error querying - index missing mapping for field[" + field + "]";
               ServiceException ex = new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_QUERY_NO_MAPPING,
-                Level.INFO, usrMsg, devMsg, e);
+                Level.INFO, msg, devMsg, e);
               LOG.log(Level.INFO, devMsg);
               return ex;
             }
@@ -421,9 +383,8 @@ public class HopsworksElasticClientHelper {
         }
       }
     }
-    String msg = "error querying elastic index:" + index;
     LOG.log(Level.WARNING, msg, e);
-    ServiceException ex = new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_SERVER_NOT_FOUND, Level.WARNING,
+    ServiceException ex = new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_SERVICE_ERROR, Level.WARNING,
       msg, e.getMessage(), e);
     heClient.processException(ex);
     return ex;

@@ -49,8 +49,8 @@ import io.hops.hopsworks.common.dao.util.Variables;
 import io.hops.hopsworks.common.dela.AddressJSON;
 import io.hops.hopsworks.common.dela.DelaClientType;
 import io.hops.hopsworks.common.hdfs.Utils;
-import io.hops.hopsworks.common.provenance.v3.xml.ProvTypeDTO;
-import io.hops.hopsworks.exceptions.GenericException;
+import io.hops.hopsworks.common.provenance.xml.ProvTypeDTO;
+import io.hops.hopsworks.exceptions.ProvenanceException;
 import io.hops.hopsworks.restutils.RESTLogLevel;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -3592,7 +3592,7 @@ public class Settings implements Serializable {
     PROVENANCE_TYPE_S = setStrVar(VARIABLE_PROVENANCE_TYPE, PROVENANCE_TYPE_S);
     try {
       PROVENANCE_TYPE = ProvTypeDTO.provTypeFromString(PROVENANCE_TYPE_S);
-    } catch(GenericException e) {
+    } catch(ProvenanceException e) {
       LOGGER.log(Level.WARNING, "unknown prov type:" + PROVENANCE_TYPE_S + ", using default");
       PROVENANCE_TYPE = ProvTypeDTO.ProvType.MIN;
       PROVENANCE_TYPE_S = PROVENANCE_TYPE.name();
