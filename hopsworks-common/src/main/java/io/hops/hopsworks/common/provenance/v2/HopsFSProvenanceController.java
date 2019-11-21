@@ -175,12 +175,13 @@ public class HopsFSProvenanceController {
   public void newHiveDatasetProvCore(Project project, String hiveDBPath, DistributedFileSystemOps dfso)
     throws GenericException {
     String projectPath = Utils.getProjectPath(project.getName());
-    ProvCoreDTO provCore = getProvCoreXAttr(projectPath, dfso);
-    if(provCore == null) {
+    ProvCoreDTO projectProvCore = getProvCoreXAttr(projectPath, dfso);
+    if(projectProvCore == null) {
       throw new GenericException(RESTCodes.GenericErrorCode.ILLEGAL_STATE, Level.INFO,
         "hopsfs - hive db - set meta status error - project without prov core");
     }
-    updateDatasetProvType(hiveDBPath, provCore, dfso);
+    ProvCoreDTO datasetProvCore = new ProvCoreDTO(projectProvCore.getType(), project.getInode().getId());
+    updateDatasetProvType(hiveDBPath, datasetProvCore, dfso);
   }
   
   private void updateDatasetProvType(String datasetPath, ProvCoreDTO provCore, DistributedFileSystemOps dfso)
