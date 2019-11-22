@@ -21,7 +21,6 @@ import io.hops.hopsworks.common.dao.featurestore.app.FeaturestoreUtilJobDTO;
 import io.hops.hopsworks.common.dao.featurestore.online_featurestore.OnlineFeaturestoreController;
 import io.hops.hopsworks.common.dao.featurestore.storageconnector.hopsfs.FeaturestoreHopsfsConnectorController;
 import io.hops.hopsworks.common.dao.featurestore.storageconnector.jdbc.FeaturestoreJdbcConnectorController;
-import io.hops.hopsworks.common.provenance.hopsfs.HopsFSProvenanceController;
 import io.hops.hopsworks.common.dao.featurestore.utils.FeaturestoreUtils;
 import io.hops.hopsworks.common.dao.project.Project;
 import io.hops.hopsworks.common.dao.user.Users;
@@ -71,8 +70,6 @@ public class FeaturestoreController {
   private OnlineFeaturestoreController onlineFeaturestoreController;
   @EJB
   private FeaturestoreUtils featurestoreUtils;
-  @EJB
-  private HopsFSProvenanceController fsController;
   
   private static JAXBContext featurestoreUtilJobArgsJaxbContext = null;
   private static Marshaller featurestoreUtilJobArgsMarshaller = null;

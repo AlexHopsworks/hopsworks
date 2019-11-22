@@ -91,9 +91,6 @@ import io.hops.hopsworks.common.dao.metadata.Template;
   @NamedQuery(name = "Inode.findByPrimaryKey",
           query
           = "SELECT i FROM Inode i WHERE i.inodePK = :inodePk"),
-  @NamedQuery(name = "Inode.findByPrimaryKeyInList",
-          query
-          = "SELECT i FROM Inode i WHERE i.inodePK IN :inodePkList"),
   @NamedQuery(name = "Inode.findByAccessTime",
           query
           = "SELECT i FROM Inode i WHERE i.accessTime = :accessTime"),

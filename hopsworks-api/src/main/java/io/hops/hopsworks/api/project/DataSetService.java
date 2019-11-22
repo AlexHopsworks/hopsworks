@@ -76,7 +76,6 @@ import io.hops.hopsworks.common.dao.user.security.apiKey.ApiScope;
 import io.hops.hopsworks.common.dataset.DatasetController;
 import io.hops.hopsworks.common.dataset.FilePreviewDTO;
 import io.hops.hopsworks.common.hdfs.FsPermissions;
-import io.hops.hopsworks.common.project.ProjectController;
 import io.hops.hopsworks.common.provenance.hopsfs.HopsFSProvenanceController;
 import io.hops.hopsworks.common.provenance.xml.ProvTypeDTO;
 import io.hops.hopsworks.exceptions.DatasetException;
@@ -141,8 +140,6 @@ public class DataSetService {
 
   @EJB
   private ProjectFacade projectFacade;
-  @EJB
-  private ProjectController projectCtrl;
   @EJB
   private DatasetFacade datasetFacade;
   @EJB

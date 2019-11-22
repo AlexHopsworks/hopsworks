@@ -74,39 +74,39 @@ public class ProvFileOpElastic implements Comparator<ProvFileOpElastic>  {
     result.map = sourceMap;
     Map<String, Object> auxMap = new HashMap<>(sourceMap);
     result.projectInodeId = ProvElasticFields.extractField(auxMap,
-      ProvElasticFields.FileBase.PROJECT_I_ID, ProvElasticHelper2.asLong(soft));
+      ProvElasticFields.FileBase.PROJECT_I_ID, ProvHelper.asLong(soft));
     result.datasetInodeId = ProvElasticFields.extractField(auxMap,
-      ProvElasticFields.FileBase.DATASET_I_ID, ProvElasticHelper2.asLong(soft));
+      ProvElasticFields.FileBase.DATASET_I_ID, ProvHelper.asLong(soft));
     result.inodeId = ProvElasticFields.extractField(auxMap,
-      ProvElasticFields.FileBase.INODE_ID, ProvElasticHelper2.asLong(soft));
+      ProvElasticFields.FileBase.INODE_ID, ProvHelper.asLong(soft));
     result.appId = ProvElasticFields.extractField(auxMap,
-      ProvElasticFields.FileBase.APP_ID, ProvElasticHelper2.asString(soft));
+      ProvElasticFields.FileBase.APP_ID, ProvHelper.asString(soft));
     result.userId = ProvElasticFields.extractField(auxMap,
-      ProvElasticFields.FileBase.USER_ID, ProvElasticHelper2.asInt(soft));
+      ProvElasticFields.FileBase.USER_ID, ProvHelper.asInt(soft));
     result.inodeName = ProvElasticFields.extractField(auxMap,
-      ProvElasticFields.FileBase.INODE_NAME, ProvElasticHelper2.asString(soft));
+      ProvElasticFields.FileBase.INODE_NAME, ProvHelper.asString(soft));
     result.inodeOperation = ProvElasticFields.extractField(auxMap,
-      ProvElasticFields.FileOpsBase.INODE_OPERATION, ProvElasticHelper2.asFileOp(soft));
+      ProvElasticFields.FileOpsBase.INODE_OPERATION, ProvHelper.asFileOp(soft));
     result.timestamp = ProvElasticFields.extractField(auxMap,
-      ProvElasticFields.FileOpsBase.TIMESTAMP, ProvElasticHelper2.asLong(soft));
+      ProvElasticFields.FileOpsBase.TIMESTAMP, ProvHelper.asLong(soft));
     result.parentInodeId = ProvElasticFields.extractField(auxMap,
-      ProvElasticFields.FileBase.PARENT_I_ID, ProvElasticHelper2.asLong(soft));
+      ProvElasticFields.FileBase.PARENT_I_ID, ProvHelper.asLong(soft));
     result.partitionId = ProvElasticFields.extractField(auxMap,
-      ProvElasticFields.FileAux.PARTITION_ID, ProvElasticHelper2.asLong(soft));
+      ProvElasticFields.FileAux.PARTITION_ID, ProvHelper.asLong(soft));
     result.projectName = ProvElasticFields.extractField(auxMap,
-      ProvElasticFields.FileAux.PROJECT_NAME, ProvElasticHelper2.asString(soft));
+      ProvElasticFields.FileAux.PROJECT_NAME, ProvHelper.asString(soft));
     result.mlId = ProvElasticFields.extractField(auxMap,
-      ProvElasticFields.FileBase.ML_ID, ProvElasticHelper2.asString(soft));
+      ProvElasticFields.FileBase.ML_ID, ProvHelper.asString(soft));
     result.docSubType = ProvElasticFields.extractField(auxMap,
-      ProvElasticFields.FileBase.ML_TYPE, ProvElasticHelper2.asDocSubType(soft));
+      ProvElasticFields.FileBase.ML_TYPE, ProvHelper.asDocSubType(soft));
     result.logicalTime =ProvElasticFields.extractField(auxMap,
-      ProvElasticFields.FileOpsAux.LOGICAL_TIME, ProvElasticHelper2.asInt(soft));
+      ProvElasticFields.FileOpsAux.LOGICAL_TIME, ProvHelper.asInt(soft));
     result.readableTimestamp = ProvElasticFields.extractField(auxMap,
-      ProvElasticFields.FileOpsAux.R_TIMESTAMP, ProvElasticHelper2.asString(soft));
+      ProvElasticFields.FileOpsAux.R_TIMESTAMP, ProvHelper.asString(soft));
     ProvElasticFields.extractField(auxMap,
-      ProvElasticFields.FileBase.ENTRY_TYPE, ProvElasticHelper2.asString(soft));
+      ProvElasticFields.FileBase.ENTRY_TYPE, ProvHelper.asString(soft));
     Map<String, String> xattrs = ProvElasticFields.extractField(auxMap,
-      ProvElasticFields.XAttr.XATTR_PROV, ProvElasticHelper2.asXAttrMap(true));
+      ProvElasticFields.XAttr.XATTR_PROV, ProvHelper.asXAttrMap(true));
     if(xattrs != null && xattrs.size() == 1) {
       Map.Entry<String, String> e = xattrs.entrySet().iterator().next();
       result.xattrName = e.getKey();

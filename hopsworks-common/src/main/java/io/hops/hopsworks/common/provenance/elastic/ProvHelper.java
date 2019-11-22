@@ -48,7 +48,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 
-public class ProvElasticHelper2 {
+public class ProvHelper {
   
   public static CheckedFunction<Object, Long, ProvenanceException> asLong(boolean soft) {
     return (Object val) -> {

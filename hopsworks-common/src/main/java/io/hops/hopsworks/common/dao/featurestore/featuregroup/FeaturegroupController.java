@@ -78,7 +78,7 @@ public class FeaturegroupController {
   private FeaturestoreJobController featurestoreJobController;
   @EJB
   private JobFacade jobFacade;
-  
+
   /**
    * Gets all featuregroups for a particular featurestore and project, using the userCerts to query Hive
    *

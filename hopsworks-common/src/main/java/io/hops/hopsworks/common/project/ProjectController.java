@@ -339,7 +339,7 @@ public class ProjectController {
       verifyProject(project, dfso, sessionId);
 
       LOGGER.log(Level.FINE, "PROJECT CREATION TIME. Step 3 (verify): {0}", System.currentTimeMillis() - startTime);
-  
+
       // Run the handlers.
       for (ProjectHandler projectHandler : projectHandlers) {
         try {
@@ -539,7 +539,7 @@ public class ProjectController {
     Project project = new Project(projectName, user, now, PaymentType.PREPAID);
     project.setKafkaMaxNumTopics(settings.getKafkaMaxNumTopics());
     project.setDescription(projectDescription);
-  
+
     // set retention period to next 10 years by default
     Calendar cal = Calendar.getInstance();
     cal.setTime(now);
@@ -708,14 +708,14 @@ public class ProjectController {
   private List<Future<?>> addService(Project project, ProjectServiceEnum service,
     Users user, DistributedFileSystemOps dfso, ProvTypeDTO metaStatus)
     throws ProjectException, ServiceException, DatasetException, HopsSecurityException,
-    UserException, FeaturestoreException, GenericException {
+    UserException, FeaturestoreException {
     return addService(project, service, user, dfso, dfso, metaStatus);
   }
 
   public List<Future<?>> addService(Project project, ProjectServiceEnum service,
       Users user, DistributedFileSystemOps dfso, DistributedFileSystemOps udfso, ProvTypeDTO metaStatus)
     throws ProjectException, ServiceException, DatasetException, HopsSecurityException,
-    UserException, FeaturestoreException, GenericException {
+    UserException, FeaturestoreException {
 
     List<Future<?>> futureList = new ArrayList<>();
 
@@ -768,7 +768,7 @@ public class ProjectController {
   private void addServiceDataset(Project project, Users user,
     Settings.ServiceDataset ds, DistributedFileSystemOps dfso,
     DistributedFileSystemOps udfso, ProvTypeDTO metaStatus)
-    throws DatasetException, HopsSecurityException, ProjectException, GenericException {
+    throws DatasetException, HopsSecurityException, ProjectException {
     try {
       String datasetName = ds.getName();
       //Training Datasets should be shareable, prefix with project name to avoid naming conflicts when sharing
@@ -812,7 +812,7 @@ public class ProjectController {
 
   private Future<CertificatesController.CertsResult> addServiceServing(Project project, Users user,
     DistributedFileSystemOps dfso, DistributedFileSystemOps udfso, ProvTypeDTO metaStatus)
-    throws ProjectException, DatasetException, HopsSecurityException, UserException, GenericException {
+    throws ProjectException, DatasetException, HopsSecurityException, UserException {
 
     addServiceDataset(project, user, Settings.ServiceDataset.SERVING, dfso, udfso, metaStatus);
     elasticController.createIndexPattern(project, project.getName().toLowerCase() + "_serving-*");

@@ -639,7 +639,7 @@ public class ProjectService {
     return noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK).entity(json).build();
 
   }
-  
+
   @Path("{projectId}/projectMembers")
   public ProjectMembersService projectMembers(@PathParam("projectId") Integer id) {
     this.projectMembers.setProjectId(id);

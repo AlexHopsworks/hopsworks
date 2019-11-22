@@ -48,7 +48,6 @@ import io.hops.hopsworks.common.dao.user.Users;
 import io.hops.hopsworks.common.dataset.DatasetController;
 import io.hops.hopsworks.common.dataset.FilePreviewDTO;
 import io.hops.hopsworks.common.hdfs.DistributedFileSystemOps;
-import io.hops.hopsworks.common.project.ProjectController;
 import io.hops.hopsworks.common.provenance.hopsfs.HopsFSProvenanceController;
 import io.hops.hopsworks.common.provenance.xml.ProvTypeDTO;
 import io.hops.hopsworks.exceptions.DatasetException;
@@ -87,8 +86,6 @@ public class DelaDatasetController {
   private HdfsUsersController hdfsUsersBean;
   @EJB
   private DistributedFsService dfs;
-  @EJB
-  private ProjectController projectController;
   @EJB
   private HopsFSProvenanceController fsProvenanceController;
 

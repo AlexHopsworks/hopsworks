@@ -199,7 +199,7 @@ public class InodeFacade extends AbstractFacade<Inode> {
       return null;
     }
   }
-  
+
   /**
    * find inode by id
    * <p/>
@@ -349,23 +349,7 @@ public class InodeFacade extends AbstractFacade<Inode> {
       return null;
     }
   }
-  
-  /**
-   * find inode by id
-   * <p/>
-   * @param id
-   * @return
-   */
-  public List<Inode> findByInodePKList(List<InodePK> inodePKs) {
-    TypedQuery<Inode> q = em.createNamedQuery("Inode.findByPrimaryKeyInList", Inode.class);
-    q.setParameter("inodePkList", inodePKs);
-    try {
-      return q.getResultList();
-    } catch (NoResultException e) {
-      return null;
-    }
-  }
-  
+
   /**
    * Get the project base directory of which the given Inode is a descendant.
    * <p/>
