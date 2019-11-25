@@ -569,7 +569,11 @@ public class RESTCodes {
     JUPYTER_SERVER_ALREADY_RUNNING(43, "Jupyter Notebook Server is already running", Response.Status.BAD_REQUEST),
     ERROR_EXECUTING_REMOTE_COMMAND(44, "Error executing command over SSH", Response.Status.INTERNAL_SERVER_ERROR),
     OPERATION_NOT_SUPPORTED(45, "Supplied operation is not supported", Response.Status.BAD_REQUEST),
-    GIT_COMMAND_FAILURE(46, "Git command failed to execute", Response.Status.BAD_REQUEST);
+    GIT_COMMAND_FAILURE(46, "Git command failed to execute", Response.Status.BAD_REQUEST),
+    ELASTIC_QUERY_NO_MAPPING(47, "Elastic query uses a field that is not in the mapping of the index",
+      Response.Status.BAD_REQUEST),
+    ELASTIC_SERVICE_ERROR(48, "Elastic error - not query", Response.Status.BAD_REQUEST),
+    ELASTIC_QUERY_ERROR(49, "Elastic error - query", Response.Status.BAD_REQUEST);
 
     private Integer code;
     private String message;
@@ -1626,5 +1630,51 @@ public class RESTCodes {
       return range;
     }
   }
-
+  
+  /**
+   * Error codes for the provenance microservice on Hopsworks
+   */
+  public enum ProvenanceErrorCode implements RESTErrorCode {
+    MALFORMED_ENTRY(1, "Provenance entry is malformed",
+      Response.Status.INTERNAL_SERVER_ERROR),
+    BAD_REQUEST(2, "Provenance query request is malformed",
+      Response.Status.INTERNAL_SERVER_ERROR),
+    UNSUPPORTED(3, "Provenance query is not supported",
+      Response.Status.BAD_REQUEST),
+    INTERNAL_ERROR(4, "Provenance logical error",
+      Response.Status.INTERNAL_SERVER_ERROR),
+    ARCHIVAL_STORE(5, "Provenance archival store error",
+      Response.Status.INTERNAL_SERVER_ERROR),
+    FS_ERROR(6, "Provenance xattr - file system error",
+      Response.Status.INTERNAL_SERVER_ERROR);
+    private int code;
+    private String message;
+    private Response.Status respStatus;
+    public final int range = 330000;
+    
+    ProvenanceErrorCode(Integer code, String message, Response.Status respStatus) {
+      this.code = range + code;
+      this.message = message;
+      this.respStatus = respStatus;
+    }
+    
+    @Override
+    public Integer getCode() {
+      return code;
+    }
+    
+    @Override
+    public String getMessage() {
+      return message;
+    }
+    
+    public Response.StatusType getRespStatus() {
+      return respStatus;
+    }
+    
+    @Override
+    public int getRange() {
+      return range;
+    }
+  }
 }
