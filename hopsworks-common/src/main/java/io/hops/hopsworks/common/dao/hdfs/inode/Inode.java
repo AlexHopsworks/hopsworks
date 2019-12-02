@@ -188,11 +188,9 @@ public class Inode implements Serializable {
 
   //copy constructor
   public Inode(Inode inode) {
-    this(new InodePK(inode.getInodePK().getParentId(), inode.getInodePK().
-            getName(), inode.getInodePK().getPartitionId()), inode.getId(),
-            inode.isQuotaEnabled(), inode.
-            isUnderConstruction(), inode.
-            inode.getMetaStatus(), inode.isDir());
+    this(new InodePK(inode.getInodePK().getParentId(), inode.getInodePK().getName(),
+        inode.getInodePK().getPartitionId()),
+      inode.getId(), inode.isQuotaEnabled(), inode.isUnderConstruction(), inode.getMetaStatus(), inode.isDir());
   }
 
   public Inode(long parentId, String name, long partitionId) {

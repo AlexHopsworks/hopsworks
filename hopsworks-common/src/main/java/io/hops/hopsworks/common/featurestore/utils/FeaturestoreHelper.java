@@ -1,4 +1,4 @@
-package io.hops.hopsworks.common.dao.featurestore.utils;
+package io.hops.hopsworks.common.featurestore.utils;
 
 import io.hops.hopsworks.common.dao.project.Project;
 import io.hops.hopsworks.common.util.Settings;

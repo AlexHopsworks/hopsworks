@@ -16,9 +16,9 @@
 package io.hops.hopsworks.common.provenance.hopsfs;
 
 import io.hops.hopsworks.common.dao.dataset.Dataset;
-import io.hops.hopsworks.common.dao.featurestore.feature.FeatureDTO;
-import io.hops.hopsworks.common.dao.featurestore.featuregroup.FeaturegroupDTO;
-import io.hops.hopsworks.common.dao.featurestore.utils.FeaturestoreHelper;
+import io.hops.hopsworks.common.featurestore.feature.FeatureDTO;
+import io.hops.hopsworks.common.featurestore.featuregroup.FeaturegroupDTO;
+import io.hops.hopsworks.common.featurestore.utils.FeaturestoreHelper;
 import io.hops.hopsworks.common.dao.project.Project;
 import io.hops.hopsworks.common.dao.user.Users;
 import io.hops.hopsworks.common.hdfs.DistributedFileSystemOps;

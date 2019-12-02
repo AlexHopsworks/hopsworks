@@ -52,6 +52,7 @@ import io.hops.hopsworks.common.dao.user.Users;
 import io.hops.hopsworks.common.hdfs.DistributedFileSystemOps;
 import io.hops.hopsworks.common.hdfs.DistributedFsService;
 import io.hops.hopsworks.common.hdfs.Utils;
+import io.hops.hopsworks.common.hdfs.inode.InodeController;
 import io.hops.hopsworks.common.provenance.apiToElastic.ProvMLParamBuilder;
 import io.hops.hopsworks.common.provenance.hopsfs.HopsFSProvenanceController;
 import io.hops.hopsworks.common.provenance.xml.ProvDatasetDTO;
@@ -117,6 +118,8 @@ public class ProjectProvenanceResource {
   //Testing
   @EJB
   private InodeFacade inodeFacade;
+  @EJB
+  private InodeController inodeCtrl;
   @EJB
   private DatasetFacade datasetFacade;
   @EJB
@@ -470,7 +473,7 @@ public class ProjectProvenanceResource {
       throw new ProvenanceException(RESTCodes.ProvenanceErrorCode.FS_ERROR, Level.INFO,
         "experiment not found");
     }
-    String path = inodeFacade.getPath(inode);
+    String path = inodeCtrl.getPath(inode);
     DistributedFileSystemOps dfso = dfs.getDfsOps();
     createXAttr(dfso, path, "provenance.app_id", appId);
     return Response.ok().build();

@@ -188,9 +188,6 @@ public class HiveController {
     dbDataset.setFeatureStore(featurestore);
     datasetFacade.persistDataset(dbDataset);
 
-    dfso.setMetaEnabled(dbPath);
-    datasetController.logDataset(project, dbDataset, OperationType.Add);
-  
     activityFacade.persistActivity(ActivityFacade.NEW_DATA + dbDataset.getName(), project, user, ActivityFlag.DATASET);
 
     try {
@@ -202,7 +199,7 @@ public class HiveController {
       dfso.setPermission(dbPath, fsPermission);
   
       fsProvenanceCtrl.newHiveDatasetProvCore(project, dbPath.toString(), dfso);
-      datasetController.logDataset(dbDataset, OperationType.Add);
+      datasetController.logDataset(project, dbDataset, OperationType.Add);
       activityFacade.persistActivity(ActivityFacade.NEW_DATA + dbDataset.getName(), project, user,
         ActivityFlag.DATASET);
 

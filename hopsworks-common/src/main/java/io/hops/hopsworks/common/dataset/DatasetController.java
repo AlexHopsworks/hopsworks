@@ -99,7 +99,6 @@ import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.Collection;
 import java.util.List;
 import java.util.Stack;
 import java.util.logging.Level;
@@ -309,7 +308,6 @@ public class DatasetController {
   public boolean deleteDatasetDir(Dataset dataset, Path location,
       DistributedFileSystemOps udfso) throws IOException {
     OperationsLog log = new OperationsLog(dataset, OperationType.Delete);
-//    udfso.unsetMetaEnabled(location);
     boolean success = udfso.rm(location, true);
     if (success) {
       operationsLogFacade.persist(log);
@@ -562,16 +560,6 @@ public class DatasetController {
       }
     }
     return false;
-  }
-  
-  public void unsetMetaEnabledForAllDatasets(DistributedFileSystemOps dfso, Project project) throws IOException {
-    Collection<Dataset> datasets = project.getDatasetCollection();
-    for (Dataset dataset : datasets) {
-      if (dataset.isSearchable() && !dataset.isShared(project)) {
-        Path dspath = getDatasetPath(dataset);
-        dfso.unsetMetaEnabled(dspath);
-      }
-    }
   }
   
   public Dataset getDatasetByInodeId(Long inodeId) {
@@ -848,7 +836,7 @@ public class DatasetController {
   }
   
   public void createDirectory(Project project, Users user, Path fullPath, String name, Boolean isDataset,
-    Integer templateId, String description, Boolean searchable, Boolean generateReadme) throws DatasetException,
+    Integer templateId, String description, ProvTypeDTO metaStatus, Boolean generateReadme) throws DatasetException,
     HopsSecurityException {
     DistributedFileSystemOps dfso = dfs.getDfsOps();
     String username = hdfsUsersController.getHdfsUserName(project, user);
@@ -856,21 +844,19 @@ public class DatasetController {
     if (templateId == null) {
       templateId = -1;
     }
-    if (searchable == null) {
-      searchable = false;
-    }
     if (description == null) {
       description = "";
     }
     try {
       if (isDataset) {
-        createDataset(user, project, name, description, templateId, searchable, false, false, dfso);
+        createDataset(user, project, name, description, templateId, metaStatus, false, false, dfso);
         //Generate README.md for the dataset if the user requested it
         if (generateReadme != null && generateReadme) {
           //Persist README.md to hdfs
           generateReadme(udfso, name, description, project.getName());
         }
       } else {
+        boolean searchable = !Inode.MetaStatus.DISABLED.equals(metaStatus.getMetaStatus());
         createSubDirectory(project, fullPath, templateId, description, searchable, udfso);
       }
     } finally {
