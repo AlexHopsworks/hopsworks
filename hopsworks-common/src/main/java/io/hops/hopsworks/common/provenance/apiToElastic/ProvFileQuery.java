@@ -15,7 +15,7 @@
  */
 package io.hops.hopsworks.common.provenance.apiToElastic;
 
-import io.hops.hopsworks.common.elastic.ElasticHelper;
+import io.hops.hopsworks.common.provenance.elastic.core.ElasticHelper;
 import io.hops.hopsworks.common.provenance.core.Provenance;
 import io.hops.hopsworks.exceptions.ProvenanceException;
 import io.hops.hopsworks.restutils.RESTCodes;

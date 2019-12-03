@@ -17,7 +17,7 @@ package io.hops.hopsworks.common.provenance.xml;
 
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
-import io.hops.hopsworks.common.provenance.elastic.ProvFileOpElastic;
+import io.hops.hopsworks.common.provenance.elastic.prov.ProvFileOpElastic;
 import org.javatuples.Pair;
 
 import javax.xml.bind.annotation.XmlRootElement;

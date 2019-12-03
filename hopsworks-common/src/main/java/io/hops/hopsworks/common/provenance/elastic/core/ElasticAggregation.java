@@ -13,13 +13,11 @@
  * You should have received a copy of the GNU Affero General Public License along with this program.
  * If not, see <https://www.gnu.org/licenses/>.
  */
-package io.hops.hopsworks.common.elastic;
-
-import io.hops.hopsworks.common.util.functional.CheckedFunction;
+package io.hops.hopsworks.common.provenance.elastic.core;
 
 /**
- * @param <R> Parses the elastic response BasicElasticHit into type R.
- * @param <E> Exception that can be thrown during the parsing.
+ * Marker Interface for Elastic aggregations names that can be used with enums
+ * This marker interface is used as an id/key in a HashMap - force implement hash and equals methods
  */
-public interface ElasticHitParser<R, E extends Exception> extends CheckedFunction<BasicElasticHit, R, E> {
+public interface ElasticAggregation {
 }

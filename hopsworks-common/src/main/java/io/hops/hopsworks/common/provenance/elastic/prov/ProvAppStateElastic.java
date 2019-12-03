@@ -36,7 +36,7 @@
  * DAMAGES OR  OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package io.hops.hopsworks.common.provenance.elastic;
+package io.hops.hopsworks.common.provenance.elastic.prov;
 
 import java.util.Comparator;
 import java.util.HashMap;
@@ -45,7 +45,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import io.hops.hopsworks.common.elastic.BasicElasticHit;
+import io.hops.hopsworks.common.provenance.elastic.core.BasicElasticHit;
 import io.hops.hopsworks.common.provenance.core.Provenance;
 
 /**

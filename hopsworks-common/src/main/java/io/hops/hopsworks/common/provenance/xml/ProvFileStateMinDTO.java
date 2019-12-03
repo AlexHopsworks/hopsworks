@@ -17,8 +17,8 @@ package io.hops.hopsworks.common.provenance.xml;
 
 import io.hops.hopsworks.common.provenance.core.ProvExecution;
 import io.hops.hopsworks.common.provenance.core.Provenance;
-import io.hops.hopsworks.common.provenance.elastic.ProvFileOpElastic;
-import io.hops.hopsworks.common.provenance.elastic.ProvenanceController;
+import io.hops.hopsworks.common.provenance.elastic.prov.ProvFileOpElastic;
+import io.hops.hopsworks.common.provenance.elastic.prov.ProvenanceController;
 
 import javax.xml.bind.annotation.XmlRootElement;
 

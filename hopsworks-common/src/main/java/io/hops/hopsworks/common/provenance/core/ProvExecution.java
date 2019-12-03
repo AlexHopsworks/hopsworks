@@ -38,11 +38,11 @@
  */
 package io.hops.hopsworks.common.provenance.core;
 
-import io.hops.hopsworks.common.elastic.BasicElasticHit;
-import io.hops.hopsworks.common.elastic.ElasticHitsHandler;
+import io.hops.hopsworks.common.provenance.elastic.core.BasicElasticHit;
+import io.hops.hopsworks.common.provenance.elastic.core.ElasticHitsHandler;
 import io.hops.hopsworks.common.provenance.apiToElastic.ProvFileOpsParamBuilder;
 import io.hops.hopsworks.common.provenance.apiToElastic.ProvRestToElastic;
-import io.hops.hopsworks.common.provenance.elastic.ProvFileOpElastic;
+import io.hops.hopsworks.common.provenance.elastic.prov.ProvFileOpElastic;
 import io.hops.hopsworks.common.provenance.xml.ProvFileStateMinDTO;
 import io.hops.hopsworks.common.provenance.xml.ProvMLStateMinDTO;
 import io.hops.hopsworks.exceptions.ProvenanceException;

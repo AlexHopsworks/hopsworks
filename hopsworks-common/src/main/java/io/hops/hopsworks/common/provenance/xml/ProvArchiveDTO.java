@@ -15,9 +15,9 @@
  */
 package io.hops.hopsworks.common.provenance.xml;
 
-import io.hops.hopsworks.common.elastic.BasicElasticHit;
+import io.hops.hopsworks.common.provenance.elastic.core.BasicElasticHit;
 import io.hops.hopsworks.common.provenance.apiToElastic.ProvElasticFields;
-import io.hops.hopsworks.common.provenance.elastic.ProvHelper;
+import io.hops.hopsworks.common.provenance.elastic.prov.ProvHelper;
 import io.hops.hopsworks.exceptions.ProvenanceException;
 
 import javax.xml.bind.annotation.XmlRootElement;

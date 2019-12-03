@@ -57,7 +57,7 @@ import io.hops.hopsworks.common.provenance.apiToElastic.ProvMLParamBuilder;
 import io.hops.hopsworks.common.provenance.hopsfs.HopsFSProvenanceController;
 import io.hops.hopsworks.common.provenance.xml.ProvDatasetDTO;
 import io.hops.hopsworks.common.provenance.core.Provenance;
-import io.hops.hopsworks.common.provenance.elastic.ProvenanceController;
+import io.hops.hopsworks.common.provenance.elastic.prov.ProvenanceController;
 import io.hops.hopsworks.common.provenance.apiToElastic.ProvFileQuery;
 import io.hops.hopsworks.common.provenance.xml.ProvArchiveDTO;
 import io.hops.hopsworks.common.provenance.xml.ProvFileOpDTO;

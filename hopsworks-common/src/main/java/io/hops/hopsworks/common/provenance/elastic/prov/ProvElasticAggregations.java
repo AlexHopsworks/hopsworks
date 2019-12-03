@@ -13,11 +13,11 @@
  * You should have received a copy of the GNU Affero General Public License along with this program.
  * If not, see <https://www.gnu.org/licenses/>.
  */
-package io.hops.hopsworks.common.provenance.elastic;
+package io.hops.hopsworks.common.provenance.elastic.prov;
 
-import io.hops.hopsworks.common.elastic.BasicElasticHit;
-import io.hops.hopsworks.common.elastic.ElasticAggregation;
-import io.hops.hopsworks.common.elastic.ElasticAggregationParser;
+import io.hops.hopsworks.common.provenance.elastic.core.BasicElasticHit;
+import io.hops.hopsworks.common.provenance.elastic.core.ElasticAggregation;
+import io.hops.hopsworks.common.provenance.elastic.core.ElasticAggregationParser;
 import io.hops.hopsworks.common.provenance.core.Provenance;
 import io.hops.hopsworks.common.provenance.apiToElastic.ProvElasticFields;
 import io.hops.hopsworks.common.provenance.xml.ProvFileOpDTO;

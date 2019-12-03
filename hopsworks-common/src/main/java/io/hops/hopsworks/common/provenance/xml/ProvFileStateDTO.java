@@ -15,7 +15,7 @@
  */
 package io.hops.hopsworks.common.provenance.xml;
 
-import io.hops.hopsworks.common.provenance.elastic.ProvFileStateElastic;
+import io.hops.hopsworks.common.provenance.elastic.prov.ProvFileStateElastic;
 
 import javax.xml.bind.annotation.XmlRootElement;
 import java.util.Collection;

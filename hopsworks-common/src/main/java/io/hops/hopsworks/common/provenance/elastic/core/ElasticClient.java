@@ -13,7 +13,7 @@
  * You should have received a copy of the GNU Affero General Public License along with this program.
  * If not, see <https://www.gnu.org/licenses/>.
  */
-package io.hops.hopsworks.common.elastic;
+package io.hops.hopsworks.common.provenance.elastic.core;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import io.hops.hopsworks.common.util.Ip;

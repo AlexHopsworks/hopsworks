@@ -13,7 +13,7 @@
  * You should have received a copy of the GNU Affero General Public License along with this program.
  * If not, see <https://www.gnu.org/licenses/>.
  */
-package io.hops.hopsworks.common.provenance.elastic;
+package io.hops.hopsworks.common.provenance.elastic.prov;
 
 import java.util.Comparator;
 import java.util.HashMap;
@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.logging.Level;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import io.hops.hopsworks.common.elastic.BasicElasticHit;
+import io.hops.hopsworks.common.provenance.elastic.core.BasicElasticHit;
 import io.hops.hopsworks.common.provenance.xml.ProvMLAssetAppStateDTO;
 import io.hops.hopsworks.common.provenance.apiToElastic.ProvElasticFields;
 import io.hops.hopsworks.exceptions.ProvenanceException;

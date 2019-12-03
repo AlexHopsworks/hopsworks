@@ -1,4 +1,4 @@
-package io.hops.hopsworks.common.provenance.elastic;
+package io.hops.hopsworks.common.provenance.elastic.prov;
 
 import org.elasticsearch.script.Script;
 

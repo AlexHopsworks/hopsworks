@@ -15,9 +15,9 @@
  */
 package io.hops.hopsworks.common.provenance.xml;
 
-import io.hops.hopsworks.common.provenance.elastic.ProvElasticAggregations;
+import io.hops.hopsworks.common.provenance.elastic.prov.ProvElasticAggregations;
 import io.hops.hopsworks.common.provenance.apiToElastic.ProvElasticFields;
-import io.hops.hopsworks.common.provenance.elastic.ProvFileOpElastic;
+import io.hops.hopsworks.common.provenance.elastic.prov.ProvFileOpElastic;
 import io.hops.hopsworks.exceptions.ProvenanceException;
 import io.hops.hopsworks.restutils.RESTCodes;
 import org.javatuples.Pair;

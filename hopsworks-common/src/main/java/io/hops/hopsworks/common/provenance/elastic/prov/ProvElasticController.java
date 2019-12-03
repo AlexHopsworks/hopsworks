@@ -36,14 +36,14 @@
  * DAMAGES OR  OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package io.hops.hopsworks.common.provenance.elastic;
+package io.hops.hopsworks.common.provenance.elastic.prov;
 
 import com.google.gson.Gson;
-import io.hops.hopsworks.common.elastic.BasicElasticHit;
-import io.hops.hopsworks.common.elastic.ElasticAggregationParser;
-import io.hops.hopsworks.common.elastic.ElasticClient;
-import io.hops.hopsworks.common.elastic.ElasticHelper;
-import io.hops.hopsworks.common.elastic.ElasticHitsHandler;
+import io.hops.hopsworks.common.provenance.elastic.core.BasicElasticHit;
+import io.hops.hopsworks.common.provenance.elastic.core.ElasticAggregationParser;
+import io.hops.hopsworks.common.provenance.elastic.core.ElasticClient;
+import io.hops.hopsworks.common.provenance.elastic.core.ElasticHelper;
+import io.hops.hopsworks.common.provenance.elastic.core.ElasticHitsHandler;
 import io.hops.hopsworks.common.hdfs.DistributedFileSystemOps;
 import io.hops.hopsworks.common.hdfs.DistributedFsService;
 import io.hops.hopsworks.common.provenance.core.Provenance;

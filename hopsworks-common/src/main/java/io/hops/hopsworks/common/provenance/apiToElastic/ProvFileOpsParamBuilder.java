@@ -15,9 +15,9 @@
  */
 package io.hops.hopsworks.common.provenance.apiToElastic;
 
-import io.hops.hopsworks.common.provenance.elastic.ProvElasticAggregations;
+import io.hops.hopsworks.common.provenance.elastic.prov.ProvElasticAggregations;
 import io.hops.hopsworks.common.provenance.core.Provenance;
-import io.hops.hopsworks.common.provenance.elastic.ProvElasticFilterScripts;
+import io.hops.hopsworks.common.provenance.elastic.prov.ProvElasticFilterScripts;
 import io.hops.hopsworks.exceptions.ProvenanceException;
 import io.hops.hopsworks.restutils.RESTCodes;
 import org.elasticsearch.script.Script;

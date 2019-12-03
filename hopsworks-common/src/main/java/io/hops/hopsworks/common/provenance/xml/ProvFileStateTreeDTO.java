@@ -16,9 +16,9 @@
 
 package io.hops.hopsworks.common.provenance.xml;
 
-import io.hops.hopsworks.common.provenance.elastic.ProvenanceController;
-import io.hops.hopsworks.common.provenance.elastic.ProvTreeBuilderHelper;
-import io.hops.hopsworks.common.provenance.elastic.ProvFileStateElastic;
+import io.hops.hopsworks.common.provenance.elastic.prov.ProvenanceController;
+import io.hops.hopsworks.common.provenance.elastic.prov.ProvTreeBuilderHelper;
+import io.hops.hopsworks.common.provenance.elastic.prov.ProvFileStateElastic;
 import io.hops.hopsworks.exceptions.ProvenanceException;
 import io.hops.hopsworks.restutils.RESTCodes;
 
