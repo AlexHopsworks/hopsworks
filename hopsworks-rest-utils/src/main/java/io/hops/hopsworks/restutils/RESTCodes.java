@@ -1645,8 +1645,10 @@ public class RESTCodes {
       Response.Status.INTERNAL_SERVER_ERROR),
     ARCHIVAL_STORE(5, "Provenance archival store error",
       Response.Status.INTERNAL_SERVER_ERROR),
-    FS_ERROR(6, "Provenance xattr - file system error",
-      Response.Status.INTERNAL_SERVER_ERROR);
+    FS_ERROR(6, "Provenance - file system error",
+      Response.Status.EXPECTATION_FAILED),
+    ELASTIC_ERROR(7, "Provenance - elastic query error",
+      Response.Status.EXPECTATION_FAILED);
     private int code;
     private String message;
     private Response.Status respStatus;

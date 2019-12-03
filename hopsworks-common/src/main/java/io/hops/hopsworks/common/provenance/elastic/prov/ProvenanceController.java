@@ -72,6 +72,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -254,21 +255,6 @@ public class ProvenanceController {
       = processAsTree(project, fileStates, () -> new ProvFootprintFileStateTreeElastic(), fullTree);
     return Pair.with((Map<Long, ProvFootprintFileStateTreeElastic>)(Map)result.getValue0(),
       (Map<Long, ProvFootprintFileStateTreeElastic>)(Map)(result.getValue1()));
-  }
-  
-  public Map<String, ProvMLStateMinDTO> provExperimentFootprintML(Project project, String experimentId,
-    Provenance.FootprintType footprintType) throws ProvenanceException, ServiceException {
-    ProvFileOpsParamBuilder opsParams = new ProvFileOpsParamBuilder()
-      .filterByField(ProvFileQuery.FileOps.ML_TYPE, Provenance.MLType.EXPERIMENT.toString())
-      .filterByField(ProvFileQuery.FileOps.ML_ID, experimentId);
-    ProvExecution.addFootprintQueryParams(opsParams, footprintType);
-    ProvExecution.Footprint<String, ProvMLStateMinDTO> rawMLFootprint = elasticCtrl.provFileOpsScrolling(
-      project.getInode().getId(),
-      opsParams.getFileOpsFilterBy(),
-      opsParams.getFilterScripts(),
-      ProvExecution.mlStateProc());
-    Map<String, ProvMLStateMinDTO> footprint = ProvExecution.processFootprint(rawMLFootprint, footprintType);
-    return footprint;
   }
   
   public ProvFileOpsParamBuilder elasticTreeQueryParams(List<Long> inodeIds) throws ProvenanceException {
@@ -504,8 +490,41 @@ public class ProvenanceController {
     return elasticCtrl.getArchive(project.getInode().getId(), inodeId);
   }
   
+  //ML footprint
+  
+  
+  public Map<String, ProvMLStateMinDTO> provExperimentFootprintML(Project project, String experimentId,
+    Provenance.FootprintType footprintType) throws ProvenanceException, ServiceException {
+    //setup query params
+    ProvFileOpsParamBuilder opsParams = new ProvFileOpsParamBuilder()
+      .filterByField(ProvFileQuery.FileOps.ML_TYPE, Provenance.MLType.EXPERIMENT.toString())
+      .filterByField(ProvFileQuery.FileOps.ML_ID, experimentId);
+    ProvExecution.addFootprintQueryParams(opsParams, footprintType);
+    //execute query
+    ProvExecution.Footprint<String, ProvMLStateMinDTO> rawMLFootprint = elasticCtrl.provFileOpsScrolling(
+      project.getInode().getId(),
+      opsParams.getFileOpsFilterBy(),
+      opsParams.getFilterScripts(),
+      ProvExecution.mlStateProc());
+    //parse result
+    Map<String, ProvMLStateMinDTO> footprint = ProvExecution.processFootprint(rawMLFootprint, footprintType);
+    return footprint;
+  }
+  
   //Testing
   public Map<String, String> mngIndexGetMapping(String indexRegex, boolean forceFetch) throws ServiceException {
     return elasticCtrl.mngIndexGetMapping(indexRegex, forceFetch);
+  }
+  
+  public String experimentCreator(Project project, String mlId) throws ProvenanceException {
+    return ProvExecution.experimentCreator(elasticCtrl, project, mlId);
+  }
+  
+  public String trainigDatasetCreator(Project project, String mlId) throws ProvenanceException {
+    return ProvExecution.trainigDatasetCreator(elasticCtrl, project, mlId);
+  }
+  
+  public Set<String> trainigDatasetUser(Project project, String mlId) throws ProvenanceException {
+    return ProvExecution.trainigDatasetUser(elasticCtrl, project, mlId);
   }
 }

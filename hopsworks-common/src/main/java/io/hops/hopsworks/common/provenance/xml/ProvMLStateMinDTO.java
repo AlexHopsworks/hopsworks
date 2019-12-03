@@ -27,20 +27,23 @@ public class ProvMLStateMinDTO implements ProvExecution.FootprintItem<String> {
   private Long datasetInodeId;
   private Provenance.MLType mlType;
   private String mlId;
+  private String appId;
   private Provenance.FootprintType footprintType;
   
   public ProvMLStateMinDTO() {
   }
   
-  public ProvMLStateMinDTO(Long projectInodeId, Long datasetInodeId, Provenance.MLType mlType, String mlId) {
+  public ProvMLStateMinDTO(Long projectInodeId, Long datasetInodeId, Provenance.MLType mlType, String mlId,
+    String appId) {
     this.projectInodeId = projectInodeId;
     this.datasetInodeId = datasetInodeId;
     this.mlType = mlType;
     this.mlId = mlId;
+    this.appId = appId;
   }
   
   public static ProvMLStateMinDTO fromFileOp(ProvFileOpElastic op, Provenance.MLType mlType) {
-    return new ProvMLStateMinDTO(op.getProjectInodeId(), op.getDatasetInodeId(), mlType, op.getMlId());
+    return new ProvMLStateMinDTO(op.getProjectInodeId(), op.getDatasetInodeId(), mlType, op.getMlId(), op.getAppId());
   }
   
   public Long getProjectInodeId() {
@@ -77,6 +80,14 @@ public class ProvMLStateMinDTO implements ProvExecution.FootprintItem<String> {
   
   public Provenance.FootprintType getFootprintType() {
     return footprintType;
+  }
+  
+  public String getAppId() {
+    return appId;
+  }
+  
+  public void setAppId(String appId) {
+    this.appId = appId;
   }
   
   @Override

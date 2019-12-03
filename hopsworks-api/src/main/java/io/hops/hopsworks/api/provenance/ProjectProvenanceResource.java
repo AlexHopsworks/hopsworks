@@ -76,6 +76,7 @@ import java.io.IOException;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.ejb.EJB;
@@ -91,6 +92,7 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.GenericEntity;
 import javax.ws.rs.core.MediaType;
@@ -501,5 +503,37 @@ public class ProjectProvenanceResource {
       }
     }
     return null;
+  }
+  
+  @GET
+  @Path("test/experiment/creator")
+  @Produces(MediaType.APPLICATION_JSON)
+  @AllowedProjectRoles({AllowedProjectRoles.DATA_SCIENTIST, AllowedProjectRoles.DATA_OWNER})
+  @JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
+  public Response testExperimentCreator(@QueryParam("id") String mlId) throws ProvenanceException {
+    String appId = provenanceCtrl.experimentCreator(project, mlId);
+    return Response.ok().entity(appId).build();
+  }
+  
+  @GET
+  @Path("test/trainingdataset/creator")
+  @Produces(MediaType.APPLICATION_JSON)
+  @AllowedProjectRoles({AllowedProjectRoles.DATA_SCIENTIST, AllowedProjectRoles.DATA_OWNER})
+  @JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
+  public Response testTrainingDatasetCreator(@QueryParam("id") String mlId)
+    throws ProvenanceException {
+    String appId = provenanceCtrl.trainigDatasetCreator(project, mlId);
+    return Response.ok().entity(appId).build();
+  }
+  
+  @GET
+  @Path("test/trainingdataset/user")
+  @Produces(MediaType.APPLICATION_JSON)
+  @AllowedProjectRoles({AllowedProjectRoles.DATA_SCIENTIST, AllowedProjectRoles.DATA_OWNER})
+  @JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
+  public Response testTrainingDatasetUser(@QueryParam("id") String mlId)
+    throws ProvenanceException {
+    Set<String> appId = provenanceCtrl.trainigDatasetUser(project, mlId);
+    return Response.ok().entity(new GenericEntity<Set<String>>(appId) {}).build();
   }
 }

@@ -38,22 +38,30 @@
  */
 package io.hops.hopsworks.common.provenance.core;
 
+import io.hops.hopsworks.common.dao.project.Project;
+import io.hops.hopsworks.common.provenance.apiToElastic.ProvFileQuery;
 import io.hops.hopsworks.common.provenance.elastic.core.BasicElasticHit;
 import io.hops.hopsworks.common.provenance.elastic.core.ElasticHitsHandler;
 import io.hops.hopsworks.common.provenance.apiToElastic.ProvFileOpsParamBuilder;
 import io.hops.hopsworks.common.provenance.apiToElastic.ProvRestToElastic;
+import io.hops.hopsworks.common.provenance.elastic.prov.ProvElasticController;
 import io.hops.hopsworks.common.provenance.elastic.prov.ProvFileOpElastic;
 import io.hops.hopsworks.common.provenance.xml.ProvFileStateMinDTO;
 import io.hops.hopsworks.common.provenance.xml.ProvMLStateMinDTO;
 import io.hops.hopsworks.exceptions.ProvenanceException;
+import io.hops.hopsworks.exceptions.ServiceException;
+import io.hops.hopsworks.restutils.RESTCodes;
 
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class ProvExecution {
+  private final static Logger LOGGER = Logger.getLogger(ProvExecution.class.getName());
   public static class Footprint<K,V extends FootprintItem> {
     Map<K, V> state = new HashMap<>();
     Set<K> accessed = new HashSet<>();
@@ -285,7 +293,113 @@ public class ProvExecution {
           .filterByFileOperation(Provenance.FileOps.DELETE);
         break;
       default:
-        throw new IllegalArgumentException("footprint filterType:" + footprintType + " not managed");
+        String userMsg = "provenance execution - logic error";
+        String devMsg = "footprint filterType:" + footprintType + " not managed";
+        LOGGER.log(Level.WARNING, devMsg);
+        throw new ProvenanceException(RESTCodes.ProvenanceErrorCode.INTERNAL_ERROR, Level.INFO, userMsg, devMsg);
+    }
+  }
+  
+  //
+  public static String experimentCreator(ProvElasticController elastic, Project project,
+    String experimentId) throws ProvenanceException {
+    ProvExecution.Footprint<String, ProvMLStateMinDTO> appCreator
+      = provAssetFootprint(elastic, project, Provenance.MLType.EXPERIMENT, experimentId,
+      Provenance.FootprintType.OUTPUT_ADDED);
+    if(appCreator.state.size() != 1) {
+      String devMsg = "model:" + experimentId + " doesn't have a creator app";
+      String userMsg = "provenance query failed";
+      LOGGER.log(Level.INFO, devMsg);
+      throw new ProvenanceException(RESTCodes.ProvenanceErrorCode.INTERNAL_ERROR, Level.INFO, userMsg, devMsg);
+    }
+    String appId = appCreator.state.entrySet().iterator().next().getValue().getAppId();
+    return appId;
+  }
+  
+  public static Set<String> trainigDatasetUser(ProvElasticController elastic, Project project, String mlId)
+    throws ProvenanceException {
+    ProvExecution.Footprint<String, ProvMLStateMinDTO> appUsers
+      = provAssetFootprint(elastic, project, Provenance.MLType.EXPERIMENT, mlId,
+      Provenance.FootprintType.INPUT);
+    Set<String> appIds = new HashSet<>();
+    appUsers.state.entrySet().forEach((s) -> appIds.add(s.getValue().getAppId()));
+    return appIds;
+  }
+  
+  public static String trainigDatasetCreator(ProvElasticController elastic, Project project, String mlId)
+    throws ProvenanceException {
+    ProvExecution.Footprint<String, ProvMLStateMinDTO> appCreator
+      = provAssetFootprint(elastic, project, Provenance.MLType.EXPERIMENT, mlId,
+      Provenance.FootprintType.OUTPUT_ADDED);
+    if(appCreator.state.size() != 1) {
+      String devMsg = "model:" + mlId + " doesn't have a creator app";
+      String userMsg = "provenance query failed";
+      LOGGER.log(Level.INFO, devMsg);
+      throw new ProvenanceException(RESTCodes.ProvenanceErrorCode.INTERNAL_ERROR, Level.INFO, userMsg, devMsg);
+    }
+    String appId = appCreator.state.entrySet().iterator().next().getValue().getAppId();
+    return appId;
+  }
+  
+  public static void provModelToExperiment(ProvElasticController elastic, Project project, String modelId)
+    throws ProvenanceException {
+    ProvExecution.Footprint<String, ProvMLStateMinDTO> appCreator
+      = provAssetFootprint(elastic, project, Provenance.MLType.MODEL, modelId, Provenance.FootprintType.OUTPUT_ADDED);
+    if(appCreator.state.size() != 1) {
+      String devMsg = "model:" + modelId + " doesn't have a creator app";
+      String userMsg = "provenance query failed";
+      LOGGER.log(Level.INFO, devMsg);
+      throw new ProvenanceException(RESTCodes.ProvenanceErrorCode.INTERNAL_ERROR, Level.INFO, userMsg, devMsg);
+    }
+    String appId = appCreator.state.entrySet().iterator().next().getValue().getAppId();
+    
+  }
+  
+  public static ProvExecution.Footprint<String, ProvMLStateMinDTO> provAssetFootprint(ProvElasticController elastic,
+    Project project, Provenance.MLType mlType, String mlId, Provenance.FootprintType footprintType)
+    throws ProvenanceException {
+    //setup query params
+    ProvFileOpsParamBuilder opsParams = new ProvFileOpsParamBuilder()
+      .filterByField(ProvFileQuery.FileOps.ML_TYPE, mlType.toString())
+      .filterByField(ProvFileQuery.FileOps.ML_ID, mlId);
+    ProvExecution.addFootprintQueryParams(opsParams, footprintType);
+    //execute query
+    try {
+      ProvExecution.Footprint<String, ProvMLStateMinDTO> rawMLFootprint = elastic.provFileOpsScrolling(
+        project.getInode().getId(),
+        opsParams.getFileOpsFilterBy(),
+        opsParams.getFilterScripts(),
+        ProvExecution.mlStateProc());
+      return rawMLFootprint;
+    } catch(ServiceException e) {
+      String devMsg = "ml asset to app id elastic query failure";
+      String userMsg = "provenance query failed";
+      LOGGER.log(Level.INFO, devMsg);
+      throw new ProvenanceException(RESTCodes.ProvenanceErrorCode.ELASTIC_ERROR, Level.INFO, userMsg, devMsg, e);
+    }
+  }
+  
+  public static ProvExecution.Footprint<String, ProvMLStateMinDTO> provAppFootprint(ProvElasticController elastic,
+    Project project, Provenance.MLType mlType, String mlId, Provenance.FootprintType footprintType)
+    throws ProvenanceException {
+    //setup query params
+    ProvFileOpsParamBuilder opsParams = new ProvFileOpsParamBuilder()
+      .filterByField(ProvFileQuery.FileOps.ML_TYPE, mlType.toString())
+      .filterByField(ProvFileQuery.FileOps.ML_ID, mlId);
+    ProvExecution.addFootprintQueryParams(opsParams, footprintType);
+    //execute query
+    try {
+      ProvExecution.Footprint<String, ProvMLStateMinDTO> rawMLFootprint = elastic.provFileOpsScrolling(
+        project.getInode().getId(),
+        opsParams.getFileOpsFilterBy(),
+        opsParams.getFilterScripts(),
+        ProvExecution.mlStateProc());
+      return rawMLFootprint;
+    } catch(ServiceException e) {
+      String devMsg = "ml asset to app id elastic query failure";
+      String userMsg = "provenance query failed";
+      LOGGER.log(Level.INFO, devMsg);
+      throw new ProvenanceException(RESTCodes.ProvenanceErrorCode.ELASTIC_ERROR, Level.INFO, userMsg, devMsg, e);
     }
   }
 }
