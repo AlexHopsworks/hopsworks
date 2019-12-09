@@ -91,6 +91,10 @@ public final class Utils {
   public static String getProjectPath(String projectname) {
     return "/" + Settings.DIR_ROOT + "/" + projectname + "/";
   }
+  
+  public static String getDatasetPath(String projectName, String datasetName) {
+    return "/" + Settings.DIR_ROOT + "/" + projectName + "/" + datasetName + "/";
+  }
 
   public static String ensurePathEndsInSlash(String path) {
     if (!path.endsWith(File.separator)) {
