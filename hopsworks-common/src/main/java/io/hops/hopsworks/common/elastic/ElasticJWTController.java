@@ -73,16 +73,16 @@ public class ElasticJWTController {
   }
   
   public String createTokenForELKAsAdmin() throws ElasticException {
-    return createTokenForELK("admin", ElasticSettings.ELASTIC_ADMIN_ROLE);
+    return createTokenForELK("admin", null, ElasticSettings.ELASTIC_ADMIN_ROLE);
   }
   
   private String createTokenForELK(Project project, String role)
       throws ElasticException {
     String userRole = ElasticUtils.getValidRole(role);
-    return createTokenForELK(project.getName(), userRole);
+    return createTokenForELK(project.getName(), project.getInode().getId(), userRole);
   }
   
-  private String createTokenForELK(String project, String userRole)
+  private String createTokenForELK(String project, Long projectInodeId, String userRole)
       throws ElasticException {
     SignatureAlgorithm alg = SignatureAlgorithm.valueOf(settings.getJWTSignatureAlg());
     Date expiresAt =
@@ -92,6 +92,9 @@ public class ElasticJWTController {
       claims.put(Constants.ROLES, userRole);
       claims.put(Constants.ELK_VALID_PROJECT_NAME,
           ElasticUtils.getProjectNameWithNoSpecialCharacters(project));
+      if(projectInodeId != null) {
+        claims.put(Constants.ELK_PROJECT_INODE_ID, projectInodeId);
+      }
       return jwtController.createTokenForELK(project, settings.getJWTIssuer()
           , claims, expiresAt, alg);
     } catch (DuplicateSigningKeyException | NoSuchAlgorithmException | SigningKeyNotFoundException e) {
