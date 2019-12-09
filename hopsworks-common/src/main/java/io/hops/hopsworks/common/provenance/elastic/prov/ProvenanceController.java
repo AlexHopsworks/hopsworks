@@ -39,6 +39,13 @@
 package io.hops.hopsworks.common.provenance.elastic.prov;
 
 import io.hops.hopsworks.common.dao.project.Project;
+import io.hops.hopsworks.common.dao.hdfs.inode.Inode;
+import io.hops.hopsworks.common.dao.hdfs.inode.InodeFacade;
+import io.hops.hopsworks.common.provenance.apiToElastic.ProvFileOpsParamBuilder;
+import io.hops.hopsworks.common.provenance.core.ProvExecution;
+import io.hops.hopsworks.common.provenance.xml.ProvFileOpDTO;
+import io.hops.hopsworks.common.provenance.xml.ProvFileStateMinDTO;
+import io.hops.hopsworks.common.provenance.xml.ProvFileStateTreeDTO;
 import io.hops.hopsworks.common.provenance.xml.ProvMLAssetAppStateDTO;
 import io.hops.hopsworks.common.provenance.apiToElastic.ProvFileStateParamBuilder;
 import io.hops.hopsworks.common.provenance.core.Provenance;
@@ -46,6 +53,7 @@ import io.hops.hopsworks.common.provenance.xml.ProvFileStateDTO;
 import io.hops.hopsworks.exceptions.ProvenanceException;
 import io.hops.hopsworks.exceptions.ServiceException;
 import io.hops.hopsworks.restutils.RESTCodes;
+import org.javatuples.Pair;
 
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
@@ -54,6 +62,9 @@ import javax.ejb.TransactionAttributeType;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -64,6 +75,8 @@ public class ProvenanceController {
   
   @EJB
   private ProvElasticController elasticCtrl;
+  @EJB
+  private InodeFacade inodeFacade;
   
   public ProvFileStateDTO.PList provFileStateList(Project project, ProvFileStateParamBuilder params)
     throws ProvenanceException, ServiceException {
@@ -71,7 +84,7 @@ public class ProvenanceController {
       throw new ProvenanceException(RESTCodes.ProvenanceErrorCode.UNSUPPORTED, Level.INFO,
         "cannot use pagination with app state filtering");
     }
-  
+    
     checkMapping(project, params);
     ProvFileStateDTO.PList fileStates = elasticCtrl.provFileState(project.getInode().getId(),
       params.getFileStateFilter(), params.getFileStateSortBy(),
@@ -172,5 +185,154 @@ public class ProvenanceController {
     void setFileState(S fileState);
     S getFileState();
     void addChild(BasicTreeBuilder<S> child) throws ProvenanceException;
+  }
+  
+  public ProvFileOpDTO.Count provFileOpsCount(Project project, ProvFileOpsParamBuilder params)
+    throws ServiceException, ProvenanceException {
+    return elasticCtrl.provFileOpsCount(project.getInode().getId(),
+      params.getFileOpsFilterBy(), params.getFilterScripts(), params.getAggregations());
+  }
+  
+  public ProvFileOpDTO.Count provAppArtifactFootprint(Project project, ProvFileOpsParamBuilder params)
+    throws ProvenanceException, ServiceException {
+    if(params.hasFileOpFilters()) {
+      throw new ProvenanceException(RESTCodes.ProvenanceErrorCode.BAD_REQUEST, Level.INFO,
+        "footprint should have no predefined file operation filters");
+    }
+    params.withAggregation(ProvElasticAggregations.ProvAggregations.ARTIFACT_FOOTPRINT);
+    return elasticCtrl.provFileOpsCount(project.getInode().getId(), params.getFileOpsFilterBy(),
+      params.getFilterScripts(), params.getAggregations());
+  }
+  public List<ProvFileStateMinDTO> provAppFootprintList(Project project, ProvFileOpsParamBuilder params,
+    Provenance.FootprintType footprintType)
+    throws ProvenanceException, ServiceException {
+    if(params.hasFileOpFilters()) {
+      throw new ProvenanceException(RESTCodes.ProvenanceErrorCode.BAD_REQUEST, Level.INFO,
+        "footprint should have no predefined file operation filters");
+    }
+    if(!params.getAggregations().isEmpty()) {
+      throw new ProvenanceException(RESTCodes.ProvenanceErrorCode.UNSUPPORTED, Level.INFO,
+        "aggregations currently only allowed with count");
+    }
+    ProvExecution.addFootprintQueryParams(params, footprintType);
+    ProvFileOpDTO.PList searchResult = provFileOpsList(project, params);
+    Map<Long, ProvFileStateMinDTO> footprint = ProvExecution.processFootprint(searchResult.getItems(), footprintType);
+    return new ArrayList<>(footprint.values());
+  }
+  
+  public Pair<Map<Long, ProvFootprintFileStateTreeElastic>, Map<Long, ProvFootprintFileStateTreeElastic>>
+    provAppFootprintTree(Project project, ProvFileOpsParamBuilder params, Provenance.FootprintType footprintType,
+    boolean fullTree)
+    throws ProvenanceException, ServiceException {
+    if(!params.getAggregations().isEmpty()) {
+      throw new ProvenanceException(RESTCodes.ProvenanceErrorCode.UNSUPPORTED, Level.INFO,
+        "aggregations currently only allowed with count");
+    }
+    List<ProvFileStateMinDTO> fileStates = provAppFootprintList(project, params, footprintType);
+    Pair<Map<Long, ProvenanceController.BasicTreeBuilder<ProvFileStateMinDTO>>,
+      Map<Long, ProvenanceController.BasicTreeBuilder<ProvFileStateMinDTO>>> result
+      = processAsTree(project, fileStates, () -> new ProvFootprintFileStateTreeElastic(), fullTree);
+    return Pair.with((Map<Long, ProvFootprintFileStateTreeElastic>)(Map)result.getValue0(),
+      (Map<Long, ProvFootprintFileStateTreeElastic>)(Map)(result.getValue1()));
+  }
+  
+  public ProvFileOpDTO.PList provFileOpsList(Project project, ProvFileOpsParamBuilder params)
+    throws ProvenanceException, ServiceException {
+    if(!params.getAggregations().isEmpty()) {
+      throw new ProvenanceException(RESTCodes.ProvenanceErrorCode.UNSUPPORTED, Level.INFO,
+        "aggregations currently only allowed with count");
+    }
+    ProvFileOpDTO.PList fileOps;
+    if(params.hasPagination()) {
+      fileOps =  elasticCtrl.provFileOpsBase(project.getInode().getId(),
+        params.getFileOpsFilterBy(), params.getFilterScripts(), params.getFileOpsSortBy(),
+        params.getPagination().getValue0(), params.getPagination().getValue1(), false);
+    } else {
+      fileOps =  elasticCtrl.provFileOpsScrolling(project.getInode().getId(), params.getFileOpsFilterBy(),
+        params.getFilterScripts(), false);
+    }
+    
+    if (params.hasAppExpansion()) {
+      //If withAppStates, update params based on appIds of items files and do a appState index query.
+      //After this filter the fileStates based on the results of the appState query
+      for (ProvFileOpElastic fileOp : fileOps.getItems()) {
+        Optional<String> appId = getAppId(fileOp);
+        if(appId.isPresent()) {
+          params.withAppExpansion(appId.get());
+        }
+      }
+      Map<String, Map<Provenance.AppState, ProvAppStateElastic>> appExps
+        = elasticCtrl.provAppState(params.getAppStateFilter());
+      Iterator<ProvFileOpElastic> fileOpIt = fileOps.getItems().iterator();
+      while (fileOpIt.hasNext()) {
+        ProvFileOpElastic fileOp = fileOpIt.next();
+        Optional<String> appId = getAppId(fileOp);
+        if(appId.isPresent() && appExps.containsKey(appId.get())) {
+          Map<Provenance.AppState, ProvAppStateElastic> appExp = appExps.get(appId.get());
+          fileOp.setAppState(buildAppState(appExp));
+        } else {
+          fileOp.setAppState(ProvMLAssetAppStateDTO.unknown());
+        }
+      }
+    }
+    return fileOps;
+  }
+  
+  public ProvFileOpsParamBuilder elasticTreeQueryParams(List<Long> inodeIds) throws ProvenanceException {
+    ProvFileOpsParamBuilder params = new ProvFileOpsParamBuilder()
+      .filterByFileOperation(Provenance.FileOps.CREATE)
+      .filterByFileOperation(Provenance.FileOps.DELETE);
+    for(Long inodeId : inodeIds) {
+      params.withFileInodeId(inodeId);
+    }
+    return params;
+  }
+  
+  private Optional<String> getAppId(ProvFileOpElastic fileOp) {
+    if(fileOp.getAppId().equals("none")) {
+      return Optional.empty();
+    } else {
+      return Optional.of(fileOp.getAppId());
+    }
+  }
+  
+  public Pair<Map<Long, ProvFileStateTreeDTO>, Map<Long, ProvFileStateTreeDTO>> provFileStateTree(Project project,
+    ProvFileStateParamBuilder params, boolean fullTree)
+    throws ProvenanceException, ServiceException {
+    List<ProvFileStateElastic> fileStates = provFileStateList(project, params).getItems();
+    Pair<Map<Long, ProvenanceController.BasicTreeBuilder<ProvFileStateElastic>>,
+      Map<Long, ProvenanceController.BasicTreeBuilder<ProvFileStateElastic>>> result
+      = processAsTree(project, fileStates, () -> new ProvFileStateTreeDTO(), fullTree);
+    return Pair.with((Map<Long, ProvFileStateTreeDTO>)(Map)result.getValue0(),
+      (Map<Long, ProvFileStateTreeDTO>)(Map)(result.getValue1()));
+  }
+  
+  private <S extends ProvenanceController.BasicFileState>
+    Pair<Map<Long, ProvenanceController.BasicTreeBuilder<S>>, Map<Long, ProvenanceController.BasicTreeBuilder<S>>>
+    processAsTree(Project project, List<S> fileStates, Supplier<BasicTreeBuilder<S>> instanceBuilder,
+    boolean fullTree)
+    throws ProvenanceException, ServiceException {
+    ProvTreeBuilderHelper.TreeStruct<S> treeS = new ProvTreeBuilderHelper.TreeStruct<>(instanceBuilder);
+    treeS.processBasicFileState(fileStates);
+    if(fullTree) {
+      int maxDepth = 100;
+      while(!treeS.complete() && maxDepth > 0 ) {
+        maxDepth--;
+        while (treeS.findInInodes()) {
+          List<Long> inodeIdBatch = treeS.nextFindInInodes();
+          List<Inode> inodeBatch = inodeFacade.findByIdList(inodeIdBatch);
+          treeS.processInodeBatch(inodeIdBatch, inodeBatch);
+        }
+        while (treeS.findInProvenance()) {
+          List<Long> inodeIdBatch = treeS.nextFindInProvenance();
+          ProvFileOpsParamBuilder elasticPathQueryParams = elasticTreeQueryParams(inodeIdBatch);
+          ProvFileOpDTO.PList inodeBatch = provFileOpsList(project, elasticPathQueryParams);
+          treeS.processProvenanceBatch(inodeIdBatch, inodeBatch.getItems());
+        }
+      }
+      return treeS.getFullTree();
+    } else {
+      return treeS.getMinTree();
+    }
   }
 }

@@ -39,6 +39,7 @@
 package io.hops.hopsworks.common.provenance.elastic.prov;
 
 import io.hops.hopsworks.common.provenance.elastic.core.BasicElasticHit;
+import io.hops.hopsworks.common.provenance.elastic.core.ElasticAggregationParser;
 import io.hops.hopsworks.common.provenance.elastic.core.ElasticCache;
 import io.hops.hopsworks.common.provenance.elastic.core.ElasticClient;
 import io.hops.hopsworks.common.provenance.elastic.core.ElasticHelper;
@@ -49,6 +50,7 @@ import io.hops.hopsworks.common.provenance.util.CheckedSupplier;
 import io.hops.hopsworks.common.provenance.apiToElastic.ProvElasticFields;
 import io.hops.hopsworks.common.provenance.apiToElastic.ProvFileQuery;
 import io.hops.hopsworks.common.provenance.apiToElastic.ProvFileStateParamBuilder;
+import io.hops.hopsworks.common.provenance.xml.ProvFileOpDTO;
 import io.hops.hopsworks.common.provenance.xml.ProvFileStateDTO;
 import io.hops.hopsworks.common.util.Settings;
 import io.hops.hopsworks.exceptions.ProvenanceException;
@@ -65,6 +67,7 @@ import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.ScriptQueryBuilder;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.script.Script;
+import org.elasticsearch.search.aggregations.AggregationBuilder;
 import org.elasticsearch.search.sort.SortOrder;
 import org.javatuples.Pair;
 
@@ -72,6 +75,7 @@ import javax.ejb.EJB;
 import javax.ejb.Stateless;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -271,5 +275,87 @@ public class ProvElasticController {
   
   public QueryBuilder getLikeXAttrQB(String xattrAdjustedKey, String xattrVal) {
     return ElasticHelper.fullTextSearch(xattrAdjustedKey, xattrVal);
+  }
+  
+  public ProvFileOpDTO.PList provFileOpsBase(Long projectIId,
+    Map<String, ProvFileQuery.FilterVal> fileOpsFilters,
+    List<Script> scriptFilter,
+    List<Pair<ProvFileQuery.Field, SortOrder>> fileOpsSortBy,
+    Integer offset, Integer limit, boolean soft)
+    throws ProvenanceException, ServiceException {
+    CheckedSupplier<SearchRequest, ProvenanceException> srF =
+      ElasticHelper.baseSearchRequest(
+        settings.getProvFileIndex(projectIId),
+        Settings.PROV_FILE_DOC_TYPE,
+        settings.getElasticDefaultScrollPageSize())
+        .andThen(filterByOpsParams(fileOpsFilters, scriptFilter))
+        .andThen(ElasticHelper.withFileOpsOrder(fileOpsSortBy))
+        .andThen(ElasticHelper.withPagination(offset, limit, settings.getElasticMaxScrollPageSize()));
+    SearchRequest request = srF.get();
+    Pair<Long, List<ProvFileOpElastic>> searchResult
+      = client.search(request, fileOpsParser(soft));
+    return new ProvFileOpDTO.PList(searchResult.getValue1(), searchResult.getValue0());
+  }
+  
+  public ProvFileOpDTO.PList provFileOpsScrolling(Long projectIId,
+    Map<String, ProvFileQuery.FilterVal> fileOpsFilters, List<Script> filterScripts, boolean soft)
+    throws ProvenanceException, ServiceException {
+    CheckedSupplier<SearchRequest, ProvenanceException> srF =
+      ElasticHelper.scrollingSearchRequest(
+        settings.getProvFileIndex(projectIId),
+        Settings.PROV_FILE_DOC_TYPE,
+        settings.getElasticDefaultScrollPageSize())
+        .andThen(filterByOpsParams(fileOpsFilters, filterScripts));
+    SearchRequest request = srF.get();
+    Pair<Long, List<ProvFileOpElastic>> searchResult
+      = client.searchScrolling(request, fileOpsParser(soft));
+    return new ProvFileOpDTO.PList(searchResult.getValue1(), searchResult.getValue0());
+  }
+  
+  public <S> S provFileOpsScrolling(Long projectIId,
+    Map<String, ProvFileQuery.FilterVal> fileOpsFilters, List<Script> filterScripts,
+    ElasticHitsHandler<?, S, ?, ProvenanceException> proc)
+    throws ProvenanceException, ServiceException {
+    CheckedSupplier<SearchRequest, ProvenanceException> srF =
+      ElasticHelper.scrollingSearchRequest(
+        settings.getProvFileIndex(projectIId),
+        Settings.PROV_FILE_DOC_TYPE,
+        settings.getElasticDefaultScrollPageSize())
+        .andThen(filterByOpsParams(fileOpsFilters, filterScripts));
+    SearchRequest request = srF.get();
+    Pair<Long, S> searchResult = client.searchScrolling(request, proc);
+    return searchResult.getValue1();
+  }
+  
+  public ProvFileOpDTO.Count provFileOpsCount(Long projectIId,
+    Map<String, ProvFileQuery.FilterVal> fileOpsFilters,
+    List<Script> filterScripts,
+    Set<ProvElasticAggregations.ProvAggregations> aggregations)
+    throws ServiceException, ProvenanceException {
+    
+    Map<ProvElasticAggregations.ProvAggregations, ElasticAggregationParser<?, ProvenanceException>> aggParsers
+      = new HashMap<>();
+    List<AggregationBuilder> aggBuilders = new ArrayList<>();
+    for(ProvElasticAggregations.ProvAggregations aggregation : aggregations) {
+      aggParsers.put(aggregation, ProvElasticAggregations.getAggregationParser(aggregation));
+      aggBuilders.add(ProvElasticAggregations.getAggregationBuilder(settings, aggregation));
+    }
+    
+    CheckedSupplier<SearchRequest, ProvenanceException> srF =
+      ElasticHelper.countSearchRequest(
+        settings.getProvFileIndex(projectIId),
+        Settings.PROV_FILE_DOC_TYPE)
+        .andThen(filterByOpsParams(fileOpsFilters, filterScripts))
+        .andThen(ElasticHelper.withAggregations(aggBuilders));
+    SearchRequest request = srF.get();
+    
+    Pair<Long, Map<ProvElasticAggregations.ProvAggregations, List>> result = client.searchCount(request, aggParsers);
+    return ProvFileOpDTO.Count.instance(result);
+  }
+  
+  private ElasticHitsHandler<ProvFileOpElastic, List<ProvFileOpElastic>, ?, ProvenanceException>
+    fileOpsParser(boolean soft) {
+    return ElasticHitsHandler.instanceAddToList(
+      (BasicElasticHit hit) -> ProvFileOpElastic.instance(hit, soft));
   }
 }

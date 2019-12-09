@@ -18,6 +18,7 @@ package io.hops.hopsworks.common.provenance.xml;
 import io.hops.hopsworks.common.provenance.elastic.prov.ProvFileStateElastic;
 
 import javax.xml.bind.annotation.XmlRootElement;
+import java.util.Collection;
 import java.util.List;
 
 public class ProvFileStateDTO {
@@ -47,6 +48,54 @@ public class ProvFileStateDTO {
   
     public void setCount(Long count) {
       this.count = count;
+    }
+  }
+  
+  @XmlRootElement
+  public static class MinTree {
+    protected Collection<ProvFileStateTreeDTO> result;
+    
+    public MinTree() {}
+    
+    public MinTree(Collection<ProvFileStateTreeDTO> result) {
+      this.result = result;
+    }
+    
+    public Collection<ProvFileStateTreeDTO> getResult() {
+      return result;
+    }
+    
+    public void setResult(Collection<ProvFileStateTreeDTO> result) {
+      this.result = result;
+    }
+  }
+  
+  @XmlRootElement
+  public static class FullTree {
+    protected Collection<ProvFileStateTreeDTO> result;
+    protected Collection<ProvFileStateTreeDTO> incomplete;
+    
+    public FullTree() {}
+    
+    public FullTree(Collection<ProvFileStateTreeDTO> result, Collection<ProvFileStateTreeDTO> incomplete) {
+      this.result = result;
+      this.incomplete = incomplete;
+    }
+    
+    public Collection<ProvFileStateTreeDTO> getResult() {
+      return result;
+    }
+    
+    public void setResult(Collection<ProvFileStateTreeDTO> result) {
+      this.result = result;
+    }
+    
+    public Collection<ProvFileStateTreeDTO> getIncomplete() {
+      return incomplete;
+    }
+    
+    public void setIncomplete(Collection<ProvFileStateTreeDTO> incomplete) {
+      this.incomplete = incomplete;
     }
   }
 }

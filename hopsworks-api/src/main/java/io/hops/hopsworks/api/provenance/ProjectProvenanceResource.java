@@ -52,6 +52,10 @@ import io.hops.hopsworks.common.hdfs.DistributedFileSystemOps;
 import io.hops.hopsworks.common.hdfs.DistributedFsService;
 import io.hops.hopsworks.common.hdfs.inode.InodeController;
 import io.hops.hopsworks.common.provenance.elastic.prov.ProvElasticController;
+import io.hops.hopsworks.common.provenance.apiToElastic.ProvFileOpsParamBuilder;
+import io.hops.hopsworks.common.provenance.elastic.prov.ProvArchivalController;
+import io.hops.hopsworks.common.provenance.elastic.prov.ProvFootprintFileStateTreeElastic;
+import io.hops.hopsworks.common.provenance.elastic.prov.ProvFootprintFileStatesElastic;
 import io.hops.hopsworks.common.provenance.hopsfs.HopsFSProvenanceController;
 import io.hops.hopsworks.common.provenance.elastic.core.dto.ElasticIndexMappingDTO;
 import io.hops.hopsworks.common.provenance.xml.ProvDatasetDTO;
@@ -59,6 +63,11 @@ import io.hops.hopsworks.common.provenance.core.Provenance;
 import io.hops.hopsworks.common.provenance.elastic.prov.ProvenanceController;
 import io.hops.hopsworks.common.provenance.apiToElastic.ProvFileQuery;
 import io.hops.hopsworks.common.provenance.xml.ProvFileStateDTO;
+import io.hops.hopsworks.common.provenance.xml.ProvFileOpsCompactByApp;
+import io.hops.hopsworks.common.provenance.xml.ProvFileOpsSummaryByApp;
+import io.hops.hopsworks.common.provenance.xml.ProvFileStateMinDTO;
+import io.hops.hopsworks.common.provenance.xml.ProvFileStateTreeDTO;
+import io.hops.hopsworks.common.provenance.xml.ProvFileOpDTO;
 import io.hops.hopsworks.common.provenance.xml.ProvTypeDTO;
 import io.hops.hopsworks.common.provenance.apiToElastic.ProvFileStateParamBuilder;
 import io.hops.hopsworks.common.provenance.util.dto.WrapperDTO;
@@ -72,6 +81,8 @@ import org.apache.hadoop.fs.XAttrSetFlag;
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.List;
+import org.javatuples.Pair;
+
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -82,6 +93,7 @@ import javax.enterprise.context.RequestScoped;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.BeanParam;
 import javax.ws.rs.GET;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -96,7 +108,6 @@ import javax.ws.rs.core.SecurityContext;
 @TransactionAttribute(TransactionAttributeType.NEVER)
 @Api(value = "Project Provenance Service", description = "Project Provenance Service")
 public class ProjectProvenanceResource {
-
   private static final Logger logger = Logger.getLogger(ProjectProvenanceResource.class.getName());
   
   @EJB
@@ -107,6 +118,8 @@ public class ProjectProvenanceResource {
   private ProvenanceController provenanceCtrl;
   @EJB
   private HopsFSProvenanceController fsProvenanceCtrl;
+  @EJB
+  private ProvArchivalController archiveCtrl;
   
   private Project project;
   
@@ -214,9 +227,198 @@ public class ProjectProvenanceResource {
       case COUNT:
         Long countResult = provenanceCtrl.provFileStateCount(project, params);
         return Response.ok().entity(new WrapperDTO<>(countResult)).build();
+      case MIN_TREE:
+        Pair<Map<Long, ProvFileStateTreeDTO>, Map<Long, ProvFileStateTreeDTO>> minAux
+          = provenanceCtrl.provFileStateTree(project, params, false);
+        ProvFileStateDTO.MinTree minTreeResult
+          = new ProvFileStateDTO.MinTree(minAux.getValue0().values());
+        return Response.ok().entity(minTreeResult).build();
+      case FULL_TREE:
+        Pair<Map<Long, ProvFileStateTreeDTO>, Map<Long, ProvFileStateTreeDTO>> fullAux
+          = provenanceCtrl.provFileStateTree(project, params, true);
+        ProvFileStateDTO.FullTree fullTreeResult
+          = new ProvFileStateDTO.FullTree(fullAux.getValue0().values(), fullAux.getValue1().values());
+        return Response.ok().entity(fullTreeResult).build();
+  
       default:
         throw new ProvenanceException(RESTCodes.ProvenanceErrorCode.UNSUPPORTED, Level.INFO,
           "return type: " + returnType + " is not managed");
+    }
+  }
+  
+  @POST
+  @Path("/prov/{type}")
+  @Produces(MediaType.APPLICATION_JSON)
+  @AllowedProjectRoles({AllowedProjectRoles.ANYONE})
+  @JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
+  public Response changeProvenanceType(
+    @PathParam("type") String type,
+    @Context SecurityContext sc)
+    throws ProvenanceException {
+    Users user = jWTHelper.getUserPrincipal(sc);
+    if(type == null) {
+      throw new ProvenanceException(RESTCodes.ProvenanceErrorCode.BAD_REQUEST, Level.INFO,
+        "malformed status");
+    }
+    fsProvenanceCtrl.updateProjectProvType(user, project, ProvTypeDTO.provTypeFromString(type).dto);
+    return Response.ok().build();
+  }
+  
+  @GET
+  @Path("file/ops/size")
+  @Produces(MediaType.APPLICATION_JSON)
+  @AllowedProjectRoles({AllowedProjectRoles.DATA_SCIENTIST, AllowedProjectRoles.DATA_OWNER})
+  @JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
+  public Response getFileOpsSize() throws ServiceException, ProvenanceException {
+    ProvFileOpsParamBuilder paramBuilder = new ProvFileOpsParamBuilder()
+      .withProjectInodeId(project.getInode().getId());
+    return getFileOps(provenanceCtrl, project, paramBuilder, FileOpsCompactionType.NONE, FileStructReturnType.COUNT);
+  }
+  
+  @GET
+  @Path("file/ops/cleanupsize")
+  @Produces(MediaType.APPLICATION_JSON)
+  @AllowedProjectRoles({AllowedProjectRoles.DATA_SCIENTIST, AllowedProjectRoles.DATA_OWNER})
+  @JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
+  public Response getFileOpsCleanupSize() throws ServiceException, ProvenanceException {
+    ProvFileOpDTO.Count result = archiveCtrl.cleanupSize(project);
+    return Response.ok().entity(result).build();
+  }
+  
+  @GET
+  @Path("file/ops")
+  @Produces(MediaType.APPLICATION_JSON)
+  @AllowedProjectRoles({AllowedProjectRoles.DATA_SCIENTIST, AllowedProjectRoles.DATA_OWNER})
+  @JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
+  public Response getFileOps(
+    @BeanParam ProvFileOpsBeanParam params,
+    @BeanParam Pagination pagination,
+    @Context HttpServletRequest req) throws ServiceException, ProvenanceException {
+    ProvFileOpsParamBuilder paramBuilder = new ProvFileOpsParamBuilder()
+      .withProjectInodeId(project.getInode().getId())
+      .withQueryParamFilterBy(params.getFileOpsFilterBy())
+      .withQueryParamSortBy(params.getFileOpsSortBy())
+      .withQueryParamExpansions(params.getExpansions())
+      .withQueryParamAppExpansionFilter(params.getAppExpansionParams())
+      .withAggregations(params.getAggregations())
+      .withPagination(pagination.getOffset(), pagination.getLimit());
+    logger.log(Level.INFO, "Local content path:{0} file state params:{1} ",
+      new Object[]{req.getRequestURL().toString(), params});
+    return getFileOps(provenanceCtrl, project, paramBuilder, params.getOpsCompaction(), params.getReturnType());
+  }
+  
+  @GET
+  @Path("file/{inodeId}/ops")
+  @Produces(MediaType.APPLICATION_JSON)
+  @AllowedProjectRoles({AllowedProjectRoles.DATA_SCIENTIST, AllowedProjectRoles.DATA_OWNER})
+  @JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
+  public Response getFileOps(
+    @PathParam("inodeId") Long fileInodeId,
+    @BeanParam ProvFileOpsBeanParam params,
+    @BeanParam Pagination pagination,
+    @Context HttpServletRequest req) throws ServiceException, ProvenanceException {
+    ProvFileOpsParamBuilder paramBuilder = new ProvFileOpsParamBuilder()
+      .withProjectInodeId(project.getInode().getId())
+      .withFileInodeId(fileInodeId)
+      .withQueryParamFilterBy(params.getFileOpsFilterBy())
+      .withQueryParamSortBy(params.getFileOpsSortBy())
+      .withQueryParamExpansions(params.getExpansions())
+      .withQueryParamAppExpansionFilter(params.getAppExpansionParams())
+      .withAggregations(params.getAggregations())
+      .withPagination(pagination.getOffset(), pagination.getLimit());
+    logger.log(Level.INFO, "Local content path:{0} file state params:{1} ",
+      new Object[]{req.getRequestURL().toString(), params});
+    return getFileOps(provenanceCtrl, project, paramBuilder, params.getOpsCompaction(), params.getReturnType());
+  }
+  
+  @GET
+  @Path("app/{appId}/footprint/{type}")
+  @Produces(MediaType.APPLICATION_JSON)
+  @AllowedProjectRoles({AllowedProjectRoles.DATA_SCIENTIST, AllowedProjectRoles.DATA_OWNER})
+  @JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
+  public Response appProvenance(
+    @PathParam("appId") String appId,
+    @PathParam("type") @DefaultValue("ALL")
+      Provenance.FootprintType footprintType,
+    @BeanParam ProvFileOpsBeanParam params,
+    @BeanParam Pagination pagination,
+    @Context HttpServletRequest req) throws ServiceException, ProvenanceException {
+    ProvFileOpsParamBuilder paramBuilder = new ProvFileOpsParamBuilder()
+      .withProjectInodeId(project.getInode().getId())
+      .withAppId(appId)
+      .withQueryParamFilterBy(params.getFileOpsFilterBy())
+      .withQueryParamSortBy(params.getFileOpsSortBy())
+      .withAggregations(params.getAggregations())
+      .withPagination(pagination.getOffset(), pagination.getLimit());
+    logger.log(Level.INFO, "Local content path:{0} file state params:{1} ",
+      new Object[]{req.getRequestURL().toString(), params});
+    
+    return getAppFootprint(provenanceCtrl, project, paramBuilder, footprintType, params.getReturnType());
+  }
+  
+  public static Response getAppFootprint(ProvenanceController provenanceCtrl, Project project,
+    ProvFileOpsParamBuilder params, Provenance.FootprintType footprintType,
+    ProjectProvenanceResource.FileStructReturnType returnType)
+    throws ProvenanceException, ServiceException {
+    switch(returnType) {
+      case LIST:
+        List<ProvFileStateMinDTO> listAux
+          = provenanceCtrl.provAppFootprintList(project, params, footprintType);
+        ProvFootprintFileStatesElastic.PList listResult = new ProvFootprintFileStatesElastic.PList(listAux);
+        return Response.ok().entity(listResult).build();
+      case MIN_TREE:
+        Pair<Map<Long, ProvFootprintFileStateTreeElastic>, Map<Long, ProvFootprintFileStateTreeElastic>> minAux
+          = provenanceCtrl.provAppFootprintTree(project, params, footprintType, false);
+        ProvFootprintFileStatesElastic.MinTree minTreeResult
+          = new ProvFootprintFileStatesElastic.MinTree(minAux.getValue0().values());
+        return Response.ok().entity(minTreeResult).build();
+      case FULL_TREE:
+        Pair<Map<Long, ProvFootprintFileStateTreeElastic>, Map<Long, ProvFootprintFileStateTreeElastic>> fullAux
+          = provenanceCtrl.provAppFootprintTree(project, params, footprintType,true);
+        ProvFootprintFileStatesElastic.FullTree fullTreeResult
+          = new ProvFootprintFileStatesElastic.FullTree(fullAux.getValue0().values(), fullAux.getValue1().values());
+        return Response.ok().entity(fullTreeResult).build();
+      case ARTIFACTS:
+        ProvFileOpDTO.Count aux = provenanceCtrl.provAppArtifactFootprint(project, params);
+        return Response.ok().entity(aux).build();
+      case COUNT:
+      default:
+        throw new ProvenanceException(RESTCodes.ProvenanceErrorCode.UNSUPPORTED, Level.INFO,
+          "return type: " + returnType + " is not managed");
+    }
+  }
+  
+  public static Response getFileOps(ProvenanceController provenanceCtrl, Project project,
+    ProvFileOpsParamBuilder params, ProjectProvenanceResource.FileOpsCompactionType opsCompaction,
+    ProjectProvenanceResource.FileStructReturnType returnType)
+    throws ServiceException, ProvenanceException {
+    switch(returnType) {
+      case COUNT: {
+        ProvFileOpDTO.Count result = provenanceCtrl.provFileOpsCount(project, params);
+        return Response.ok().entity(result).build();
+      }
+      case ARTIFACTS: {
+        ProvFileOpDTO.PList result = provenanceCtrl.provFileOpsList(project, params);
+        
+      }
+      default: {
+        ProvFileOpDTO.PList result = provenanceCtrl.provFileOpsList(project, params);
+        switch (opsCompaction) {
+          case NONE:
+            return Response.ok().entity(result).build();
+          case FILE_COMPACT:
+            List<ProvFileOpsCompactByApp> compactResults = ProvFileOpsCompactByApp.compact(result.getItems());
+            return Response.ok().entity(new GenericEntity<List<ProvFileOpsCompactByApp>>(compactResults) {
+            }).build();
+          case FILE_SUMMARY:
+            List<ProvFileOpsSummaryByApp> summaryResults = ProvFileOpsSummaryByApp.summary(result.getItems());
+            return Response.ok().entity(new GenericEntity<List<ProvFileOpsSummaryByApp>>(summaryResults) {
+            }).build();
+          default:
+            throw new ProvenanceException(RESTCodes.ProvenanceErrorCode.UNSUPPORTED, Level.INFO,
+              "footprint filterType: " + returnType);
+        }
+      }
     }
   }
   
@@ -226,6 +428,12 @@ public class ProjectProvenanceResource {
     FULL_TREE,
     COUNT,
     ARTIFACTS;
+  }
+  
+  public enum FileOpsCompactionType {
+    NONE,
+    FILE_COMPACT,
+    FILE_SUMMARY
   }
   
   //Testing
