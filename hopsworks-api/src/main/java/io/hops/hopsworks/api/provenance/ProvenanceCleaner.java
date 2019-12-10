@@ -15,8 +15,8 @@
  */
 package io.hops.hopsworks.api.provenance;
 
-import io.hops.hopsworks.common.provenance.elastic.prov.ProvArchivalController;
-import io.hops.hopsworks.common.provenance.xml.ProvArchiveDTO;
+import io.hops.hopsworks.common.provenance.ops.ProvArchivalController;
+import io.hops.hopsworks.common.provenance.ops.dto.ProvArchiveDTO;
 import io.hops.hopsworks.common.util.Settings;
 import io.hops.hopsworks.exceptions.ProvenanceException;
 import io.hops.hopsworks.exceptions.ServiceException;

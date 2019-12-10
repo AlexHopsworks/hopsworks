@@ -27,7 +27,7 @@ import io.hops.hopsworks.common.featurestore.featuregroup.FeaturegroupDTO;
 import io.hops.hopsworks.common.dao.featurestore.featuregroup.FeaturegroupType;
 import io.hops.hopsworks.common.featurestore.featuregroup.online.OnlineFeaturegroupController;
 import io.hops.hopsworks.common.featurestore.online.OnlineFeaturestoreController;
-import io.hops.hopsworks.common.provenance.hopsfs.HopsFSProvenanceController;
+import io.hops.hopsworks.common.provenance.core.HopsFSProvenanceController;
 import io.hops.hopsworks.common.dao.project.Project;
 import io.hops.hopsworks.common.dao.user.Users;
 import io.hops.hopsworks.common.featurestore.FeaturestoreConstants;

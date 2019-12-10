@@ -33,7 +33,7 @@ import io.hops.hopsworks.common.featurestore.trainingdatasets.TrainingDatasetCon
 import io.hops.hopsworks.common.featurestore.trainingdatasets.TrainingDatasetDTO;
 import io.hops.hopsworks.common.dao.featurestore.trainingdataset.TrainingDatasetType;
 import io.hops.hopsworks.common.featurestore.trainingdatasets.hopsfs.HopsfsTrainingDatasetDTO;
-import io.hops.hopsworks.common.provenance.hopsfs.HopsFSProvenanceController;
+import io.hops.hopsworks.common.provenance.core.HopsFSProvenanceController;
 import io.hops.hopsworks.common.dao.hdfs.inode.Inode;
 import io.hops.hopsworks.common.dao.project.Project;
 import io.hops.hopsworks.common.dao.user.Users;

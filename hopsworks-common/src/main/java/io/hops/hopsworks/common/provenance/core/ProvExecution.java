@@ -38,13 +38,13 @@
  */
 package io.hops.hopsworks.common.provenance.core;
 
-import io.hops.hopsworks.common.provenance.elastic.core.BasicElasticHit;
-import io.hops.hopsworks.common.provenance.elastic.core.ElasticHitsHandler;
-import io.hops.hopsworks.common.provenance.apiToElastic.ProvFileOpsParamBuilder;
-import io.hops.hopsworks.common.provenance.apiToElastic.ProvRestToElastic;
-import io.hops.hopsworks.common.provenance.elastic.prov.ProvFileOpElastic;
-import io.hops.hopsworks.common.provenance.xml.ProvFileStateMinDTO;
-import io.hops.hopsworks.common.provenance.xml.ProvMLStateMinDTO;
+import io.hops.hopsworks.common.provenance.core.apiToElastic.ProvParser;
+import io.hops.hopsworks.common.provenance.core.elastic.BasicElasticHit;
+import io.hops.hopsworks.common.provenance.core.elastic.ElasticHitsHandler;
+import io.hops.hopsworks.common.provenance.ops.ProvFileOpsParamBuilder;
+import io.hops.hopsworks.common.provenance.ops.dto.ProvFileOpElastic;
+import io.hops.hopsworks.common.provenance.state.dto.ProvFileStateMinDTO;
+import io.hops.hopsworks.common.provenance.ops.dto.ProvMLStateMinDTO;
 import io.hops.hopsworks.exceptions.ProvenanceException;
 
 import java.util.HashMap;
@@ -72,7 +72,7 @@ public class ProvExecution {
     return ElasticHitsHandler.instanceBasic(new ProvExecution.Footprint<>(),
       (BasicElasticHit hit) -> ProvFileOpElastic.instance(hit, false),
       (ProvFileOpElastic op, Footprint<String, ProvMLStateMinDTO> state) -> {
-        Provenance.MLType mlType = ProvRestToElastic.mlTypeParser(op.getDocSubType());
+        Provenance.MLType mlType = ProvParser.mlTypeParser(op.getDocSubType());
         ProvMLStateMinDTO mlState = ProvMLStateMinDTO.fromFileOp(op, mlType);
         addToFootprint(state, mlState, op);
       });
@@ -82,7 +82,7 @@ public class ProvExecution {
     Provenance.FootprintType footprintType) {
     Footprint<Long, ProvFileStateMinDTO> rawFootprint = new Footprint<>();
     for(ProvFileOpElastic fileOp : fileOps) {
-      Provenance.MLType mlType = ProvRestToElastic.mlTypeParser(fileOp.getDocSubType());
+      Provenance.MLType mlType = ProvParser.mlTypeParser(fileOp.getDocSubType());
       ProvFileStateMinDTO fileState = ProvFileStateMinDTO.fromFileOp(fileOp, mlType);
       addToFootprint(rawFootprint, fileState, fileOp);
     }

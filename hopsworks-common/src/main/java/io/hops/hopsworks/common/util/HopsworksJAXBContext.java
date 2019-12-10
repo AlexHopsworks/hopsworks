@@ -15,9 +15,9 @@
  */
 package io.hops.hopsworks.common.util;
 
-import io.hops.hopsworks.common.provenance.xml.ProvCoreDTO;
-import io.hops.hopsworks.common.provenance.xml.ProvFeatureDTO;
-import io.hops.hopsworks.common.provenance.xml.ProvTypeDTO;
+import io.hops.hopsworks.common.provenance.core.dto.ProvCoreDTO;
+import io.hops.hopsworks.common.provenance.core.dto.ProvFeatureDTO;
+import io.hops.hopsworks.common.provenance.core.dto.ProvTypeDTO;
 import io.hops.hopsworks.exceptions.GenericException;
 import io.hops.hopsworks.restutils.RESTCodes;
 import org.eclipse.persistence.jaxb.JAXBContextFactory;

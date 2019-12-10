@@ -131,15 +131,15 @@ angular.module('hopsWorksApp')
                 isArray: true
               },
               "provStates": {
-                url: '/api/project/:id/provenance/file/state/:provStateType/size',
+                url: '/api/project/:id/provenance/state/:provStateType/size',
                 method: 'GET'
               },
               "provOps": {
-                url: '/api/project/:id/provenance/file/ops/size',
+                url: '/api/project/:id/provenance/ops/size',
                 method: 'GET'
               },
               "provCleanup": {
-                url: '/api/project/:id/provenance/file/ops/cleanupsize',
+                url: '/api/project/:id/provenance/ops?cleanup=true',
                 method: 'GET'
               }
             }

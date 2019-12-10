@@ -39,9 +39,10 @@
 
 package io.hops.hopsworks.common.provenance.elastic.prov;
 
-import io.hops.hopsworks.common.provenance.apiToElastic.ProvFileQuery;
-import io.hops.hopsworks.common.provenance.elastic.core.BasicElasticHit;
-import io.hops.hopsworks.common.provenance.elastic.core.ElasticClient;
+import io.hops.hopsworks.common.provenance.core.apiToElastic.ProvParser;
+import io.hops.hopsworks.common.provenance.core.elastic.BasicElasticHit;
+import io.hops.hopsworks.common.provenance.core.elastic.ElasticClient;
+import io.hops.hopsworks.common.provenance.ops.dto.ProvFileOpElastic;
 import io.hops.hopsworks.common.util.Settings;
 import io.hops.hopsworks.exceptions.ProvenanceException;
 import io.hops.hopsworks.exceptions.ServiceException;
@@ -52,8 +53,8 @@ import java.util.Map;
 
 public class ProvElasticHelper {
   public static BoolQueryBuilder filterByBasicFields(BoolQueryBuilder query,
-    Map<String, ProvFileQuery.FilterVal> filters) throws ProvenanceException {
-    for (Map.Entry<String, ProvFileQuery.FilterVal> fieldFilters : filters.entrySet()) {
+    Map<String, ProvParser.FilterVal> filters) throws ProvenanceException {
+    for (Map.Entry<String, ProvParser.FilterVal> fieldFilters : filters.entrySet()) {
       query.must(fieldFilters.getValue().query());
     }
     return query;

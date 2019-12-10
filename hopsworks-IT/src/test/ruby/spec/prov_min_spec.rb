@@ -484,7 +484,7 @@ describe "On #{ENV['OS']}" do
       it 'mapping not found - query includes dynamic fields (xattr)' do
         mlType = "EXPERIMENT"
         xattr = "no_such_xattr"
-        resource = "#{ENV['HOPSWORKS_API']}/project/#{@project1[:id]}/provenance/file/state"
+        resource = "#{ENV['HOPSWORKS_API']}/project/#{@project1[:id]}/provenance/states"
         query_params = "?filter_by=ML_TYPE:#{mlType}&xattr_sort_by=#{xattr}:asc"
         pp "#{resource}#{query_params}"
         result = get "#{resource}#{query_params}"
@@ -1158,7 +1158,7 @@ describe "On #{ENV['OS']}" do
           execute_remotely @hostname, "sudo systemctl restart epipe"
 
           pp "query with filter by - has xattr"
-          query = "#{ENV['HOPSWORKS_API']}/project/#{@project1[:id]}/provenance/file/state?filter_by_has_xattr=#{xattr_key1}"
+          query = "#{ENV['HOPSWORKS_API']}/project/#{@project1[:id]}/provenance/states?filter_by_has_xattr=#{xattr_key1}"
           pp "#{query}"
           result = get "#{query}"
           expect_status(200)
@@ -1257,22 +1257,22 @@ describe "On #{ENV['OS']}" do
         expect(e4[0]["value"]).to eq "text"
 
         pp "query with sort"
-        query = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/file/state?xattr_sort_by=xattr_string:ASC"
+        query = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/states?xattr_sort_by=xattr_string:ASC"
         pp "#{query}"
         result = get "#{query}"
         expect_status(200)
 
-        query = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/file/state?xattr_sort_by=xattr_long:ASC"
+        query = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/states?xattr_sort_by=xattr_long:ASC"
         pp "#{query}"
         result = get "#{query}"
         expect_status(200)
 
-        query = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/file/state?xattr_sort_by=xattr_json.xattr_long:ASC"
+        query = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/states?xattr_sort_by=xattr_json.xattr_long:ASC"
         pp "#{query}"
         result = get "#{query}"
         expect_status(200)
 
-        query = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/file/state?xattr_sort_by=xattr_json.xattr_string:ASC"
+        query = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/states?xattr_sort_by=xattr_json.xattr_string:ASC"
         pp "#{query}"
         result = get "#{query}"
         expect_status(200)

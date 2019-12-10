@@ -38,20 +38,23 @@
  */
 package io.hops.hopsworks.common.provenance.elastic.prov;
 
-import io.hops.hopsworks.common.provenance.elastic.core.BasicElasticHit;
-import io.hops.hopsworks.common.provenance.elastic.core.ElasticAggregationParser;
-import io.hops.hopsworks.common.provenance.elastic.core.ElasticCache;
-import io.hops.hopsworks.common.provenance.elastic.core.ElasticClient;
-import io.hops.hopsworks.common.provenance.elastic.core.ElasticHelper;
-import io.hops.hopsworks.common.provenance.elastic.core.ElasticHitsHandler;
+import io.hops.hopsworks.common.provenance.core.apiToElastic.ProvParser;
+import io.hops.hopsworks.common.provenance.core.elastic.BasicElasticHit;
+import io.hops.hopsworks.common.provenance.core.elastic.ElasticAggregationParser;
+import io.hops.hopsworks.common.provenance.core.elastic.ElasticCache;
+import io.hops.hopsworks.common.provenance.core.elastic.ElasticClient;
+import io.hops.hopsworks.common.provenance.core.elastic.ElasticHelper;
+import io.hops.hopsworks.common.provenance.core.elastic.ElasticHitsHandler;
 import io.hops.hopsworks.common.provenance.core.Provenance;
-import io.hops.hopsworks.common.provenance.util.CheckedFunction;
-import io.hops.hopsworks.common.provenance.util.CheckedSupplier;
-import io.hops.hopsworks.common.provenance.apiToElastic.ProvElasticFields;
-import io.hops.hopsworks.common.provenance.apiToElastic.ProvFileQuery;
-import io.hops.hopsworks.common.provenance.apiToElastic.ProvFileStateParamBuilder;
-import io.hops.hopsworks.common.provenance.xml.ProvFileOpDTO;
-import io.hops.hopsworks.common.provenance.xml.ProvFileStateDTO;
+import io.hops.hopsworks.common.provenance.ops.ProvElasticAggregations;
+import io.hops.hopsworks.common.provenance.ops.dto.ProvFileOpElastic;
+import io.hops.hopsworks.common.provenance.state.dto.ProvAppStateElastic;
+import io.hops.hopsworks.common.provenance.state.dto.ProvFileStateElastic;
+import io.hops.hopsworks.common.provenance.util.functional.CheckedFunction;
+import io.hops.hopsworks.common.provenance.util.functional.CheckedSupplier;
+import io.hops.hopsworks.common.provenance.state.ProvFileStateParamBuilder;
+import io.hops.hopsworks.common.provenance.ops.dto.ProvFileOpDTO;
+import io.hops.hopsworks.common.provenance.state.dto.ProvFileStateDTO;
 import io.hops.hopsworks.common.util.Settings;
 import io.hops.hopsworks.exceptions.ProvenanceException;
 import io.hops.hopsworks.exceptions.ServiceException;
@@ -138,8 +141,8 @@ public class ProvElasticController {
   }
   
   public ProvFileStateDTO.PList provFileState(Long projectIId,
-    Map<String, ProvFileQuery.FilterVal> fileStateFilters,
-    List<Pair<ProvFileQuery.Field, SortOrder>> fileStateSortBy,
+    Map<String, ProvParser.FilterVal> fileStateFilters,
+    List<Pair<ProvParser.Field, SortOrder>> fileStateSortBy,
     Map<String, String> xAttrsFilters, Map<String, String> likeXAttrsFilters, Set<String> hasXAttrsFilters,
     List<ProvFileStateParamBuilder.SortE> xattrSortBy,
     Integer offset, Integer limit)
@@ -158,7 +161,7 @@ public class ProvElasticController {
   }
   
   public Long provFileStateCount(Long projectIId,
-    Map<String, ProvFileQuery.FilterVal> fileStateFilters,
+    Map<String, ProvParser.FilterVal> fileStateFilters,
     Map<String, String> xAttrsFilters, Map<String, String> likeXAttrsFilters, Set<String> hasXAttrsFilters)
     throws ProvenanceException, ServiceException {
     CheckedSupplier<SearchRequest, ProvenanceException> srF =
@@ -172,7 +175,7 @@ public class ProvElasticController {
   }
   
   public Map<String, Map<Provenance.AppState, ProvAppStateElastic>> provAppState(
-    Map<String, ProvFileQuery.FilterVal> appStateFilters)
+    Map<String, ProvParser.FilterVal> appStateFilters)
     throws ProvenanceException, ServiceException {
     CheckedSupplier<SearchRequest, ProvenanceException> srF =
       ElasticHelper.scrollingSearchRequest(
@@ -204,12 +207,12 @@ public class ProvElasticController {
   }
   
   private CheckedFunction<SearchRequest, SearchRequest, ProvenanceException> filterByStateParams(
-    Map<String, ProvFileQuery.FilterVal> fileStateFilters,
+    Map<String, ProvParser.FilterVal> fileStateFilters,
     Map<String, String> xAttrsFilters, Map<String, String> likeXAttrsFilters, Set<String> hasXAttrsFilters) {
     return (SearchRequest sr) -> {
       BoolQueryBuilder query = boolQuery()
-        .must(termQuery(ProvElasticFields.FileBase.ENTRY_TYPE.toString().toLowerCase(),
-          ProvElasticFields.EntryType.STATE.toString().toLowerCase()));
+        .must(termQuery(ProvParser.BaseField.ENTRY_TYPE.toString().toLowerCase(),
+          ProvParser.EntryType.STATE.toString().toLowerCase()));
       query = ProvElasticHelper.filterByBasicFields(query, fileStateFilters);
       for (Map.Entry<String, String> filter : xAttrsFilters.entrySet()) {
         query = query.must(getXAttrQB(filter.getKey(), filter.getValue()));
@@ -226,11 +229,11 @@ public class ProvElasticController {
   }
   
   private CheckedFunction<SearchRequest, SearchRequest, ProvenanceException> filterByOpsParams(
-    Map<String, ProvFileQuery.FilterVal> fileOpsFilters, List<Script> scriptFilters) {
+    Map<String, ProvParser.FilterVal> fileOpsFilters, List<Script> scriptFilters) {
     return (SearchRequest sr) -> {
       BoolQueryBuilder query = boolQuery()
-        .must(termQuery(ProvElasticFields.FileBase.ENTRY_TYPE.toString().toLowerCase(),
-          ProvElasticFields.EntryType.OPERATION.toString().toLowerCase()));
+        .must(termQuery(ProvParser.BaseField.ENTRY_TYPE.toString().toLowerCase(),
+          ProvParser.EntryType.OPERATION.toString().toLowerCase()));
       query = ProvElasticHelper.filterByBasicFields(query, fileOpsFilters);
       query = filterByScripts(query, scriptFilters);
       sr.source().query(query);
@@ -239,7 +242,7 @@ public class ProvElasticController {
   }
   
   private CheckedFunction<SearchRequest, SearchRequest, ProvenanceException> provAppStateQB(
-    Map<String, ProvFileQuery.FilterVal> appStateFilters) {
+    Map<String, ProvParser.FilterVal> appStateFilters) {
     return (SearchRequest sr) -> {
       BoolQueryBuilder query = boolQuery();
       query = ProvElasticHelper.filterByBasicFields(query, appStateFilters);
@@ -278,9 +281,9 @@ public class ProvElasticController {
   }
   
   public ProvFileOpDTO.PList provFileOpsBase(Long projectIId,
-    Map<String, ProvFileQuery.FilterVal> fileOpsFilters,
+    Map<String, ProvParser.FilterVal> fileOpsFilters,
     List<Script> scriptFilter,
-    List<Pair<ProvFileQuery.Field, SortOrder>> fileOpsSortBy,
+    List<Pair<ProvParser.Field, SortOrder>> fileOpsSortBy,
     Integer offset, Integer limit, boolean soft)
     throws ProvenanceException, ServiceException {
     CheckedSupplier<SearchRequest, ProvenanceException> srF =
@@ -298,7 +301,7 @@ public class ProvElasticController {
   }
   
   public ProvFileOpDTO.PList provFileOpsScrolling(Long projectIId,
-    Map<String, ProvFileQuery.FilterVal> fileOpsFilters, List<Script> filterScripts, boolean soft)
+    Map<String, ProvParser.FilterVal> fileOpsFilters, List<Script> filterScripts, boolean soft)
     throws ProvenanceException, ServiceException {
     CheckedSupplier<SearchRequest, ProvenanceException> srF =
       ElasticHelper.scrollingSearchRequest(
@@ -313,7 +316,7 @@ public class ProvElasticController {
   }
   
   public <S> S provFileOpsScrolling(Long projectIId,
-    Map<String, ProvFileQuery.FilterVal> fileOpsFilters, List<Script> filterScripts,
+    Map<String, ProvParser.FilterVal> fileOpsFilters, List<Script> filterScripts,
     ElasticHitsHandler<?, S, ?, ProvenanceException> proc)
     throws ProvenanceException, ServiceException {
     CheckedSupplier<SearchRequest, ProvenanceException> srF =
@@ -328,7 +331,7 @@ public class ProvElasticController {
   }
   
   public ProvFileOpDTO.Count provFileOpsCount(Long projectIId,
-    Map<String, ProvFileQuery.FilterVal> fileOpsFilters,
+    Map<String, ProvParser.FilterVal> fileOpsFilters,
     List<Script> filterScripts,
     Set<ProvElasticAggregations.ProvAggregations> aggregations)
     throws ServiceException, ProvenanceException {

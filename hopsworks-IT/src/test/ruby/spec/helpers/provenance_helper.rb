@@ -221,7 +221,7 @@ module ProvenanceHelper
   end 
 
   def get_ml_asset_in_project(project, mlType, withAppState, expected)
-    resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/file/state"
+    resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/states"
     query_params = "?filter_by=ML_TYPE:#{mlType}"
     if withAppState
       query_params = query_params + "&expand=APP"
@@ -236,7 +236,7 @@ module ProvenanceHelper
     parsed_result
   end
 
-  @file_state = ->(project){"#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/file/state"}
+  @file_state = ->(project){"#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/states"}
 
   def ProvenanceHelper.ml_type(type)
     ->(url) { "#{url}filter_by=ML_TYPE:#{type}" }
@@ -256,7 +256,7 @@ module ProvenanceHelper
   }
 
   @prov_file_ops_g = ->(url) {
-    "#{url}/provenance/file/ops"
+    "#{url}/provenance/ops"
   }
 
   @prov_cleanup = ->(url) {
@@ -267,7 +267,7 @@ module ProvenanceHelper
     resource_f = @prov_in_proj << @prof_file_ops_g << @prov_cleanup
     resource = resource_f.call(project)
     pp resource
-    # resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/file/ops"
+    # resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/ops"
     query_params = "?return_type=COUNT&aggregations=FILES_IN"
     pp "#{resource}#{query_params}"
     result = get "#{resource}#{query_params}"
@@ -276,7 +276,7 @@ module ProvenanceHelper
   end
 
   def get_ml_asset_in_project_page(project, mlType, withAppState, offset, limit)
-    resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/file/state"
+    resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/states"
     query_params = "?filter_by=ML_TYPE:#{mlType}&offset=#{offset}&limit=#{limit}"
     if withAppState
       query_params = query_params + "&expand=APP"
@@ -289,7 +289,7 @@ module ProvenanceHelper
   end
 
   def check_no_ml_asset_by_id(project, mlType, mlId, withAppState)
-    resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/file/state"
+    resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/states"
     query_params = "?filter_by=ML_TYPE:#{mlType}&filter_by=ML_ID:#{mlId}"
     if withAppState
       query_params = query_params + "&expand=APP"
@@ -303,7 +303,7 @@ module ProvenanceHelper
   end
 
   def get_ml_asset_by_id(project, mlType, mlId, withAppState)
-    resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/file/state"
+    resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/states"
     query_params = "?filter_by=ML_TYPE:#{mlType}&filter_by=ML_ID:#{mlId}"
     if withAppState
       query_params = query_params + "&expand=APP"
@@ -318,7 +318,7 @@ module ProvenanceHelper
   end
 
   def get_ml_asset_like_name(project, mlType, term)
-    resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/file/state"
+    resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/states"
     query_params = "?filter_by=ML_TYPE:#{mlType}&filter_by=FILE_NAME_LIKE:#{term}"
     pp "#{resource}#{query_params}"
     result = get "#{resource}#{query_params}"
@@ -328,7 +328,7 @@ module ProvenanceHelper
   end
 
   def get_ml_in_create_range(project, mlType, from, to, expected)
-    resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/file/state"
+    resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/states"
     query_params = "?filter_by=ML_TYPE:#{mlType}&filter_by=CREATE_TIMESTAMP_LT:#{to}&filter_by=CREATE_TIMESTAMP_GT:#{from}"
     pp "#{resource}#{query_params}"
     result = get "#{resource}#{query_params}"
@@ -341,7 +341,7 @@ module ProvenanceHelper
   end
 
   def get_ml_asset_by_xattr(project, mlType, xattr_key, xattr_val)
-    resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/file/state"
+    resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/states"
     query_params = "?filter_by=ML_TYPE:#{mlType}&xattr_filter_by=#{xattr_key}:#{xattr_val}"
     pp "#{resource}#{query_params}"
     result = get "#{resource}#{query_params}"
@@ -351,7 +351,7 @@ module ProvenanceHelper
   end
 
   def get_ml_asset_by_xattr_count(project, mlType, xattr_key, xattr_val, count)
-    resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/file/state"
+    resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/states"
     query_params = "?filter_by=ML_TYPE:#{mlType}&xattr_filter_by=#{xattr_key}:#{xattr_val}&return_type=COUNT"
     pp "#{resource}#{query_params}"
     result = get "#{resource}#{query_params}"
@@ -362,7 +362,7 @@ module ProvenanceHelper
   end
 
   def get_ml_asset_like_xattr(project, mlType, xattr_key, xattr_val)
-    resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/file/state"
+    resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/states"
     query_params = "?filter_by=ML_TYPE:#{mlType}&xattr_like=#{xattr_key}:#{xattr_val}"
     pp "#{resource}#{query_params}"
     result = get "#{resource}#{query_params}"
@@ -372,7 +372,7 @@ module ProvenanceHelper
   end
     
   def get_ml_td_count_using_feature_project(project, feature_name) 
-    resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/file/state"
+    resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/states"
     query_params = "?filter_by=ML_TYPE:TRAINING_DATASET&xattr_filter_by=features.name:#{feature_name}&return_type=COUNT"
     pp "#{resource}#{query_params}"
     result = get "#{resource}#{query_params}"
@@ -382,7 +382,7 @@ module ProvenanceHelper
   end
 
   def get_ml_td_count_using_feature_global(feature_name) 
-    resource = "#{ENV['HOPSWORKS_API']}/provenance/file/state"
+    resource = "#{ENV['HOPSWORKS_API']}/provenance/states"
     query_params = "?filter_by=ML_TYPE:TRAINING_DATASET&xattr_filter_by==features.name:#{feature_name}&return_type=COUNT"
     pp "#{resource}#{query_params}"
     result = get "#{resource}#{query_params}"
@@ -392,7 +392,7 @@ module ProvenanceHelper
   end
 
   def get_file_ops(project, inodeId, compaction, return_type) 
-    resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/file/#{inodeId}/ops"
+    resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/ops/#{inodeId}"
     query_params = "?compaction=#{compaction}&return_type=#{return_type}"
     pp "#{resource}#{query_params}"
     result = get "#{resource}#{query_params}"
@@ -401,7 +401,7 @@ module ProvenanceHelper
   end
 
   def get_file_ops_archival(project)
-    resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/file/ops"
+    resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/ops"
     query_params = "?return_type=COUNT&aggregations=FILES_IN"
     pp "#{resource}#{query_params}"
     result = get "#{resource}#{query_params}"
@@ -418,7 +418,7 @@ module ProvenanceHelper
   end
 
   def get_app_file_ops(project, appId, compaction, return_type) 
-    resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/file/ops"
+    resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/ops"
     query_params = "?filter_by=APP_ID:#{appId}&compaction=#{compaction}&return_type=#{return_type}"
     pp "#{resource}#{query_params}"
     result = get "#{resource}#{query_params}"
@@ -427,7 +427,7 @@ module ProvenanceHelper
   end
 
   def get_app_footprint(project, appId, type) 
-    resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/app/#{appId}/footprint/#{type}"
+    resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/footprint/#{type}/app/#{appId}"
     query_params = ""
     pp "#{resource}#{query_params}"
     result = get "#{resource}#{query_params}"
@@ -437,7 +437,7 @@ module ProvenanceHelper
   end
 
   def get_file_oldest_deleted(limit) 
-    resource = "#{ENV['HOPSWORKS_API']}/provenance/file/ops"
+    resource = "#{ENV['HOPSWORKS_API']}/provenance/ops"
     query_params = "?filter_by=FILE_OPERATION:DELETE&sort_by=TIMESTAMP:asc&limit=#{limit}"
     pp "#{resource}#{query_params}"
     result = get "#{resource}#{query_params}"

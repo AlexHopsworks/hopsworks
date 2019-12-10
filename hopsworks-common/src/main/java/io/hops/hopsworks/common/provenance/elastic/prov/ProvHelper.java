@@ -38,9 +38,9 @@
  */
 package io.hops.hopsworks.common.provenance.elastic.prov;
 
-import io.hops.hopsworks.common.provenance.apiToElastic.ProvElasticFields;
 import io.hops.hopsworks.common.provenance.core.Provenance;
-import io.hops.hopsworks.common.provenance.util.CheckedFunction;
+import io.hops.hopsworks.common.provenance.core.apiToElastic.ProvParser;
+import io.hops.hopsworks.common.provenance.util.functional.CheckedFunction;
 import io.hops.hopsworks.exceptions.ProvenanceException;
 import io.hops.hopsworks.restutils.RESTCodes;
 
@@ -106,7 +106,7 @@ public class ProvHelper {
     };
   }
   
-  public static CheckedFunction<Object, ProvElasticFields.DocSubType, ProvenanceException> asDocSubType(boolean soft) {
+  public static CheckedFunction<Object, ProvParser.DocSubType, ProvenanceException> asDocSubType(boolean soft) {
     return (Object val) -> {
       if(val == null) {
         if(soft) {
@@ -116,7 +116,7 @@ public class ProvHelper {
             "expected doc sub type, found null");
         }
       }
-      return ProvElasticFields.DocSubType.valueOf((String)val);
+      return ProvParser.DocSubType.valueOf((String)val);
     };
   }
   
