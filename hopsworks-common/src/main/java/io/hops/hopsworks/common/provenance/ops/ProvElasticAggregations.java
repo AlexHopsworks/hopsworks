@@ -176,7 +176,7 @@ public class ProvElasticAggregations {
                 "cannot have two create ops on the same inode");
             }
             BasicElasticHit hit = BasicElasticHit.instance(createOpHits.getHits().getAt(0));
-            ProvFileOpElastic createOp = ProvFileOpElastic.instance(hit, false);
+            ProvFileOpElastic createOp = ProvFileOpElastic.instance(hit);
             file.addCreate(createOp);
             base = extractBaseIfNotExists(base, createOp);
           }
@@ -190,7 +190,7 @@ public class ProvElasticAggregations {
                 "cannot have two delete ops on the same inode");
             }
             BasicElasticHit hit = BasicElasticHit.instance(deleteOpHits.getHits().getAt(0));
-            ProvFileOpElastic deleteOp = ProvFileOpElastic.instance(hit, false);
+            ProvFileOpElastic deleteOp = ProvFileOpElastic.instance(hit);
             file.addDelete(deleteOp);
             base = extractBaseIfNotExists(base, deleteOp);
           }
@@ -200,7 +200,7 @@ public class ProvElasticAggregations {
           if(readFilter != null) {
             TopHits readOpHits = readFilter.getAggregations().get("first_read");
             BasicElasticHit hit = BasicElasticHit.instance(readOpHits.getHits().getAt(0));
-            ProvFileOpElastic readOp = ProvFileOpElastic.instance(hit, false);
+            ProvFileOpElastic readOp = ProvFileOpElastic.instance(hit);
             file.addFirstRead(readOp, readOpHits.getHits().getTotalHits());
             base = extractBaseIfNotExists(base, readOp);
           }
@@ -210,7 +210,7 @@ public class ProvElasticAggregations {
           if(appendFilter != null) {
             TopHits appendOpHits = appendFilter.getAggregations().get("first_append");
             BasicElasticHit hit = BasicElasticHit.instance(appendOpHits.getHits().getAt(0));
-            ProvFileOpElastic appendOp = ProvFileOpElastic.instance(hit, false);
+            ProvFileOpElastic appendOp = ProvFileOpElastic.instance(hit);
             file.addFirstAppend(appendOp, appendOpHits.getHits().getTotalHits());
             base = extractBaseIfNotExists(base, appendOp);
           }

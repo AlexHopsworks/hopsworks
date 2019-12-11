@@ -13,7 +13,7 @@
  You should have received a copy of the GNU Affero General Public License along with this program.
  If not, see <https://www.gnu.org/licenses/>.
 =end
-module ProvMinHelper
+module ProvStateHelper
   def setup_cluster_prov(provenance_type, prov_archive_size)
     @cookies = with_admin_session
     old_provenance_type = getVar("provenance_type")["value"]
@@ -350,62 +350,8 @@ module ProvMinHelper
     parsed_result["items"]
   end
 
-  def get_file_ops(project, inode_id, compaction, return_type)
-    resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/ops/#{inode_id}"
-    query_params = "?compaction=#{compaction}&return_type=#{return_type}"
-    pp "#{resource}#{query_params}"
-    result = get "#{resource}#{query_params}"
-    expect_status(200)
-    parsed_result = JSON.parse(result)
-  end
-
-  def get_file_ops_archival(project)
-    resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/ops"
-    query_params = "?return_type=COUNT&aggregations=FILES_IN"
-    pp "#{resource}#{query_params}"
-    result = get "#{resource}#{query_params}"
-    expect_status(200)
-    parsed_result = JSON.parse(result)
-  end
-
-  def file_ops_archival(project, inode_id)
-    resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/file/#{inode_id}/ops/cleanup"
-    pp "#{resource}"
-    result = delete "#{resource}"
-    expect_status(200)
-    parsed_result = JSON.parse(result)
-  end
-
-  def get_app_file_ops(project, app_id, compaction, return_type)
-    resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/ops"
-    query_params = "?filter_by=APP_ID:#{app_id}&compaction=#{compaction}&return_type=#{return_type}"
-    pp "#{resource}#{query_params}"
-    result = get "#{resource}#{query_params}"
-    expect_status(200)
-    parsed_result = JSON.parse(result)
-  end
-
-  def get_app_footprint(project, app_id, type)
-    resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/footprint/#{type}/app/#{app_id}"
-    query_params = ""
-    pp "#{resource}#{query_params}"
-    result = get "#{resource}#{query_params}"
-    expect_status(200)
-    parsed_result = JSON.parse(result)
-    parsed_result["items"]
-  end
-
-  def get_file_oldest_deleted(limit) 
-    resource = "#{ENV['HOPSWORKS_API']}/provenance/ops"
-    query_params = "?filter_by=FILE_OPERATION:DELETE&sort_by=TIMESTAMP:asc&limit=#{limit}"
-    pp "#{resource}#{query_params}"
-    result = get "#{resource}#{query_params}"
-    expect_status(200)
-    parsed_result = JSON.parse(result)
-  end
-
   def attach_app_id_xattr(project, inode_id, app_id)
-    target = "#{ENV['HOPSWORKS_TESTING']}/project/#{project[:id]}/provenance/xattr"
+    target = "#{ENV['HOPSWORKS_TESTING']}/test/project/#{project[:id]}/provenance/xattr"
     param = "?inodeId=#{inode_id}&xattrName=app_id&xattrValue=#{app_id}"
     pp "#{target}#{param}"
     result = post "#{target}#{param}"

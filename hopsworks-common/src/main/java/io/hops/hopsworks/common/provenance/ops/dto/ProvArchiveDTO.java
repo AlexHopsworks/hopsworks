@@ -17,7 +17,7 @@ package io.hops.hopsworks.common.provenance.ops.dto;
 
 import io.hops.hopsworks.common.provenance.core.apiToElastic.ProvParser;
 import io.hops.hopsworks.common.provenance.core.elastic.BasicElasticHit;
-import io.hops.hopsworks.common.provenance.elastic.prov.ProvHelper;
+import io.hops.hopsworks.common.provenance.util.ProvHelper;
 import io.hops.hopsworks.exceptions.ProvenanceException;
 
 import javax.xml.bind.annotation.XmlRootElement;
@@ -36,10 +36,8 @@ public class ProvArchiveDTO {
     public static Base instance(BasicElasticHit hit) throws ProvenanceException {
       ProvArchiveDTO.Base result = new ProvArchiveDTO.Base();
       Map<String, Object> auxMap = new HashMap<>(hit.getSource());
-      result.inodeId = ProvParser.extractElasticField(auxMap,
-        ProvParser.BaseField.INODE_ID, ProvHelper.asLong(false));
-      result.archived = ProvParser.extractElasticField(auxMap,
-        ProvParser.BaseField.INODE_ID, ProvHelper.asString(true));
+      result.inodeId = ProvHelper.extractElasticField(auxMap, ProvParser.BaseField.INODE_ID);
+      result.archived = ProvHelper.extractElasticField(auxMap, ProvParser.BaseField.INODE_ID);
       return result;
     }
     

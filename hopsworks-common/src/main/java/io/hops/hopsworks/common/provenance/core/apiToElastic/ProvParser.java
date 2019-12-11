@@ -17,7 +17,6 @@ package io.hops.hopsworks.common.provenance.core.apiToElastic;
 
 import io.hops.hopsworks.common.provenance.core.Provenance;
 import io.hops.hopsworks.common.provenance.core.elastic.ElasticHelper;
-import io.hops.hopsworks.common.provenance.util.functional.CheckedFunction;
 import io.hops.hopsworks.exceptions.ProvenanceException;
 import io.hops.hopsworks.restutils.RESTCodes;
 import org.elasticsearch.index.query.BoolQueryBuilder;
@@ -293,18 +292,6 @@ public class ProvParser {
     
   }
   
-  public static class BooleanValParser implements ValParser {
-    
-    @Override
-    public Boolean parse(Object o) {
-      if(o instanceof String) {
-        return Boolean.valueOf((String)o);
-      } else {
-        throw new IllegalArgumentException("expected string-ified version of boolean");
-      }
-    }
-  }
-  
   public static class LongValParser implements ValParser {
     
     @Override
@@ -376,16 +363,6 @@ public class ProvParser {
     @Override
     public String toString() {
       return queryParamName;
-    }
-  }
-  
-  public static <C> C extractElasticField(Map<String, Object> fields, ElasticField field,
-    CheckedFunction<Object, C, ProvenanceException> parser) throws ProvenanceException {
-    try {
-      return parser.apply(fields.remove(field.toString()));
-    } catch (ProvenanceException e) {
-      throw new ProvenanceException(RESTCodes.ProvenanceErrorCode.MALFORMED_ENTRY, Level.INFO,
-        "problem parsing elastic field:" + field, "problem parsing elastic field:" + field, e);
     }
   }
   

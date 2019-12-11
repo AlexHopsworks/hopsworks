@@ -23,7 +23,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 import io.hops.hopsworks.common.provenance.core.apiToElastic.ProvParser;
 import io.hops.hopsworks.common.provenance.core.elastic.BasicElasticHit;
-import io.hops.hopsworks.common.provenance.elastic.prov.ProvHelper;
+import io.hops.hopsworks.common.provenance.util.ProvHelper;
 import io.hops.hopsworks.common.provenance.state.ProvTree;
 import io.hops.hopsworks.common.provenance.state.apiToElastic.ProvSParser;
 import io.hops.hopsworks.exceptions.ProvenanceException;
@@ -64,40 +64,25 @@ public class ProvFileStateElastic implements Comparator<ProvFileStateElastic>, P
   private static ProvFileStateElastic instance(ProvFileStateElastic result, boolean tlsEnabled)
     throws ProvenanceException {
     Map<String, Object> auxMap = new HashMap<>(result.map);
-    result.projectInodeId = ProvParser.extractElasticField(auxMap,
-      ProvParser.BaseField.PROJECT_I_ID, ProvHelper.asLong(false));
-    result.inodeId = ProvParser.extractElasticField(auxMap,
-      ProvParser.BaseField.INODE_ID, ProvHelper.asLong(false));
-    result.appId = ProvParser.extractElasticField(auxMap,
-      ProvParser.BaseField.APP_ID, ProvHelper.asString(false));
-    result.userId = ProvParser.extractElasticField(auxMap,
-      ProvParser.BaseField.USER_ID, ProvHelper.asInt(false));
-    result.inodeName = ProvParser.extractElasticField(auxMap,
-      ProvParser.BaseField.INODE_NAME, ProvHelper.asString(false));
-    result.createTime = ProvParser.extractElasticField(auxMap,
-      ProvSParser.BaseField.CREATE_TIMESTAMP, ProvHelper.asLong(false));
-    result.mlType = ProvParser.extractElasticField(auxMap,
-      ProvParser.BaseField.ML_TYPE, ProvHelper.asString(false));
-    result.mlId = ProvParser.extractElasticField(auxMap,
-      ProvParser.BaseField.ML_ID, ProvHelper.asString(false));
-    result.datasetInodeId = ProvParser.extractElasticField(auxMap,
-      ProvParser.BaseField.DATASET_I_ID, ProvHelper.asLong(false));
-    result.parentInodeId = ProvParser.extractElasticField(auxMap,
-      ProvParser.BaseField.PARENT_I_ID, ProvHelper.asLong(false));
-    result.partitionId = ProvParser.extractElasticField(auxMap,
-      ProvParser.AuxField.PARTITION_ID, ProvHelper.asLong(false));
-    result.projectName = ProvParser.extractElasticField(auxMap,
-      ProvParser.AuxField.PROJECT_NAME, ProvHelper.asString(false));
-    result.readableCreateTime = ProvParser.extractElasticField(auxMap,
-      ProvSParser.AuxField.R_CREATE_TIMESTAMP, ProvHelper.asString(false));
-    ProvParser.extractElasticField(auxMap,
-      ProvParser.BaseField.ENTRY_TYPE, ProvHelper.asString(false));
-    result.xattrs = ProvParser.extractElasticField(auxMap,
-      ProvParser.XAttrField.XATTR_PROV, ProvHelper.asXAttrMap(true));
+    result.projectInodeId = ProvHelper.extractElasticField(auxMap, ProvParser.BaseField.PROJECT_I_ID);
+    result.inodeId = ProvHelper.extractElasticField(auxMap, ProvParser.BaseField.INODE_ID);
+    result.appId = ProvHelper.extractElasticField(auxMap, ProvParser.BaseField.APP_ID);
+    result.userId = ProvHelper.extractElasticField(auxMap, ProvParser.BaseField.USER_ID);
+    result.inodeName = ProvHelper.extractElasticField(auxMap, ProvParser.BaseField.INODE_NAME);
+    result.createTime = ProvHelper.extractElasticField(auxMap, ProvSParser.BaseField.CREATE_TIMESTAMP);
+    result.mlType = ProvHelper.extractElasticField(auxMap, ProvParser.BaseField.ML_TYPE);
+    result.mlId = ProvHelper.extractElasticField(auxMap, ProvParser.BaseField.ML_ID);
+    result.datasetInodeId = ProvHelper.extractElasticField(auxMap, ProvParser.BaseField.DATASET_I_ID);
+    result.parentInodeId = ProvHelper.extractElasticField(auxMap, ProvParser.BaseField.PARENT_I_ID);
+    result.partitionId = ProvHelper.extractElasticField(auxMap, ProvParser.AuxField.PARTITION_ID);
+    result.projectName = ProvHelper.extractElasticField(auxMap, ProvParser.AuxField.PROJECT_NAME);
+    result.readableCreateTime = ProvHelper.extractElasticField(auxMap, ProvSParser.AuxField.R_CREATE_TIMESTAMP);
+    ProvHelper.extractElasticField(auxMap, ProvParser.BaseField.ENTRY_TYPE);
+    result.xattrs = ProvHelper.extractElasticField(auxMap,
+      ProvParser.XAttrField.XATTR_PROV, ProvHelper.asXAttrMap(), true);
     if(!tlsEnabled) {
       if(result.xattrs != null && result.xattrs.containsKey(ProvParser.BaseField.APP_ID.toString())) {
-        result.appId = ProvHelper.asString(false)
-          .apply(result.xattrs.get(ProvParser.BaseField.APP_ID.toString()));
+        result.appId = ProvHelper.extractElasticField(result.xattrs.get(ProvParser.BaseField.APP_ID.toString()));
       }
     }
     for (Map.Entry<String, Object> entry : auxMap.entrySet()) {

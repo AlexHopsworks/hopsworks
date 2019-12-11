@@ -25,8 +25,8 @@ import io.hops.hopsworks.common.hdfs.DistributedFileSystemOps;
 import io.hops.hopsworks.common.hdfs.DistributedFsService;
 import io.hops.hopsworks.common.hdfs.inode.InodeController;
 import io.hops.hopsworks.common.provenance.core.Provenance;
+import io.hops.hopsworks.common.provenance.core.elastic.ElasticCache;
 import io.hops.hopsworks.common.provenance.core.elastic.dto.ElasticIndexMappingDTO;
-import io.hops.hopsworks.common.provenance.elastic.prov.ProvElasticController;
 import io.hops.hopsworks.exceptions.ProvenanceException;
 import io.hops.hopsworks.exceptions.ServiceException;
 import io.hops.hopsworks.jwt.annotation.JWTRequired;
@@ -63,7 +63,7 @@ public class TestProvenanceResource {
   @EJB
   private DistributedFsService dfs;
   @EJB
-  private ProvElasticController peCtrl;
+  private ElasticCache cache;
 
   private Project project;
 
@@ -113,7 +113,7 @@ public class TestProvenanceResource {
     @JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
   public Response testGetIndexMapping() throws ServiceException {
     String index = Provenance.getProjectIndex(project);
-    Map<String, String> mapping = peCtrl.mngIndexGetMapping(index, true);
+    Map<String, String> mapping = cache.mngIndexGetMapping(index, true);
     return Response.ok().entity(new ElasticIndexMappingDTO(index, mapping)).build();
   }
 }

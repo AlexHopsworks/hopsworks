@@ -29,8 +29,7 @@ import io.hops.hopsworks.common.provenance.core.elastic.BasicElasticHit;
 import io.hops.hopsworks.common.provenance.core.elastic.ElasticClient;
 import io.hops.hopsworks.common.provenance.core.elastic.ElasticHelper;
 import io.hops.hopsworks.common.provenance.core.elastic.ElasticHitsHandler;
-import io.hops.hopsworks.common.provenance.elastic.prov.ProvElasticController;
-import io.hops.hopsworks.common.provenance.elastic.prov.ProvElasticHelper;
+import io.hops.hopsworks.common.provenance.util.ProvElasticHelper;
 import io.hops.hopsworks.common.provenance.ops.apiToElastic.ProvOParser;
 import io.hops.hopsworks.common.provenance.ops.dto.ProvFileOpElastic;
 import io.hops.hopsworks.common.provenance.util.functional.CheckedFunction;
@@ -44,6 +43,11 @@ import io.hops.hopsworks.restutils.RESTCodes;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
+import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
+import org.elasticsearch.action.admin.indices.get.GetIndexResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.get.GetRequest;
@@ -51,6 +55,7 @@ import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.search.sort.SortOrder;
 import org.javatuples.Pair;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
@@ -75,13 +80,11 @@ import static org.elasticsearch.index.query.QueryBuilders.termQuery;
 @Stateless
 @TransactionAttribute(TransactionAttributeType.NOT_SUPPORTED)
 public class ProvArchivalController {
-  private static final Logger LOG = Logger.getLogger(ProvElasticController.class.getName());
+  private static final Logger LOG = Logger.getLogger(ProvArchivalController.class.getName());
   @EJB
   private Settings settings;
   @EJB
   private ElasticClient client;
-  @EJB
-  private ProvElasticController pClient;
   @EJB
   private ProvOpsController ppoClient;
   @EJB
@@ -93,7 +96,7 @@ public class ProvArchivalController {
   
   public static class Archival {
     Long projectIId;
-    Long counter = 0l;
+    int counter = 0;
     List<ProvFileOpElastic> pendingOps = new ArrayList<>();
     Store store;
     Optional<Long> baseDoc;
@@ -275,14 +278,7 @@ public class ProvArchivalController {
     }
   }
   
-  public void provArchiveProject(Long projectIId, String docId, boolean skipDoc)
-    throws ServiceException, ProvenanceException {
-    //    ProvFileOpElastic doc = getFileOp(projectIId, docId, true);
-    //    Optional<String> skipDocO = skipDoc ? Optional.of(docId) : Optional.empty();
-    throw new NotImplementedException();
-  }
-  
-  private Long provArchiveFilePrefix(ProvArchivalController.Archival archivalState,
+  private int provArchiveFilePrefix(ProvArchivalController.Archival archivalState,
     Map<String, ProvParser.FilterVal> fileOpsFilters, Optional<String> skipDocO)
     throws ServiceException, ProvenanceException {
     SearchRequest archivalRequest = archivalScrollingRequest(archivalState.projectIId, fileOpsFilters, skipDocO);
@@ -318,7 +314,7 @@ public class ProvArchivalController {
     };
   }
   
-  public Long provArchiveFilePrefix(Long projectIId, Long inodeId, Optional<Long> timestamp,
+  public int provArchiveFilePrefix(Long projectIId, Long inodeId, Optional<Long> timestamp,
     ProvArchivalController.Archival archival)
     throws ProvenanceException, ServiceException {
     createArchivalEntry(projectIId, inodeId);
@@ -330,7 +326,7 @@ public class ProvArchivalController {
     return provArchiveFilePrefix(archival, fileOpsFilters, Optional.empty());
   }
   
-  private Long provCleanupFilePrefix(Long projectIId, Long inodeId, Optional<Long> timestamp,
+  private int provCleanupFilePrefix(Long inodeId, Optional<Long> timestamp,
     Optional<String> skipDocO, ProvArchivalController.Archival archival)
     throws ProvenanceException, ServiceException {
     Map<String, ProvParser.FilterVal> fileOpsFilters = new HashMap<>();
@@ -341,28 +337,28 @@ public class ProvArchivalController {
     return provArchiveFilePrefix(archival, fileOpsFilters, skipDocO);
   }
   
-  public Long provCleanupFilePrefix(Long projectIId, Long inodeId, Optional<Long> timestamp,
+  public int provCleanupFilePrefix(Long inodeId, Optional<Long> timestamp,
     ProvArchivalController.Archival archival)
     throws ProvenanceException, ServiceException {
-    return provCleanupFilePrefix(projectIId, inodeId, timestamp, Optional.empty(), archival);
+    return provCleanupFilePrefix(inodeId, timestamp, Optional.empty(), archival);
   }
   
-  public Long provCleanupFilePrefix(Long projectIId, String docId, boolean skipDoc,
+  public int provCleanupFilePrefix(Long projectIId, String docId, boolean skipDoc,
     ProvArchivalController.Archival archival)
     throws ServiceException, ProvenanceException {
-    ProvFileOpElastic doc = ProvElasticHelper.getFileOp(projectIId, docId, true, settings, client);
+    ProvFileOpElastic doc = ProvElasticHelper.getFileOp(projectIId, docId, settings, client);
     if(doc.getInodeId() == null) {
       throw new ProvenanceException(RESTCodes.ProvenanceErrorCode.ARCHIVAL_STORE, Level.INFO,
         "problem parsing field: file inode id");
     }
     Optional<String> skipDocO = skipDoc ? Optional.of(docId) : Optional.empty();
-    return provCleanupFilePrefix(projectIId, doc.getInodeId(), Optional.of(doc.getTimestamp()), skipDocO, archival);
+    return provCleanupFilePrefix(doc.getInodeId(), Optional.of(doc.getTimestamp()), skipDocO, archival);
   }
   
   public ElasticHitsHandler<ProvFileOpElastic, Archival, ?, ProvenanceException> archivalHandler(
     Archival archivalState) {
     return ElasticHitsHandler.instanceWithAction(archivalState,
-      (BasicElasticHit hit) -> ProvFileOpElastic.instance(hit, true),
+      (BasicElasticHit hit) -> ProvFileOpElastic.instance(hit),
       (ProvFileOpElastic item, Archival state) -> state.pendingOps.add(item),
       (Archival state) -> {
         BulkRequest bulkDelete = new BulkRequest();
@@ -434,8 +430,7 @@ public class ProvArchivalController {
       Long projectIId = project.getInode().getId();
       ProvArchivalController.Archival archival
         = new ProvArchivalController.Archival(projectIId, new ProvArchivalController.NoStore(), Optional.empty());
-      cleaned += provCleanupFilePrefix(project.getInode().getId(), fileOp.getInodeId(), Optional.empty(),
-        archival);
+      cleaned += provCleanupFilePrefix(fileOp.getInodeId(), Optional.empty(), archival);
       if(cleaned > limit) {
         break;
       }
@@ -448,9 +443,8 @@ public class ProvArchivalController {
     Long projectIId = project.getInode().getId();
     ProvArchivalController.Archival archival
       = new ProvArchivalController.Archival(projectIId, new ProvArchivalController.NoStore(), Optional.empty());
-    Long cleaned = provCleanupFilePrefix(project.getInode().getId(), inodeId, Optional.of(timestamp),
-      archival);
-    return new ProvArchiveDTO.Round(0l, cleaned);
+    int cleaned = provCleanupFilePrefix(inodeId, Optional.of(timestamp), archival);
+    return new ProvArchiveDTO.Round(0l, (long)cleaned);
   }
   
   public ProvArchiveDTO.Round provCleanupFilePrefix(Project project, Long inodeId)
@@ -458,8 +452,8 @@ public class ProvArchivalController {
     Long projectIId = project.getInode().getId();
     ProvArchivalController.Archival archival
       = new ProvArchivalController.Archival(projectIId, new ProvArchivalController.NoStore(), Optional.empty());
-    Long cleaned = provCleanupFilePrefix(project.getInode().getId(), inodeId, Optional.empty(), archival);
-    return new ProvArchiveDTO.Round(0l, cleaned);
+    int cleaned = provCleanupFilePrefix(inodeId, Optional.empty(), archival);
+    return new ProvArchiveDTO.Round(0l, (long)cleaned);
   }
   
   public ProvArchiveDTO.Round provCleanupFilePrefix(Project project, String docId, boolean skipDoc)
@@ -467,8 +461,8 @@ public class ProvArchivalController {
     Long projectIId = project.getInode().getId();
     ProvArchivalController.Archival archival
       = new ProvArchivalController.Archival(projectIId, new ProvArchivalController.NoStore(), Optional.empty());
-    Long cleaned = provCleanupFilePrefix(project.getInode().getId(), docId, skipDoc, archival);
-    return new ProvArchiveDTO.Round(0l, cleaned);
+    int cleaned = provCleanupFilePrefix(project.getInode().getId(), docId, skipDoc, archival);
+    return new ProvArchiveDTO.Round(0l, (long)cleaned);
   }
   
   public ProvFileOpDTO.Count cleanupSize(Project project) throws ProvenanceException, ServiceException {
@@ -486,7 +480,7 @@ public class ProvArchivalController {
   public Pair<ProvArchiveDTO.Round, String> archiveRound(String nextToCheck, Integer limitIdx, Integer limitOps,
     Long beforeTimestamp)
     throws ProvenanceException, ServiceException {
-    String[] indices = pClient.getAllIndices();
+    String[] indices = getAllIndices();
     
     Long archived = 0l;
     Long cleaned = 0l;
@@ -502,7 +496,7 @@ public class ProvArchivalController {
       Project project = getProject(indexName);
       if(project == null) {
         LOG.log(Level.INFO, "deleting prov index:{0} with no corresponding project", indexName);
-        pClient.deleteProvIndex(indexName);
+        deleteProvIndex(indexName);
         cleaned++;
         continue;
       }
@@ -577,4 +571,52 @@ public class ProvArchivalController {
     return new ProvArchiveDTO.Round(archived, 0l);
   }
   
+  private String[] getAllIndices() throws ServiceException {
+    String indexRegex = "*" + Settings.PROV_FILE_INDEX_SUFFIX;
+    GetIndexRequest request = new GetIndexRequest().indices(indexRegex);
+    GetIndexResponse response = client.mngIndexGet(request);
+    return response.indices();
+  }
+  
+  private void deleteProvIndex(String indexName) throws ServiceException {
+    DeleteIndexRequest request = new DeleteIndexRequest(indexName);
+    try {
+      DeleteIndexResponse response = client.mngIndexDelete(request);
+    } catch (ServiceException e) {
+      if(e.getCause() instanceof ElasticsearchException) {
+        ElasticsearchException ex = (ElasticsearchException)e.getCause();
+        if(ex.status() == RestStatus.NOT_FOUND) {
+          LOG.log(Level.INFO, "trying to delete index:{0} - does not exist", indexName);
+          return;
+        }
+      }
+      throw e;
+    }
+  }
+  
+  public int archiveOps(Project project, int limitOps, long beforeTimestamp)
+    throws ProvenanceException, ServiceException {
+    DistributedFileSystemOps dfso = dfs.getDfsOps();
+    int archived = 0;
+    try {
+      for (ProvFileOpElastic fileOp : cleanupFiles(project, limitOps, beforeTimestamp).getItems()) {
+        ProvArchivalController.Store store
+          = new ProvArchivalController.Hops(Utils.getProjectPath(fileOp.getProjectName()), dfso);
+        store.init();
+        Long projectIId = project.getInode().getId();
+        ProvArchivalController.Archival archival
+          = new ProvArchivalController.Archival(projectIId, store, Optional.of(fileOp.getInodeId()));
+        archived += provArchiveFilePrefix(project.getInode().getId(), fileOp.getInodeId(),
+          Optional.empty(), archival);
+        if (archived > limitOps) {
+          break;
+        }
+      }
+      return archived;
+    } finally {
+      if(dfso != null) {
+        dfs.closeDfsClient(dfso);
+      }
+    }
+  }
 }

@@ -92,7 +92,8 @@ RSpec.configure do |config|
   config.include JupyterHelper
   config.include UsersHelper
   config.include ApiKeyHelper
-  config.include ProvenanceHelper
+  config.include ProvStateHelper
+  config.include ProvOpsHelper
   # uncomment next line if you need to clean hdfs and hopsworks db before test.
   # config.before(:suite) { clean_test_data }
   config.after(:suite) {

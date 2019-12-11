@@ -1223,7 +1223,7 @@ describe "On #{ENV['OS']}" do
 
         pp "check mapping"
         sleep(5)
-        query = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/index/mapping"
+        query = "#{ENV['HOPSWORKS_API']}/test/project/#{project[:id]}/provenance/index/mapping"
         pp "#{query}"
         result = get "#{query}"
         expect_status(200)

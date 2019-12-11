@@ -13,7 +13,7 @@
  * You should have received a copy of the GNU Affero General Public License along with this program.
  * If not, see <https://www.gnu.org/licenses/>.
  */
-package io.hops.hopsworks.common.provenance.elastic.prov;
+package io.hops.hopsworks.common.provenance.util;
 
 import io.hops.hopsworks.common.provenance.core.apiToElastic.ProvParser;
 import io.hops.hopsworks.common.provenance.core.elastic.BasicElasticHit;
@@ -36,7 +36,7 @@ public class ProvElasticHelper {
     return query;
   }
   
-  public static ProvFileOpElastic getFileOp(Long projectIId, String docId, boolean soft, Settings settings,
+  public static ProvFileOpElastic getFileOp(Long projectIId, String docId, Settings settings,
     ElasticClient client)
     throws ServiceException, ProvenanceException {
     GetRequest request = new GetRequest(
@@ -44,7 +44,7 @@ public class ProvElasticHelper {
       Settings.PROV_FILE_DOC_TYPE,
       docId);
     ProvFileOpElastic result =  client.getDoc(request,
-      (BasicElasticHit hit) -> ProvFileOpElastic.instance(hit, soft));
+      (BasicElasticHit hit) -> ProvFileOpElastic.instance(hit));
     return result;
   }
 }

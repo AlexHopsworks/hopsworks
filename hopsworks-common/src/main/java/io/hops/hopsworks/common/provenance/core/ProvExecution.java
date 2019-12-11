@@ -47,7 +47,7 @@ public class ProvExecution {
   public static ElasticHitsHandler<ProvFileOpElastic, Footprint<String, ProvMLStateMinDTO>, ?, ProvenanceException>
     mlStateProc() {
     return ElasticHitsHandler.instanceBasic(new ProvExecution.Footprint<>(),
-      (BasicElasticHit hit) -> ProvFileOpElastic.instance(hit, false),
+      (BasicElasticHit hit) -> ProvFileOpElastic.instance(hit),
       (ProvFileOpElastic op, Footprint<String, ProvMLStateMinDTO> state) -> {
         Provenance.MLType mlType = ProvParser.mlTypeParser(op.getDocSubType());
         ProvMLStateMinDTO mlState = ProvMLStateMinDTO.fromFileOp(op, mlType);

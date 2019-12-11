@@ -13,9 +13,8 @@
  * You should have received a copy of the GNU Affero General Public License along with this program.
  * If not, see <https://www.gnu.org/licenses/>.
  */
-package io.hops.hopsworks.common.provenance.elastic.prov;
+package io.hops.hopsworks.common.provenance.util;
 
-import io.hops.hopsworks.common.provenance.core.Provenance;
 import io.hops.hopsworks.common.provenance.core.apiToElastic.ProvParser;
 import io.hops.hopsworks.common.provenance.util.functional.CheckedFunction;
 import io.hops.hopsworks.exceptions.ProvenanceException;
@@ -27,87 +26,46 @@ import java.util.logging.Level;
 
 public class ProvHelper {
   
-  public static CheckedFunction<Object, Long, ProvenanceException> asLong(boolean soft) {
-    return (Object val) -> {
-      if(val == null) {
-        if(soft) {
-          return null;
-        } else {
-          throw new ProvenanceException(RESTCodes.ProvenanceErrorCode.MALFORMED_ENTRY, Level.INFO,
-            "expected Long, found null");
-        }
-      }
-      return ((Number) val).longValue();
-    };
+  public static <C> C extractElasticField(Map<String, Object> fields, ProvParser.ElasticField field)
+    throws ProvenanceException {
+    Object val = fields.remove(field.toString());
+    if(val == null) {
+      throw new ProvenanceException(RESTCodes.ProvenanceErrorCode.MALFORMED_ENTRY, Level.INFO,
+        "problem parsing elastic field:" + field + " - found null");
+    }
+    return (C)val;
   }
   
-  public static CheckedFunction<Object, Integer, ProvenanceException> asInt(boolean soft) {
-    return (Object val) -> {
-      if(val == null) {
-        if(soft) {
-          return null;
-        } else {
-          throw new ProvenanceException(RESTCodes.ProvenanceErrorCode.MALFORMED_ENTRY, Level.INFO,
-            "expected Integer, found null");
-        }
+  public static <C> C extractElasticField(Map<String, Object> fields, ProvParser.ElasticField field,
+    CheckedFunction<Object, C, ProvenanceException> parser, boolean soft) throws ProvenanceException {
+    Object val = fields.remove(field.toString());
+    if(val == null) {
+      if(soft) {
+        return null;
+      } else {
+        throw new ProvenanceException(RESTCodes.ProvenanceErrorCode.MALFORMED_ENTRY, Level.INFO,
+          "problem parsing elastic field:" + field + " - found null");
       }
-      return ((Number) val).intValue();
-    };
+    }
+    try {
+      return parser.apply(val);
+    } catch (ProvenanceException e) {
+      throw new ProvenanceException(RESTCodes.ProvenanceErrorCode.MALFORMED_ENTRY, Level.INFO,
+        "problem parsing elastic field:" + field, "problem parsing elastic field:" + field, e);
+    }
   }
   
-  public static CheckedFunction<Object, String, ProvenanceException> asString(boolean soft) {
-    return (Object val) -> {
-      if(val == null) {
-        if(soft) {
-          return null;
-        } else {
-          throw new ProvenanceException(RESTCodes.ProvenanceErrorCode.MALFORMED_ENTRY, Level.INFO,
-            "expected String, found null");
-        }
-      }
-      return val.toString();
-    };
+  public static <C> C extractElasticField(Object val) throws ProvenanceException {
+    if(val == null) {
+      throw new ProvenanceException(RESTCodes.ProvenanceErrorCode.MALFORMED_ENTRY, Level.INFO,
+        "expected String, found null");
+    }
+    return (C) val;
   }
   
-  public static CheckedFunction<Object, Provenance.FileOps, ProvenanceException> asFileOp(boolean soft) {
-    return (Object val) -> {
-      if(val == null) {
-        if(soft) {
-          return null;
-        } else {
-          throw new ProvenanceException(RESTCodes.ProvenanceErrorCode.MALFORMED_ENTRY, Level.INFO,
-            "expected file op, found null");
-        }
-      }
-      return Provenance.FileOps.valueOf((String)val);
-    };
-  }
-  
-  public static CheckedFunction<Object, ProvParser.DocSubType, ProvenanceException> asDocSubType(boolean soft) {
-    return (Object val) -> {
-      if(val == null) {
-        if(soft) {
-          return null;
-        } else {
-          throw new ProvenanceException(RESTCodes.ProvenanceErrorCode.MALFORMED_ENTRY, Level.INFO,
-            "expected doc sub type, found null");
-        }
-      }
-      return ProvParser.DocSubType.valueOf((String)val);
-    };
-  }
-  
-  public static CheckedFunction<Object, Map<String, String>, ProvenanceException> asXAttrMap(boolean soft) {
+  public static CheckedFunction<Object, Map<String, String>, ProvenanceException> asXAttrMap() {
     return (Object o) -> {
       Map<String, String> result = new HashMap<>();
-      if(o == null) {
-        if(soft) {
-          return result;
-        } else {
-          throw new ProvenanceException(RESTCodes.ProvenanceErrorCode.MALFORMED_ENTRY, Level.INFO,
-            "expected xattr map, found null");
-        }
-      }
       Map<Object, Object> xattrsMap;
       try {
         xattrsMap = (Map) o;
