@@ -61,6 +61,7 @@
     <module>hopsworks-persistence</module>
     <module>hopsworks-IT</module>
     <module>hopsworks-rest-utils</module>
+    <module>hopsworks-testing</module>
   </modules>
 
   <profiles>
@@ -80,6 +81,15 @@
       </activation>
       <modules>
         <module>hopsworks-web</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>testing</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <modules>
+        <module>hopsworks-testing</module>
       </modules>
     </profile>
   </profiles>

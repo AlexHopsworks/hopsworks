@@ -446,10 +446,11 @@ module ProvenanceHelper
     parsed_result
   end
 
-  def attach_app_id_xattr(project, expName, appId)
-    resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/test/exp/#{expName}/#{appId}"
-    pp "#{resource}"
-    result = post "#{resource}"
+  def attach_app_id_xattr(project, inode_id, app_id)
+    target = "#{ENV['HOPSWORKS_TESTING']}/project/#{project[:id]}/provenance/xattr"
+    param = "?inodeId=#{inodeId}&xattrName=app_id&xattrValue=#{app_id}"
+    pp "#{target}#{param}"
+    result = post "#{target}#{param}"
     expect_status(200)
   end
 end

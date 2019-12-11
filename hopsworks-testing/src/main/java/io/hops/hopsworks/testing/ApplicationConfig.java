@@ -13,16 +13,25 @@
  * You should have received a copy of the GNU Affero General Public License along with this program.
  * If not, see <https://www.gnu.org/licenses/>.
  */
-package io.hops.hopsworks.common.provenance.ops;
+package io.hops.hopsworks.testing;
 
-import org.elasticsearch.script.Script;
+import io.swagger.annotations.Api;
+import org.glassfish.jersey.server.ResourceConfig;
 
-public class ProvElasticFilterScripts {
-  public enum Scripts {
-    ;
-    public final Script script;
-    Scripts(Script script) {
-      this.script = script;
-    }
+@Api
+@javax.ws.rs.ApplicationPath("api1")
+public class ApplicationConfig extends ResourceConfig {
+  
+  /**
+   * adding manually all the restful services of the application.
+   */
+  public ApplicationConfig() {
+  
+    register(io.hops.hopsworks.testing.project.ProjectService.class);
+    register(io.hops.hopsworks.testing.provenance.ProvenanceResource.class);
+  
+    //swagger
+    register(io.swagger.jaxrs.listing.ApiListingResource.class);
+    register(io.swagger.jaxrs.listing.SwaggerSerializers.class);
   }
 }

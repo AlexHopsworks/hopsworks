@@ -462,20 +462,25 @@ describe "On #{ENV['OS']}" do
         end
 
         it 'experiment with app_id as xattr' do
-          AppProv.create(id: @app1_id, state: "FINISHED", timestamp:5, name:@app1_id, user:"my_user", submit_time:1,
+          project = @project1
+          experiment = @experiment_app1_name1
+          app_id = @app1_id
+          AppProv.create(id: app_id, state: "FINISHED", timestamp:5, name:app_id, user:"my_user", submit_time:1,
                          start_time:2, finish_time:4)
-          attach_app_id_xattr(@project1, @experiment_app1_name1, @app1_id)
+          experimentRecord = FileProv.where("project_name": project["inode_name"], "i_name": experiment)
+          expect(experimentRecord.length).to eq 1
+          attach_app_id_xattr(project, experimentRecord[:inode_id], app_id)
 
           pp "restart epipe"
           execute_remotely @hostname, "sudo systemctl restart epipe"
 
           pp "check experiment"
           prov_wait_for_epipe()
-          result1 = get_ml_asset_in_project(@project1, "EXPERIMENT", true, 1)["items"]
+          result1 = get_ml_asset_in_project(project, "EXPERIMENT", true, 1)["items"]
           pp result1
           xattrsExact = Hash.new
-          xattrsExact["app_id"] = @app1_id
-          prov_check_asset_with_xattrs(result1, prov_experiment_id(@experiment_app1_name1), xattrsExact)
+          xattrsExact["app_id"] = app_id
+          prov_check_asset_with_xattrs(result1, prov_experiment_id(experiment), xattrsExact)
         end
       end
     end
