@@ -50,7 +50,7 @@ import java.util.logging.Level;
 @RequestScoped
 @TransactionAttribute(TransactionAttributeType.NEVER)
 @Api(value = "Provenance Testing Service", description = "Provenance Testing Service")
-public class ProvenanceResource {
+public class TestProvenanceResource {
   @EJB
   private ProjectFacade projectFacade;
   

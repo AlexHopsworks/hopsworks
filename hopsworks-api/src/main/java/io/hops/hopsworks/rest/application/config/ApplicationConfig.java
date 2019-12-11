@@ -39,7 +39,6 @@
 
 package io.hops.hopsworks.rest.application.config;
 
-import io.hops.hopsworks.api.provenance.ProvenanceResource;
 import io.swagger.annotations.Api;
 import org.glassfish.jersey.server.ResourceConfig;
 
@@ -119,7 +118,7 @@ public class ApplicationConfig extends ResourceConfig {
     register(io.hops.hopsworks.api.maggy.MaggyService.class);
     
     //provenance
-    register(ProvenanceResource.class);
+    register(io.hops.hopsworks.api.provenance.ProvenanceResource.class);
 
     //swagger
     register(io.swagger.jaxrs.listing.ApiListingResource.class);

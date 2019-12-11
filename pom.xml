@@ -61,7 +61,6 @@
     <module>hopsworks-persistence</module>
     <module>hopsworks-IT</module>
     <module>hopsworks-rest-utils</module>
-    <module>hopsworks-testing</module>
   </modules>
 
   <profiles>
