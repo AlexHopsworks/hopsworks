@@ -15,15 +15,13 @@
  */
 package io.hops.hopsworks.testing.project;
 
-import io.hops.hopsworks.testing.provenance.TestProvenanceResource;
 import io.swagger.annotations.Api;
 
-import javax.ejb.EJB;
 import javax.ejb.Stateless;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
+import javax.ws.rs.GET;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
@@ -34,13 +32,22 @@ import javax.ws.rs.core.MediaType;
 @Produces(MediaType.APPLICATION_JSON)
 @Api(value = "Project Testing Service", description = "Project Testing Service")
 @TransactionAttribute(TransactionAttributeType.NEVER)
-public class TestProjectService {
-  @EJB
-  private TestProvenanceResource provenance;
+public class ProjectService {
+//  @EJB
+//  private TestProvenanceResource provenance;
+//
+//  @Path("{projectId}/provenance")
+//  public TestProvenanceResource provenance(@PathParam("projectId") Integer id) {
+//    this.provenance.setProjectId(id);
+//    return provenance;
+//  }
   
-  @Path("{projectId}/provenance")
-  public TestProvenanceResource provenance(@PathParam("projectId") Integer id) {
-    this.provenance.setProjectId(id);
-    return provenance;
+  @GET
+  // The Java method will produce content identified by the MIME Media type "text/plain"
+  @Path("/helloworld")
+  @Produces("text/plain")
+  public String getClichedMessage() {
+    // Return some cliched textual content
+    return "Hello World";
   }
 }

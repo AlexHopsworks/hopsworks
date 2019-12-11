@@ -19,7 +19,7 @@ import io.swagger.annotations.Api;
 import org.glassfish.jersey.server.ResourceConfig;
 
 @Api
-@javax.ws.rs.ApplicationPath("api2")
+@javax.ws.rs.ApplicationPath("api")
 public class ApplicationConfig extends ResourceConfig {
   
   /**
@@ -27,9 +27,8 @@ public class ApplicationConfig extends ResourceConfig {
    */
   public ApplicationConfig() {
   
-//    register(io.hops.hopsworks.testing.project.TestProjectService.class);
+    register(io.hops.hopsworks.testing.project.ProjectService.class);
 //    register(io.hops.hopsworks.testing.provenance.TestProvenanceResource.class);
-  
     //swagger
     register(io.swagger.jaxrs.listing.ApiListingResource.class);
     register(io.swagger.jaxrs.listing.SwaggerSerializers.class);
