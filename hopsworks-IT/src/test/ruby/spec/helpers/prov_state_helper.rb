@@ -13,29 +13,29 @@
  You should have received a copy of the GNU Affero General Public License along with this program.
  If not, see <https://www.gnu.org/licenses/>.
 =end
-module ProvenanceHelper
-  def setup_cluster_prov(provenance_type, provenance_archive_size)
+module ProvMinHelper
+  def setup_cluster_prov(provenance_type, prov_archive_size)
     @cookies = with_admin_session
     old_provenance_type = getVar("provenance_type")["value"]
     old_provenance_archive_size = getVar("provenance_archive_size")["value"]
 
     setVar("provenance_type", provenance_type) if (old_provenance_type != provenance_type)
-    setVar("provenance_archive_size", provenance_archive_size) if (old_provenance_archive_size != provenance_archive_size)
+    setVar("provenance_archive_size", prov_archive_size) if (old_provenance_archive_size != prov_archive_size)
 
     new_provenance_type = getVar("provenance_type")["value"]
     expect(new_provenance_type).to eq provenance_type
     new_provenance_archive_size = getVar("provenance_archive_size")["value"]
-    expect(new_provenance_archive_size).to eq provenance_archive_size
+    expect(new_provenance_archive_size).to eq prov_archive_size
 
     @cookies = nil
     return old_provenance_type, old_provenance_archive_size
   end
 
-  def restore_cluster_prov(provenance_type, provenance_archive_size, old_provenance_type, old_provenance_archive_size)
+  def restore_cluster_prov(provenance_type, prov_archive_size, old_provenance_type, old_prov_archive_size)
     @cookies = with_admin_session
 
     setVar("provenance_type", old_provenance_type) if (old_provenance_type != provenance_type)
-    setVar("provenance_archive_size", old_provenance_archive_size) if (old_provenance_archive_size != provenance_archive_size)
+    setVar("provenance_archive_size", old_prov_archive_size) if (old_prov_archive_size != prov_archive_size)
 
     @cookies = nil
   end
@@ -43,11 +43,11 @@ module ProvenanceHelper
   def check_epipe_service
     pp "checking epipe status"
     execute_remotely @hostname, "sudo systemctl restart epipe"
-    prov_wait_for_epipe()
+    prov_wait_for_epipe
   end
 
   def cleanup_cycle(project)
-    prov_wait_for_epipe()
+    prov_wait_for_epipe
     sleep(1)
     ops = get_file_ops_archival(project)
     #pp ops
@@ -70,12 +70,6 @@ module ProvenanceHelper
     delete "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/dataset/#{path}"
     expect_status(204)
   end
-
-  # def prov_delete_dataset(project, dataset)
-  #   target = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/dataset/#{dataset}"
-  #   delete target
-  #   expect_status(200)
-  # end
 
   def prov_create_experiment(project, experiment_name) 
       pp "create experiment #{experiment_name} in project #{project[:inode_name]}"
@@ -143,22 +137,22 @@ module ProvenanceHelper
 
   def prov_add_xattr(original, xattr_name, xattr_value, xattr_op, increment)
 #     pp original
-    xattrRecord = original.dup
+    xattr_record = original.dup
 #     pp xattrRecord
-    xattrRecord[:inode_id] = original[:inode_id]
-    xattrRecord[:inode_operation] = xattr_op
-    xattrRecord[:io_logical_time] = original[:io_logical_time]+increment
-    xattrRecord[:io_timestamp] = original[:io_timestamp]+increment
-    xattrRecord[:io_app_id] = original[:io_app_id]
-    xattrRecord[:io_user_id] = original[:io_user_id]
+    xattr_record[:inode_id] = original[:inode_id]
+    xattr_record[:inode_operation] = xattr_op
+    xattr_record[:io_logical_time] = original[:io_logical_time]+increment
+    xattr_record[:io_timestamp] = original[:io_timestamp]+increment
+    xattr_record[:io_app_id] = original[:io_app_id]
+    xattr_record[:io_user_id] = original[:io_user_id]
 #     pp xattrRecord
-    xattrRecord["i_xattr_name"] = xattr_name
-    xattrRecord["io_logical_time_batch"] = original["io_logical_time_batch"]+increment
-    xattrRecord["io_timestamp_batch"] = original["io_timestamp_batch"]+increment
+    xattr_record["i_xattr_name"] = xattr_name
+    xattr_record["io_logical_time_batch"] = original["io_logical_time_batch"]+increment
+    xattr_record["io_timestamp_batch"] = original["io_timestamp_batch"]+increment
 #     pp xattrRecord
-    xattrRecord.save!
+    xattr_record.save!
 
-    FileProvXAttr.create(inode_id: xattrRecord["inode_id"], namespace: 5, name: xattr_name, inode_logical_time: xattrRecord["io_logical_time"], value: xattr_value)
+    FileProvXAttr.create(inode_id: xattr_record["inode_id"], namespace: 5, name: xattr_name, inode_logical_time: xattr_record["io_logical_time"], value: xattr_value)
   end
 
   def prov_add_app_states1(app_id, user)
@@ -175,28 +169,28 @@ module ProvenanceHelper
 
   def prov_wait_for_epipe() 
     pp "waiting"
-    sleepCounter1 = 0
-    sleepCounter2 = 0
-    until FileProv.all.empty? || sleepCounter1 == 10 do
+    sleep_counter1 = 0
+    sleep_counter2 = 0
+    until FileProv.all.empty? || sleep_counter1 == 10 do
       sleep(1)
-      sleepCounter1 += 1
+      sleep_counter1 += 1
     end
-    until AppProv.all.empty? || sleepCounter2 == 10 do
+    until AppProv.all.empty? || sleep_counter2 == 10 do
       sleep(1)
-      sleepCounter2 += 1
+      sleep_counter2 += 1
     end
     sleep(2)
-    expect(sleepCounter1).to be < 10
-    expect(sleepCounter2).to be < 10
+    expect(sleep_counter1).to be < 10
+    expect(sleep_counter2).to be < 10
     pp "done waiting"
   end
 
-  def prov_check_experiment3(experiments, experiment_id, currentState) 
+  def prov_check_experiment3(experiments, experiment_id, current_state)
     experiment = experiments.select { |e| e["mlId"] == experiment_id }
     expect(experiment.length).to eq 1
 
     #pp experiment[0]["appState"]
-    expect(experiment[0]["appState"]["currentState"]).to eq currentState
+    expect(experiment[0]["appState"]["currentState"]).to eq current_state
   end
 
   def prov_check_asset_with_id(assets, asset_id) 
@@ -220,10 +214,10 @@ module ProvenanceHelper
     end
   end 
 
-  def get_ml_asset_in_project(project, mlType, withAppState, expected)
+  def get_ml_asset_in_project(project, ml_type, with_app_state, expected)
     resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/states"
-    query_params = "?filter_by=ML_TYPE:#{mlType}"
-    if withAppState
+    query_params = "?filter_by=ML_TYPE:#{ml_type}"
+    if with_app_state
       query_params = query_params + "&expand=APP"
     end
     pp "#{resource}#{query_params}"
@@ -236,49 +230,14 @@ module ProvenanceHelper
     parsed_result
   end
 
-  @file_state = ->(project){"#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/states"}
-
-  def ProvenanceHelper.ml_type(type)
+  def ml_type(type)
     ->(url) { "#{url}filter_by=ML_TYPE:#{type}" }
   end
 
-  @prov_in_proj = ->(project) {
-    "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}"
-  }
-
-  @qwith = ->(url) { "#{url}?" }
-  @qand = ->(url) { "#{url}&" }
-  @experiment = ml_type("EXPERIMENT")
-  @app_expand = ->(url) { "#{url}expand=APP" }
-
-  @prov_file_ops = ->(url, inode_id) {
-    "#{url}/provenance/file/#{inode_id}/ops"
-  }
-
-  @prov_file_ops_g = ->(url) {
-    "#{url}/provenance/ops"
-  }
-
-  @prov_cleanup = ->(url) {
-    "#{url}/cleanup"
-  }
-
-  def get_file_ops_archival(project)
-    resource_f = @prov_in_proj << @prof_file_ops_g << @prov_cleanup
-    resource = resource_f.call(project)
-    pp resource
-    # resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/ops"
-    query_params = "?return_type=COUNT&aggregations=FILES_IN"
-    pp "#{resource}#{query_params}"
-    result = get "#{resource}#{query_params}"
-    expect_status(200)
-    parsed_result = JSON.parse(result)
-  end
-
-  def get_ml_asset_in_project_page(project, mlType, withAppState, offset, limit)
+  def get_ml_asset_in_project_page(project, ml_type, with_app_state, offset, limit)
     resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/states"
-    query_params = "?filter_by=ML_TYPE:#{mlType}&offset=#{offset}&limit=#{limit}"
-    if withAppState
+    query_params = "?filter_by=ML_TYPE:#{ml_type}&offset=#{offset}&limit=#{limit}"
+    if with_app_state
       query_params = query_params + "&expand=APP"
     end
     pp "#{resource}#{query_params}"
@@ -288,10 +247,10 @@ module ProvenanceHelper
     parsed_result
   end
 
-  def check_no_ml_asset_by_id(project, mlType, mlId, withAppState)
+  def check_no_ml_asset_by_id(project, ml_type, ml_id, with_app_state)
     resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/states"
-    query_params = "?filter_by=ML_TYPE:#{mlType}&filter_by=ML_ID:#{mlId}"
-    if withAppState
+    query_params = "?filter_by=ML_TYPE:#{ml_type}&filter_by=ML_ID:#{ml_id}"
+    if with_app_state
       query_params = query_params + "&expand=APP"
     end
     pp "#{resource}#{query_params}"
@@ -302,10 +261,10 @@ module ProvenanceHelper
     expect(parsed_result["count"]).to eq 0
   end
 
-  def get_ml_asset_by_id(project, mlType, mlId, withAppState)
+  def get_ml_asset_by_id(project, ml_type, ml_id, with_app_state)
     resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/states"
-    query_params = "?filter_by=ML_TYPE:#{mlType}&filter_by=ML_ID:#{mlId}"
-    if withAppState
+    query_params = "?filter_by=ML_TYPE:#{ml_type}&filter_by=ML_ID:#{ml_id}"
+    if with_app_state
       query_params = query_params + "&expand=APP"
     end
     pp "#{resource}#{query_params}"
@@ -317,9 +276,9 @@ module ProvenanceHelper
     parsed_result["items"][0]
   end
 
-  def get_ml_asset_like_name(project, mlType, term)
+  def get_ml_asset_like_name(project, ml_type, term)
     resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/states"
-    query_params = "?filter_by=ML_TYPE:#{mlType}&filter_by=FILE_NAME_LIKE:#{term}"
+    query_params = "?filter_by=ML_TYPE:#{ml_type}&filter_by=FILE_NAME_LIKE:#{term}"
     pp "#{resource}#{query_params}"
     result = get "#{resource}#{query_params}"
     expect_status(200)
@@ -327,9 +286,9 @@ module ProvenanceHelper
     parsed_result["items"]
   end
 
-  def get_ml_in_create_range(project, mlType, from, to, expected)
+  def get_ml_in_create_range(project, ml_type, from, to, expected)
     resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/states"
-    query_params = "?filter_by=ML_TYPE:#{mlType}&filter_by=CREATE_TIMESTAMP_LT:#{to}&filter_by=CREATE_TIMESTAMP_GT:#{from}"
+    query_params = "?filter_by=ML_TYPE:#{ml_type}&filter_by=CREATE_TIMESTAMP_LT:#{to}&filter_by=CREATE_TIMESTAMP_GT:#{from}"
     pp "#{resource}#{query_params}"
     result = get "#{resource}#{query_params}"
     expect_status(200)
@@ -340,9 +299,9 @@ module ProvenanceHelper
     parsed_result["items"]
   end
 
-  def get_ml_asset_by_xattr(project, mlType, xattr_key, xattr_val)
+  def get_ml_asset_by_xattr(project, ml_type, xattr_key, xattr_val)
     resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/states"
-    query_params = "?filter_by=ML_TYPE:#{mlType}&xattr_filter_by=#{xattr_key}:#{xattr_val}"
+    query_params = "?filter_by=ML_TYPE:#{ml_type}&xattr_filter_by=#{xattr_key}:#{xattr_val}"
     pp "#{resource}#{query_params}"
     result = get "#{resource}#{query_params}"
     expect_status(200)
@@ -350,9 +309,9 @@ module ProvenanceHelper
     parsed_result["items"]
   end
 
-  def get_ml_asset_by_xattr_count(project, mlType, xattr_key, xattr_val, count)
+  def get_ml_asset_by_xattr_count(project, ml_type, xattr_key, xattr_val, count)
     resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/states"
-    query_params = "?filter_by=ML_TYPE:#{mlType}&xattr_filter_by=#{xattr_key}:#{xattr_val}&return_type=COUNT"
+    query_params = "?filter_by=ML_TYPE:#{ml_type}&xattr_filter_by=#{xattr_key}:#{xattr_val}&return_type=COUNT"
     pp "#{resource}#{query_params}"
     result = get "#{resource}#{query_params}"
     expect_status(200)
@@ -361,9 +320,9 @@ module ProvenanceHelper
     parsed_result["result"]
   end
 
-  def get_ml_asset_like_xattr(project, mlType, xattr_key, xattr_val)
+  def get_ml_asset_like_xattr(project, ml_type, xattr_key, xattr_val)
     resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/states"
-    query_params = "?filter_by=ML_TYPE:#{mlType}&xattr_like=#{xattr_key}:#{xattr_val}"
+    query_params = "?filter_by=ML_TYPE:#{ml_type}&xattr_like=#{xattr_key}:#{xattr_val}"
     pp "#{resource}#{query_params}"
     result = get "#{resource}#{query_params}"
     expect_status(200)
@@ -391,8 +350,8 @@ module ProvenanceHelper
     parsed_result["items"]
   end
 
-  def get_file_ops(project, inodeId, compaction, return_type) 
-    resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/ops/#{inodeId}"
+  def get_file_ops(project, inode_id, compaction, return_type)
+    resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/ops/#{inode_id}"
     query_params = "?compaction=#{compaction}&return_type=#{return_type}"
     pp "#{resource}#{query_params}"
     result = get "#{resource}#{query_params}"
@@ -417,17 +376,17 @@ module ProvenanceHelper
     parsed_result = JSON.parse(result)
   end
 
-  def get_app_file_ops(project, appId, compaction, return_type) 
+  def get_app_file_ops(project, app_id, compaction, return_type)
     resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/ops"
-    query_params = "?filter_by=APP_ID:#{appId}&compaction=#{compaction}&return_type=#{return_type}"
+    query_params = "?filter_by=APP_ID:#{app_id}&compaction=#{compaction}&return_type=#{return_type}"
     pp "#{resource}#{query_params}"
     result = get "#{resource}#{query_params}"
     expect_status(200)
     parsed_result = JSON.parse(result)
   end
 
-  def get_app_footprint(project, appId, type) 
-    resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/footprint/#{type}/app/#{appId}"
+  def get_app_footprint(project, app_id, type)
+    resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/footprint/#{type}/app/#{app_id}"
     query_params = ""
     pp "#{resource}#{query_params}"
     result = get "#{resource}#{query_params}"
@@ -443,12 +402,11 @@ module ProvenanceHelper
     result = get "#{resource}#{query_params}"
     expect_status(200)
     parsed_result = JSON.parse(result)
-    parsed_result
   end
 
   def attach_app_id_xattr(project, inode_id, app_id)
     target = "#{ENV['HOPSWORKS_TESTING']}/project/#{project[:id]}/provenance/xattr"
-    param = "?inodeId=#{inodeId}&xattrName=app_id&xattrValue=#{app_id}"
+    param = "?inodeId=#{inode_id}&xattrName=app_id&xattrValue=#{app_id}"
     pp "#{target}#{param}"
     result = post "#{target}#{param}"
     expect_status(200)

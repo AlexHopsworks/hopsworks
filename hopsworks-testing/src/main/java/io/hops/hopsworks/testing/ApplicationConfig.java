@@ -26,11 +26,12 @@ public class ApplicationConfig extends ResourceConfig {
    * adding manually all the restful services of the application.
    */
   public ApplicationConfig() {
-  
-    register(io.hops.hopsworks.testing.project.ProjectService.class);
-//    register(io.hops.hopsworks.testing.provenance.TestProvenanceResource.class);
+    register(io.hops.hopsworks.testing.project.TestProjectService.class);
+    register(io.hops.hopsworks.testing.provenance.TestProvenanceResource.class);
+    
     //swagger
     register(io.swagger.jaxrs.listing.ApiListingResource.class);
     register(io.swagger.jaxrs.listing.SwaggerSerializers.class);
   }
+  
 }
