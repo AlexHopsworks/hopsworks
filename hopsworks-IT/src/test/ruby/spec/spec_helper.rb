@@ -93,6 +93,7 @@ RSpec.configure do |config|
   config.include UsersHelper
   config.include ApiKeyHelper
   config.include SchemaHelper
+  config.include ProvStateHelper
   # uncomment next line if you need to clean hdfs and hopsworks db before test.
   # config.before(:suite) { clean_test_data }
   config.after(:suite) {
@@ -108,6 +109,8 @@ RSpec.configure do |config|
   if ENV['SKIP_VM_TEST'] == "true" # Skip tests tagged with vm: true
     config.filter_run_excluding vm: true
   end
+  config.filter_run focus: true
+  config.run_all_when_everything_filtered = true
 end
 
 Airborne.configure do |config|
