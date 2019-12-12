@@ -58,7 +58,6 @@ import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.search.sort.SortOrder;
 import org.javatuples.Pair;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
