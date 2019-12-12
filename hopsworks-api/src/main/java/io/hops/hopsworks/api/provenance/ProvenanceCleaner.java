@@ -20,6 +20,7 @@ import io.hops.hopsworks.common.dao.hdfs.inode.InodeFacade;
 import io.hops.hopsworks.common.dao.project.Project;
 import io.hops.hopsworks.common.dao.project.ProjectFacade;
 import io.hops.hopsworks.common.provenance.core.elastic.ProvElasticController;
+import io.hops.hopsworks.common.provenance.ops.ProvArchivalController;
 import io.hops.hopsworks.common.util.Settings;
 import io.hops.hopsworks.exceptions.ElasticException;
 import io.hops.hopsworks.exceptions.ProvenanceException;
@@ -30,7 +31,7 @@ import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.indices.GetIndexRequest;
 import org.elasticsearch.client.indices.GetIndexResponse;
 import org.elasticsearch.rest.RestStatus;
-import org.javatuples.Pair;
+import org.javatuples.Triplet;
 
 import javax.ejb.EJB;
 import javax.ejb.Schedule;
@@ -54,6 +55,9 @@ public class ProvenanceCleaner {
   private ProjectFacade projectFacade;
   @EJB
   private InodeFacade inodeFacade;
+  @EJB
+  private ProvArchivalController archiveCtrl;
+  
   
   private String lastIndexChecked = "";
   
@@ -66,20 +70,21 @@ public class ProvenanceCleaner {
       return;
     }
     try {
-      Pair<Integer, String> round = archiveRound(lastIndexChecked, cleanupSize);
-      LOGGER.log(Level.INFO, "cleanup round - idx cleaned:{0} from:{1} to:{2}",
-        new Object[]{round.getValue0(), lastIndexChecked, round.getValue1()});
+      Triplet<Integer, String, Integer> round = archiveRound(lastIndexChecked, cleanupSize, archiveSize);
+      LOGGER.log(Level.INFO, "cleanup round - idx cleaned:{0} from:{1} to:{2} archived:{3}",
+        new Object[]{round.getValue0(), lastIndexChecked, round.getValue1(), round.getValue2()});
       lastIndexChecked = round.getValue1();
     } catch (ProvenanceException | ElasticException e) {
       LOGGER.log(Level.INFO, "cleanup round was not successful - error", e);
     }
   }
   
-  private Pair<Integer, String> archiveRound(String nextToCheck, Integer limitIdx)
+  private Triplet<Integer, String, Integer> archiveRound(String nextToCheck, Integer limitIdx, int limitOps)
     throws ProvenanceException, ElasticException {
     String[] indices = getAllIndices();
     
     int cleaned = 0;
+    int archived = 0;
     String nextToCheckAux = "";
     for(String indexName : indices) {
       if(cleaned > limitIdx) {
@@ -96,8 +101,11 @@ public class ProvenanceCleaner {
         cleaned++;
         continue;
       }
+  
+      Long beforeTimestamp = System.currentTimeMillis() - ( settings.getProvArchiveDelay() * 1000);
+      archived += archiveCtrl.archiveOps(project, (limitOps - archived), beforeTimestamp);
     }
-    return Pair.with(cleaned, nextToCheckAux);
+    return Triplet.with(cleaned, nextToCheckAux, archived);
   }
   
   private Project getProject(String indexName) throws ProvenanceException {

@@ -133,6 +133,14 @@ angular.module('hopsWorksApp')
               "provStates": {
                 url: '/api/project/:id/provenance/states?filter_by=ML_TYPE::provStateType&return_type=COUNT',
                 method: 'GET'
+              },
+              "provOps": {
+                url: '/api/project/:id/provenance/ops?return_type=COUNT',
+                method: 'GET'
+              },
+              "provCleanup": {
+                url: '/api/project/:id/provenance/ops?cleanup=true',
+                method: 'GET'
               }
             }
             );
