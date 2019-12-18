@@ -40,9 +40,17 @@ module ProvStateHelper
     @cookies = nil
   end
 
+  def stop_epipe
+    execute_remotely ENV['EPIPE_HOST'], "sudo systemctl stop epipe"
+  end
+
+  def restart_epipe
+    execute_remotely ENV['EPIPE_HOST'], "sudo systemctl restart epipe"
+  end
+
   def check_epipe_service
     #pp "checking epipe status"
-    execute_remotely @hostname, "sudo systemctl restart epipe"
+    restart_epipe
     prov_wait_for_epipe
   end
 
@@ -214,17 +222,21 @@ module ProvStateHelper
     end
   end 
 
-  def get_ml_asset_in_project(project, ml_type, with_app_state, expected)
+  def get_ml_asset_in_project(project, ml_type, with_app_state, expected, debug)
     resource = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance/states"
     query_params = "?filter_by=ML_TYPE:#{ml_type}"
     if with_app_state
       query_params = query_params + "&expand=APP"
     end
-    #pp "#{resource}#{query_params}"
+    if(debug)
+      pp "#{resource}#{query_params}"
+    end
     result = get "#{resource}#{query_params}"
-    #pp result
     expect_status(200)
     parsed_result = JSON.parse(result)
+    if(debug)
+      pp parsed_result
+    end
     expect(parsed_result["items"].length).to eq expected
     expect(parsed_result["count"]).to eq expected
     parsed_result

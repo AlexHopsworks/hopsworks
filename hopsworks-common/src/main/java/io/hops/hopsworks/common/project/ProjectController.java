@@ -855,7 +855,7 @@ public class ProjectController {
         project.getName().toLowerCase() + "_serving-*");
     // If Kafka is not enabled for the project, enable it
     if (!projectServicesFacade.isServiceEnabledForProject(project, ProjectServiceEnum.KAFKA)) {
-      addService(project, ProjectServiceEnum.KAFKA, user, dfso, udfso);
+      addService(project, ProjectServiceEnum.KAFKA, user, dfso, udfso, metaStatus);
     }
     return addServingManager(project);
   }

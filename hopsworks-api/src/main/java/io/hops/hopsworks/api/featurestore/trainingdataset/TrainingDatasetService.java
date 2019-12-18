@@ -102,7 +102,7 @@ public class TrainingDatasetService {
   @EJB
   private FeaturestoreHopsfsConnectorFacade featurestoreHopsfsConnectorFacade;
   @EJB
-  private HopsFSProvenanceController fsTrainingDatasetController;
+  private HopsFSProvenanceController fsProvenanceCtrl;
 
   private Project project;
   private Featurestore featurestore;
@@ -204,7 +204,7 @@ public class TrainingDatasetService {
         }
       }
       Inode inode = inodeController.getInodeAtPath(fullPath.toString());
-      fsTrainingDatasetController.trainingDatasetAttachXAttr(user, project, fullPath.toString(),
+      fsProvenanceCtrl.trainingDatasetAttachXAttr(user, project, fullPath.toString(),
         trainingDatasetDTO.getFeatures());
       hopsfsTrainingDatasetDTO.setInodeId(inode.getId());
       createdTrainingDatasetDTO = trainingDatasetController.createTrainingDataset(user, featurestore,
@@ -339,7 +339,7 @@ public class TrainingDatasetService {
         org.apache.hadoop.fs.Path fullPath =
           dsUpdateOperations.moveDatasetFile(project, user, inode, trainingDatasetDirectoryName);
         Inode newInode = inodeController.getInodeAtPath(fullPath.toString());
-        fsTrainingDatasetController.trainingDatasetAttachXAttr(user, project, fullPath.toString(),
+        fsProvenanceCtrl.trainingDatasetAttachXAttr(user, project, fullPath.toString(),
           trainingDatasetDTO.getFeatures());
         HopsfsTrainingDatasetDTO hopsfsTrainingDatasetDTO = (HopsfsTrainingDatasetDTO) trainingDatasetDTO;
         hopsfsTrainingDatasetDTO.setInodeId(newInode.getId());

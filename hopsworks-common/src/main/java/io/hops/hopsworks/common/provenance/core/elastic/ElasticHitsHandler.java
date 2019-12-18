@@ -28,9 +28,11 @@ import java.util.function.BiConsumer;
  * 1. perform search
  * 2. retrieve first page of results (in case of normal search it is the top K(configured) results)
  * 3. parse the results into instances of type R (using the provided parser)
- * 4. save each instance of R into the state S
- * 5. iterate (go to step 2)
- * 6. when no more pages left, return state S
+ * 4. save (filtered) instances of R into the state S (maybe you want to save all Rs...maybe just some)
+ * 5. after the batch is parsed(in Rs) the action is invoked and passed the state (S)
+ * Note: the action is invoked after each batch. The state S survives across batches and is returned at the end.
+ * 6. iterate (go to step 2)
+ * 7. when no more pages left, return state S
  * If you expect a large number of hits for the search (you are hopefully further filtering them when saving into
  * state S). Try to keep this memory under control.
  * Action A is optional and is used typically to chain multiple elastic operations. For example: Do search, get

@@ -22,6 +22,7 @@ describe "On #{ENV['OS']}" do
     $stdout.sync = true
     with_valid_session
     pp "user email: #{@user["email"]}"
+    @debugOpt = true
     @project1_name = "prov_proj_#{short_random_id}"
     @project2_name = "prov_proj_#{short_random_id}"
     @app1_id = "application_#{short_random_id}_0001"
@@ -71,7 +72,7 @@ describe "On #{ENV['OS']}" do
     json4 = JSON.parse(json3)
   end
 
-  describe 'test suite - 2 projects' do
+  describe 'provenance state - 2 projects' do
     before :all do
       # pp "create project: #{@project1_name}"
       @project1 = create_project_by_name(@project1_name)
@@ -92,10 +93,10 @@ describe "On #{ENV['OS']}" do
     end
 
     describe 'experiments' do
-      describe 'group 1' do
+      describe 'group' do
         before :each do
           # pp "check epipe"
-          execute_remotely @hostname, "sudo systemctl restart epipe"
+          restart_epipe
 
           # pp "create not experiment dir"
           prov_create_experiment(@project1, @not_experiment_name)
@@ -109,14 +110,14 @@ describe "On #{ENV['OS']}" do
         it 'not experiment in Experiments' do
           # pp "check not experiment"
           prov_wait_for_epipe
-          get_ml_asset_in_project(@project1, "EXPERIMENT", false, 0)
+          get_ml_asset_in_project(@project1, "EXPERIMENT", false, 0, @debugOpt)
         end
       end
 
-      describe 'group 2' do
+      describe 'group' do
         before :each do
           # pp "check epipe"
-          execute_remotely @hostname, "sudo systemctl restart epipe"
+          restart_epipe
 
           # pp "create experiments"
           prov_create_experiment(@project1, @experiment_app1_name1)
@@ -132,29 +133,29 @@ describe "On #{ENV['OS']}" do
 
           # pp "check hops cleanup"
           prov_wait_for_epipe
-          get_ml_asset_in_project(@project1, "EXPERIMENT", false, 0)
-          get_ml_asset_in_project(@project2, "EXPERIMENT", false, 0)
+          get_ml_asset_in_project(@project1, "EXPERIMENT", false, 0, @debugOpt)
+          get_ml_asset_in_project(@project2, "EXPERIMENT", false, 0, @debugOpt)
           check_no_ml_asset_by_id(@project1, "EXPERIMENT", prov_experiment_id(@experiment_app1_name1), false)
         end
 
         it 'simple experiments' do
           # pp "check experiments"
           prov_wait_for_epipe
-          result1 = get_ml_asset_in_project(@project1, "EXPERIMENT", false, 2)["items"]
+          result1 = get_ml_asset_in_project(@project1, "EXPERIMENT", false, 2, @debugOpt)["items"]
           prov_check_asset_with_id(result1, prov_experiment_id(@experiment_app1_name1))
           prov_check_asset_with_id(result1, prov_experiment_id(@experiment_app2_name1))
 
-          result2 = get_ml_asset_in_project(@project2, "EXPERIMENT", false, 1)["items"]
+          result2 = get_ml_asset_in_project(@project2, "EXPERIMENT", false, 1, @debugOpt)["items"]
           prov_check_asset_with_id(result2, prov_experiment_id(@experiment_app3_name1))
 
           result3 = get_ml_asset_by_id(@project1, "EXPERIMENT", prov_experiment_id(@experiment_app1_name1), false)
         end
       end
 
-      describe 'group 3' do
+      describe 'group' do
         before :each do
           # pp "stop epipe"
-          execute_remotely @hostname, "sudo systemctl stop epipe"
+          stop_epipe
 
           # pp "create experiment with app states"
           prov_create_experiment(@project1, @experiment_app1_name1)
@@ -170,7 +171,7 @@ describe "On #{ENV['OS']}" do
 
           # pp "check hops cleanup"
           prov_wait_for_epipe
-          get_ml_asset_in_project(@project1, "EXPERIMENT", true, 0)
+          get_ml_asset_in_project(@project1, "EXPERIMENT", true, 0, @debugOpt)
         end
 
         it 'experiment with app states' do
@@ -191,21 +192,21 @@ describe "On #{ENV['OS']}" do
           prov_add_app_states2(@app2_id, user_name)
 
           # pp "restart epipe"
-          execute_remotely @hostname, "sudo systemctl restart epipe"
+          restart_epipe
 
           # pp "check experiment"
           prov_wait_for_epipe
-          result1 = get_ml_asset_in_project(@project1, "EXPERIMENT", true, 3)["items"]
+          result1 = get_ml_asset_in_project(@project1, "EXPERIMENT", true, 3, @debugOpt)["items"]
           prov_check_experiment3(result1, prov_experiment_id(@experiment_app1_name1), "RUNNING")
           prov_check_experiment3(result1, prov_experiment_id(@experiment_app1_name2), "RUNNING")
           prov_check_experiment3(result1, prov_experiment_id(@experiment_app2_name1), "FINISHED")
         end
       end
 
-      describe 'group 4' do
+      describe 'group' do
         before :each do
           # pp "stop epipe"
-          execute_remotely @hostname, "sudo systemctl stop epipe"
+          stop_epipe
 
           # pp "create experiment with app states"
           prov_create_experiment(@project1, @experiment_app1_name1)
@@ -217,7 +218,7 @@ describe "On #{ENV['OS']}" do
 
           # pp "check hops cleanup"
           prov_wait_for_epipe()
-          get_ml_asset_in_project(@project1, "EXPERIMENT", false, 0)
+          get_ml_asset_in_project(@project1, "EXPERIMENT", false, 0, @debugOpt)
         end
 
         it 'experiment with xattr add, update and delete' do
@@ -230,11 +231,11 @@ describe "On #{ENV['OS']}" do
           prov_add_xattr(experiment_record[0], "xattr_key_2", "", "XATTR_DELETE", 5)
 
           # pp "restart epipe"
-          execute_remotely @hostname, "sudo systemctl restart epipe"
+          restart_epipe
 
           # pp "check experiment"
           prov_wait_for_epipe
-          result1 = get_ml_asset_in_project(@project1, "EXPERIMENT", false, 1)["items"]
+          result1 = get_ml_asset_in_project(@project1, "EXPERIMENT", false, 1, @debugOpt)["items"]
           #pp result1
           xattrsExact = Hash.new
           xattrsExact["xattr_key_1"] = "xattr_value_1_updated"
@@ -265,20 +266,20 @@ describe "On #{ENV['OS']}" do
 
           # pp "check hopscleanup"
           prov_wait_for_epipe()
-          get_ml_asset_in_project(@project1, "MODEL", false, 0)
-          get_ml_asset_in_project(@project2, "MODEL", false, 0)
+          get_ml_asset_in_project(@project1, "MODEL", false, 0, @debugOpt)
+          get_ml_asset_in_project(@project2, "MODEL", false, 0, @debugOpt)
           check_no_ml_asset_by_id(@project1, "MODEL", prov_model_id(@model1_name, @model_version2), false)
         end
 
         it 'simple models' do
           # pp "check models"
           prov_wait_for_epipe()
-          result1 = get_ml_asset_in_project(@project1, "MODEL", false, 3)["items"]
+          result1 = get_ml_asset_in_project(@project1, "MODEL", false, 3, @debugOpt)["items"]
           prov_check_asset_with_id(result1, prov_model_id(@model1_name, @model_version1))
           prov_check_asset_with_id(result1, prov_model_id(@model1_name, @model_version2))
           prov_check_asset_with_id(result1, prov_model_id(@model2_name, @model_version1))
 
-          result2 = get_ml_asset_in_project(@project2, "MODEL", false, 1)["items"]
+          result2 = get_ml_asset_in_project(@project2, "MODEL", false, 1, @debugOpt)["items"]
           prov_check_asset_with_id(result2, prov_model_id(@model1_name, @model_version1))
 
           result3 = get_ml_asset_by_id(@project1, "MODEL", prov_model_id(@model1_name, @model_version2), false)
@@ -305,19 +306,19 @@ describe "On #{ENV['OS']}" do
 
         #pp "check hops cleanup"
           prov_wait_for_epipe()
-          get_ml_asset_in_project(@project1, "TRAINING_DATASET", false, 0)
-          get_ml_asset_in_project(@project2, "TRAINING_DATASET", false, 0)
+          get_ml_asset_in_project(@project1, "TRAINING_DATASET", false, 0, @debugOpt)
+          get_ml_asset_in_project(@project2, "TRAINING_DATASET", false, 0, @debugOpt)
           check_no_ml_asset_by_id(@project1, "TRAINING_DATASET", prov_td_id(@td1_name, @td_version1), false)
         end
         it 'simple training datasets' do
         #pp "check training datasets"
           prov_wait_for_epipe()
-          result1 = get_ml_asset_in_project(@project1, "TRAINING_DATASET", false, 3)["items"]
+          result1 = get_ml_asset_in_project(@project1, "TRAINING_DATASET", false, 3, @debugOpt)["items"]
           prov_check_asset_with_id(result1, prov_td_id(@td1_name, @td_version1))
           prov_check_asset_with_id(result1, prov_td_id(@td1_name, @td_version2))
           prov_check_asset_with_id(result1, prov_td_id(@td2_name, @td_version1))
 
-          result2 = get_ml_asset_in_project(@project2, "TRAINING_DATASET", false, 1)["items"]
+          result2 = get_ml_asset_in_project(@project2, "TRAINING_DATASET", false, 1, @debugOpt)["items"]
           prov_check_asset_with_id(result2, prov_td_id(@td1_name, @td_version1))
 
           result3 = get_ml_asset_by_id(@project1, "TRAINING_DATASET", prov_td_id(@td1_name, @td_version1), false)
@@ -327,7 +328,7 @@ describe "On #{ENV['OS']}" do
       describe 'group' do
         before :each do
         #pp "stop epipe"
-          execute_remotely @hostname, "sudo systemctl stop epipe"
+          stop_epipe
 
         #pp "create training dataset with xattr"
           prov_create_td(@project1, @td1_name, @td_version1)
@@ -345,7 +346,7 @@ describe "On #{ENV['OS']}" do
 
         #pp "check hops cleanup"
           prov_wait_for_epipe()
-          get_ml_asset_in_project(@project1, "TRAINING_DATASET", false, 0)
+          get_ml_asset_in_project(@project1, "TRAINING_DATASET", false, 0, @debugOpt)
         end
 
         it "training dataset with simple xattr count"  do
@@ -366,7 +367,7 @@ describe "On #{ENV['OS']}" do
           prov_add_xattr(td_record4[0], "key", "val2", "XATTR_ADD", 1)
 
         #pp "restart epipe"
-          execute_remotely @hostname, "sudo systemctl restart epipe"
+          restart_epipe
 
         #pp "check training dataset"
           prov_wait_for_epipe()
@@ -395,7 +396,7 @@ describe "On #{ENV['OS']}" do
           prov_add_xattr(td_record4[0], "features", JSON[xattr2Json], "XATTR_ADD", 1)
 
         #pp "restart epipe"
-          execute_remotely @hostname, "sudo systemctl restart epipe"
+          restart_epipe
 
         #pp "check training dataset"
           prov_wait_for_epipe()
@@ -407,7 +408,7 @@ describe "On #{ENV['OS']}" do
     end
   end
 
-  describe 'test suite - 1 project' do
+  describe 'provenance state - 1 project' do
     before :all do
     #pp "create project: #{@project1_name}"
       @project1 = create_project_by_name(@project1_name)
@@ -427,7 +428,7 @@ describe "On #{ENV['OS']}" do
       describe 'group' do
         before :each do
         #pp "stop epipe"
-          execute_remotely @hostname, "sudo systemctl stop epipe"
+          stop_epipe
 
         #pp "create experiment"
           prov_create_experiment(@project1, @experiment_app1_name1)
@@ -439,7 +440,7 @@ describe "On #{ENV['OS']}" do
 
         #pp "check hops cleanup"
           prov_wait_for_epipe()
-          get_ml_asset_in_project(@project1, "EXPERIMENT", false, 0)
+          get_ml_asset_in_project(@project1, "EXPERIMENT", false, 0, @debugOpt)
         end
 
         it 'experiment with xattr' do
@@ -449,11 +450,11 @@ describe "On #{ENV['OS']}" do
           prov_add_xattr(experimentRecord[0], "xattr_key_2", "xattr_value_2", "XATTR_ADD", 2)
 
         #pp "restart epipe"
-          execute_remotely @hostname, "sudo systemctl restart epipe"
+          restart_epipe
 
         #pp "check experiment"
           prov_wait_for_epipe()
-          result1 = get_ml_asset_in_project(@project1, "EXPERIMENT", false, 1)["items"]
+          result1 = get_ml_asset_in_project(@project1, "EXPERIMENT", false, 1, @debugOpt)["items"]
           #pp result1
           xattrsExact = Hash.new
           xattrsExact["xattr_key_1"] = "xattr_value_1"
@@ -472,11 +473,11 @@ describe "On #{ENV['OS']}" do
           attach_app_id_xattr(project, experimentRecord[0][:inode_id], app_id)
 
         #pp "restart epipe"
-          execute_remotely @hostname, "sudo systemctl restart epipe"
+          restart_epipe
 
         #pp "check experiment"
           prov_wait_for_epipe()
-          result1 = get_ml_asset_in_project(project, "EXPERIMENT", true, 1)["items"]
+          result1 = get_ml_asset_in_project(project, "EXPERIMENT", true, 1, @debugOpt)["items"]
         #pp result1
           xattrsExact = Hash.new
           xattrsExact["app_id"] = app_id
@@ -503,7 +504,7 @@ describe "On #{ENV['OS']}" do
       describe 'group' do
         before :each do
           # pp "check epipe"
-          execute_remotely @hostname, "sudo systemctl restart epipe"
+          restart_epipe
           prov_wait_for_epipe()
 
           # pp "create experiments - pagination"
@@ -554,7 +555,7 @@ describe "On #{ENV['OS']}" do
       describe 'group' do
         before :each do
         #pp "stop epipe"
-          execute_remotely @hostname, "sudo systemctl stop epipe"
+          stop_epipe
 
         #pp "create experiment"
           prov_create_experiment(@project1, @experiment_app1_name1)
@@ -576,7 +577,7 @@ describe "On #{ENV['OS']}" do
 
         it "search by like file name" do
         #pp "restart epipe"
-          execute_remotely @hostname, "sudo systemctl restart epipe"
+          restart_epipe
           prov_wait_for_epipe()
 
         #pp "check - ok - search result"
@@ -609,7 +610,7 @@ describe "On #{ENV['OS']}" do
       describe 'group' do
         before :each do
         #pp "stop epipe"
-          execute_remotely @hostname, "sudo systemctl stop epipe"
+          stop_epipe
 
         #pp "create mock file history"
           prov_create_experiment(@project1, prov_experiment_id("#{@app1_id}_1"))
@@ -642,7 +643,7 @@ describe "On #{ENV['OS']}" do
 
         it 'timestamp range query' do
         #pp "restart epipe"
-          execute_remotely @hostname, "sudo systemctl restart epipe"
+          restart_epipe
           prov_wait_for_epipe()
 
         #pp "check file history"
@@ -660,7 +661,7 @@ describe "On #{ENV['OS']}" do
       describe 'group' do
         before :each do
         #pp "stop epipe"
-          execute_remotely @hostname, "sudo systemctl stop epipe"
+          stop_epipe
 
         #pp "create experiment"
           prov_create_experiment(@project1, @experiment_app1_name1)
@@ -693,7 +694,7 @@ describe "On #{ENV['OS']}" do
           prov_add_xattr(experiment_record3[0], "config", JSON[@xattrV8], "XATTR_ADD", 1)
 
         #pp "restart epipe"
-          execute_remotely @hostname, "sudo systemctl restart epipe"
+          restart_epipe
           prov_wait_for_epipe()
 
         #pp "check not json - ok - search result"
@@ -717,7 +718,7 @@ describe "On #{ENV['OS']}" do
       describe 'group' do
         before :each do
         #pp "stop epipe"
-          execute_remotely @hostname, "sudo systemctl stop epipe"
+          stop_epipe
 
         #pp "create experiment"
           prov_create_experiment(@project1, @experiment_app1_name1)
@@ -756,7 +757,7 @@ describe "On #{ENV['OS']}" do
           prov_add_xattr(experiment_record3[0], "config", JSON[@xattrV8], "XATTR_ADD", 2)
 
         #pp "restart epipe"
-          execute_remotely @hostname, "sudo systemctl restart epipe"
+          restart_epipe
           prov_wait_for_epipe()
 
         #pp "check not json - ok - search result"
@@ -796,7 +797,7 @@ describe "On #{ENV['OS']}" do
       describe 'group' do
         before :each do
         #pp "stop epipe"
-          execute_remotely @hostname, "sudo systemctl stop epipe"
+          stop_epipe
 
         #pp "create experiment"
           prov_create_experiment(@project1, @experiment_app1_name1)
@@ -821,7 +822,7 @@ describe "On #{ENV['OS']}" do
           prov_add_xattr(experiment_record[0], "test_xattr5", JSON[@xattrV5], "XATTR_ADD", 4)
 
         #pp "restart epipe"
-          execute_remotely @hostname, "sudo systemctl restart epipe"
+          restart_epipe
 
         #pp "check simple json - ok - search result"
           prov_wait_for_epipe()
@@ -883,7 +884,7 @@ describe "On #{ENV['OS']}" do
           prov_add_xattr(experiment_record[0], "test_xattr_string", @xattrV4, "XATTR_ADD", 1)
 
         #pp "restart epipe"
-          execute_remotely @hostname, "sudo systemctl restart epipe"
+          restart_epipe
 
         #pp "check experiment dataset"
           prov_wait_for_epipe()
@@ -903,7 +904,7 @@ describe "On #{ENV['OS']}" do
       describe 'group' do
         before :each do
         #pp "stop epipe"
-          execute_remotely @hostname, "sudo systemctl stop epipe"
+          stop_epipe
 
         #pp "create experiment"
           prov_create_experiment(@project1, @experiment_app1_name1)
@@ -926,7 +927,7 @@ describe "On #{ENV['OS']}" do
           prov_add_xattr(experiment_record[0], xattr_key, JSON[@xattrV3], "XATTR_ADD", 1)
 
         #pp "restart epipe"
-          execute_remotely @hostname, "sudo systemctl restart epipe"
+          restart_epipe
 
         #pp "check experiment dataset"
           prov_wait_for_epipe()
@@ -949,7 +950,7 @@ describe "On #{ENV['OS']}" do
           prov_add_xattr(experiment_record[0], xattr_key, JSON[@xattrV2], "XATTR_UPDATE", 2)
 
         #pp "restart epipe"
-          execute_remotely @hostname, "sudo systemctl restart epipe"
+          restart_epipe
 
         #pp "check experiment dataset"
           prov_wait_for_epipe()
@@ -970,7 +971,7 @@ describe "On #{ENV['OS']}" do
           prov_add_xattr(experiment_record[0], xattr_key, JSON[@xattrV1], "XATTR_ADD", 1)
 
         #pp "restart epipe"
-          execute_remotely @hostname, "sudo systemctl restart epipe"
+          restart_epipe
 
         #pp "check experiment dataset"
           prov_wait_for_epipe()
@@ -988,7 +989,7 @@ describe "On #{ENV['OS']}" do
       describe 'group' do
         before :each do
         #pp "stop epipe"
-          execute_remotely @hostname, "sudo systemctl stop epipe"
+          stop_epipe
 
         #pp "create experiment"
           prov_create_experiment(@project1, @experiment_app1_name1)
@@ -1023,7 +1024,7 @@ describe "On #{ENV['OS']}" do
           prov_add_xattr(experiment2_record[0], xattr_key, "", "XATTR_DELETE", 3)
 
         #pp "restart epipe"
-          execute_remotely @hostname, "sudo systemctl restart epipe"
+          restart_epipe
 
         #pp "check experiment dataset"
           prov_wait_for_epipe()
@@ -1046,7 +1047,7 @@ describe "On #{ENV['OS']}" do
       describe 'group' do
         before :each do
         #pp "stop epipe"
-          execute_remotely @hostname, "sudo systemctl stop epipe"
+          stop_epipe
 
         #pp "create training dataset with xattr"
           prov_create_td(@project1, @td1_name, @td_version1)
@@ -1058,7 +1059,7 @@ describe "On #{ENV['OS']}" do
 
         #pp "check hops cleanup"
           prov_wait_for_epipe()
-          get_ml_asset_in_project(@project1, "TRAINING_DATASET", false, 0)
+          get_ml_asset_in_project(@project1, "TRAINING_DATASET", false, 0, @debugOpt)
         end
 
         it 'training dataset add xattr' do
@@ -1070,11 +1071,11 @@ describe "On #{ENV['OS']}" do
           prov_add_xattr(td_record[0], xattr_key2, "xattr_value_2", "XATTR_ADD", 2)
 
         #pp "restart epipe"
-          execute_remotely @hostname, "sudo systemctl restart epipe"
+          restart_epipe
 
         #pp "check training dataset"
           prov_wait_for_epipe()
-          result1 = get_ml_asset_in_project(@project1, "TRAINING_DATASET", false, 1)["items"]
+          result1 = get_ml_asset_in_project(@project1, "TRAINING_DATASET", false, 1, @debugOpt)["items"]
           xattrsExact = Hash.new
           xattrsExact[xattr_key1] = "xattr_value_1"
           xattrsExact[xattr_key2] = "xattr_value_2"
@@ -1085,7 +1086,7 @@ describe "On #{ENV['OS']}" do
       describe 'group' do
         before :each do
         #pp "stop epipe"
-          execute_remotely @hostname, "sudo systemctl stop epipe"
+          stop_epipe
 
         #pp "create model with xattr"
           prov_create_model(@project1, @model1_name)
@@ -1097,7 +1098,7 @@ describe "On #{ENV['OS']}" do
 
         #pp "check hops cleanup"
           prov_wait_for_epipe()
-          get_ml_asset_in_project(@project1, "MODEL", false, 0)
+          get_ml_asset_in_project(@project1, "MODEL", false, 0, @debugOpt)
         end
 
         it 'model with xattr' do
@@ -1110,11 +1111,11 @@ describe "On #{ENV['OS']}" do
           prov_add_xattr(modelRecord[0], xattr_key2, "xattr_value_2", "XATTR_ADD", 2)
 
         #pp "restart epipe"
-          execute_remotely @hostname, "sudo systemctl restart epipe"
+          restart_epipe
 
         #pp "check model"
           prov_wait_for_epipe()
-          result1 = get_ml_asset_in_project(@project1, "MODEL", false, 1)["items"]
+          result1 = get_ml_asset_in_project(@project1, "MODEL", false, 1, @debugOpt)["items"]
           xattrsExact = Hash.new
           xattrsExact[xattr_key1] = "xattr_value_1"
           xattrsExact[xattr_key2] = "xattr_value_2"
@@ -1125,7 +1126,7 @@ describe "On #{ENV['OS']}" do
       describe 'group' do
         before :each do
         #pp "stop epipe"
-          execute_remotely @hostname, "sudo systemctl stop epipe"
+          stop_epipe
 
         #pp "create experiment with xattr"
           prov_create_experiment(@project1, @experiment_app1_name1)
@@ -1160,7 +1161,7 @@ describe "On #{ENV['OS']}" do
           prov_add_xattr(experiment_record[0], xattr_key2, xattr_val, "XATTR_ADD", 1)
 
         #pp "restart epipe"
-          execute_remotely @hostname, "sudo systemctl restart epipe"
+          restart_epipe
 
         #pp "query with filter by - has xattr"
           query = "#{ENV['HOPSWORKS_API']}/project/#{@project1[:id]}/provenance/states?filter_by_has_xattr=#{xattr_key1}"
@@ -1174,7 +1175,7 @@ describe "On #{ENV['OS']}" do
     end
   end
 
-  describe 'test suite - new project for each test' do
+  describe 'provenance state - new project for each test' do
     before :all do
     #pp "create project: #{@project1_name}"
       @project1 = create_project_by_name(@project1_name)
@@ -1193,7 +1194,7 @@ describe "On #{ENV['OS']}" do
     describe 'group' do
       before :each do
       #pp "check epipe"
-        execute_remotely @hostname, "sudo systemctl restart epipe"
+        restart_epipe
         prov_wait_for_epipe()
         prov_create_experiment(@project1, @experiment_app1_name1)
       end
@@ -1204,7 +1205,7 @@ describe "On #{ENV['OS']}" do
 
       #pp "check hops cleanup"
         prov_wait_for_epipe()
-        get_ml_asset_in_project(@project1, "EXPERIMENT", false, 0)
+        get_ml_asset_in_project(@project1, "EXPERIMENT", false, 0, @debugOpt)
       end
 
       it 'experiment - sort xattr - string and number' do
@@ -1218,7 +1219,7 @@ describe "On #{ENV['OS']}" do
         prov_add_xattr(experiment_record[0], "xattr_long", 24, "XATTR_ADD", 2)
 
       #pp "restart epipe"
-        execute_remotely @hostname, "sudo systemctl restart epipe"
+        restart_epipe
         prov_wait_for_epipe()
 
       #pp "check mapping"
@@ -1241,7 +1242,7 @@ describe "On #{ENV['OS']}" do
         prov_add_xattr(experiment_record[0], "xattr_json", JSON[jsonVal], "XATTR_ADD", 3)
 
       #pp "restart epipe"
-        execute_remotely @hostname, "sudo systemctl restart epipe"
+        restart_epipe
         prov_wait_for_epipe()
 
       #pp "check mapping"

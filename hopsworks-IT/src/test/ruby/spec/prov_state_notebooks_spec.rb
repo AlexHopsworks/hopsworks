@@ -27,7 +27,7 @@ describe "On #{ENV['OS']}" do
   after :all do
     restore_cluster_prov("MIN", "0", @old_provenance_type, @old_provenance_archive_size)
   end
-  describe 'test suite - 1 project' do
+  describe 'provenance state notebook - 1 project' do
     before :all do
       # pp "create project: #{@project1_name}"
       @project1 = create_project_by_name(@project1_name)
@@ -37,11 +37,11 @@ describe "On #{ENV['OS']}" do
       check_epipe_service()
     end
 
-    after :all do
-      # pp "delete projects"
-      delete_project(@project1)
-      @project1 = nil
-    end
+    # after :all do
+    #   # pp "delete projects"
+    #   delete_project(@project1)
+    #   @project1 = nil
+    # end
 
 
     def prov_wait(timeout=480)
@@ -94,12 +94,14 @@ describe "On #{ENV['OS']}" do
       it 'training dataset with features' do
         project = @project1
         job_name = "prov_training_dataset"
-        src = "#{ENV['PROJECT_DIR']}/hopsworks-IT/src/test/ruby/spec/aux/#{job_name}.ipynb"
-        dst = "/Projects/#{project[:projectname]}/Resources/#{job_name}.ipynb"
+        src_dir = "#{ENV['PROJECT_DIR']}/hopsworks-IT/src/test/ruby/spec/aux"
+        src = "#{src_dir}/#{job_name}.ipynb"
+        dst = "/Projects/#{project[:projectname]}/Resources"
         user = @user[:username]
         group = "#{project[:projectname]}__Jupyter"
         project_name = "#{project[:projectname]}"
 
+        chmod_local_dir("#{ENV['PROJECT_DIR']}", 777, true)
         copy_from_local(src, dst, user, group, 750, project_name)
 
         job_conf = {

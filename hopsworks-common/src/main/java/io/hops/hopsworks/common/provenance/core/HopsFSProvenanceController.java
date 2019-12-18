@@ -18,7 +18,6 @@ package io.hops.hopsworks.common.provenance.core;
 import io.hops.hopsworks.common.dao.dataset.Dataset;
 import io.hops.hopsworks.common.featurestore.feature.FeatureDTO;
 import io.hops.hopsworks.common.featurestore.featuregroup.FeaturegroupDTO;
-import io.hops.hopsworks.common.featurestore.utils.FeaturestoreHelper;
 import io.hops.hopsworks.common.dao.project.Project;
 import io.hops.hopsworks.common.dao.user.Users;
 import io.hops.hopsworks.common.hdfs.DistributedFileSystemOps;
@@ -90,6 +89,9 @@ public class HopsFSProvenanceController {
   
   private void setFeaturesXAttr(String path, List<FeatureDTO> features, DistributedFileSystemOps udfso)
     throws ProvenanceException {
+    if(features == null) {
+      return;
+    }
     List<ProvFeatureDTO> featuresDTO = fromFeatures(features);
     try {
       udfso.upsertXAttr(path, ProvXAttrs.PROV_XATTR_FEATURES, converter.marshal(featuresDTO).getBytes());
@@ -114,7 +116,7 @@ public class HopsFSProvenanceController {
     throws ProvenanceException {
     String hdfsUsername = hdfsUsersController.getHdfsUserName(dataset.getProject(), user);
     DistributedFileSystemOps udfso = dfs.getDfsOps(hdfsUsername);
-    String datasetPath = getDatasetPath(dataset);
+    String datasetPath = Utils.getFileSystemDatasetPath(dataset, settings);
     try {
       return getProvCoreXAttr(datasetPath, udfso);
     } finally {
@@ -163,7 +165,7 @@ public class HopsFSProvenanceController {
   
     provCore = new ProvCoreDTO(newProvType, project.getInode().getId());
     for (Dataset dataset : project.getDatasetCollection()) {
-      String datasetPath = getDatasetPath(dataset);
+      String datasetPath = Utils.getFileSystemDatasetPath(dataset, settings);
       ProvCoreDTO datasetProvCore = getProvCoreXAttr(datasetPath, dfso);
       if(datasetProvCore != null
         && (datasetProvCore.getType().equals(Provenance.Type.DISABLED.dto)
@@ -177,7 +179,7 @@ public class HopsFSProvenanceController {
   public void updateDatasetProvType(Dataset dataset, ProvTypeDTO newProvType, DistributedFileSystemOps dfso)
     throws ProvenanceException {
     ProvCoreDTO newProvCore = new ProvCoreDTO(newProvType, dataset.getProject().getInode().getId());
-    String datasetPath = getDatasetPath(dataset);
+    String datasetPath = Utils.getFileSystemDatasetPath(dataset, settings);
     ProvCoreDTO currentProvCore = getProvCoreXAttr(datasetPath, dfso);
     if(currentProvCore != null && currentProvCore.getType().equals(newProvType)) {
       return;
@@ -215,10 +217,9 @@ public class HopsFSProvenanceController {
     try {
       List<ProvDatasetDTO> result = new ArrayList<>();
       for (Dataset dataset : project.getDatasetCollection()) {
-        String datasetPath = getDatasetPath(dataset);
+        String datasetPath = Utils.getFileSystemDatasetPath(dataset, settings);
         ProvCoreDTO provCore = getProvCoreXAttr(datasetPath, udfso);
-        ProvDatasetDTO dsState = new ProvDatasetDTO(dataset.getName(), dataset.getInode().getId(),
-          provCore.getType());
+        ProvDatasetDTO dsState = new ProvDatasetDTO(dataset.getName(), dataset.getInode().getId(), provCore.getType());
         result.add(dsState);
       }
       return result;
@@ -229,24 +230,14 @@ public class HopsFSProvenanceController {
     }
   }
   
-  private String getDatasetPath(Dataset dataset) {
-    if(dataset.getName().equals(FeaturestoreHelper.getHiveDBName(dataset.getProject()))) {
-      return FeaturestoreHelper.getHiveDBPath(settings, dataset.getProject());
-    } else if(dataset.getName().equals(FeaturestoreHelper.getFeaturestoreName(dataset.getProject()))) {
-      return FeaturestoreHelper.getFeaturestorePath(settings, dataset.getProject());
-    } else {
-      return Utils.getDatasetPath(dataset.getProject().getName(), dataset.getName());
-    }
-  }
-  
   public void featuregroupAttachXAttrs(Users user, Project project, FeaturegroupDTO featuregroup)
     throws ProvenanceException {
     String hdfsUsername = hdfsUsersController.getHdfsUserName(project, user);
     DistributedFileSystemOps udfso = dfs.getDfsOps(hdfsUsername);
     
     try {
-      String featuregroupPath = FeaturestoreHelper.getFeaturestorePath(settings, project)
-        + "/" + FeaturestoreHelper.getFeaturegroupName(featuregroup.getName(), featuregroup.getVersion());
+      String featuregroupPath = Utils.getFeaturestorePath(project, settings)
+        + "/" + Utils.getFeaturegroupName(featuregroup.getName(), featuregroup.getVersion());
       setFeaturesXAttr(featuregroupPath, featuregroup, udfso);
     } finally {
       if(udfso != null) {

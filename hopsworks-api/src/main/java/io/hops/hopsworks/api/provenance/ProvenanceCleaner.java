@@ -57,8 +57,8 @@ public class ProvenanceCleaner {
   
   private String lastIndexChecked = "";
   
-  // Run once per hour
-  @Schedule(persistent = false, hour = "*", minute = "*")
+  // Run once every four hours
+  @Schedule(persistent = false, hour = "*/4")
   public void execute(Timer timer) {
     int cleanupSize = settings.getProvCleanupSize();
     int archiveSize = settings.getProvArchiveSize();
@@ -137,7 +137,7 @@ public class ProvenanceCleaner {
           return;
         }
       }
-      throw e;
+      LOGGER.log(Level.WARNING, "trying to delete index:{0}", e.getStackTrace());
     }
   }
 }

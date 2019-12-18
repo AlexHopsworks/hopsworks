@@ -188,8 +188,6 @@ public class HiveController {
     dbDataset.setFeatureStore(featurestore);
     datasetFacade.persistDataset(dbDataset);
 
-    activityFacade.persistActivity(ActivityFacade.NEW_DATA + dbDataset.getName(), project, user, ActivityFlag.DATASET);
-
     try {
       // Assign database directory to the user and project group
       hdfsUsersBean.addDatasetUsersGroups(user, project, dbDataset, dfso);
