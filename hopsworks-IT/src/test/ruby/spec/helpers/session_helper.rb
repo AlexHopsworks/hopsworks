@@ -52,9 +52,11 @@ module SessionHelper
   end
   
   def with_admin_session
-    @user = create_user_without_role({})
-    create_admin_role(@user)
-    create_session(@user.email, "Pass123")
+    user = create_user_without_role({})
+    create_admin_role(user)
+    cookies = create_session(user.email, "Pass123")
+    @user = user
+    cookies
   end
 
   def with_agent_session
@@ -142,19 +144,19 @@ module SessionHelper
     post "#{ENV['HOPSWORKS_API']}/auth/login", URI.encode_www_form({ email: email, password: password}), { content_type: 'application/x-www-form-urlencoded'}
     if !headers["set_cookie"].nil? && !headers["set_cookie"][1].nil?
       cookie = headers["set_cookie"][1].split(';')[0].split('=')
-      cookies = {"SESSIONID"=> json_body[:sessionID], cookie[0] => cookie[1]}
+      @cookies = {"SESSIONID"=> json_body[:sessionID], cookie[0] => cookie[1]}
     else 
-      cookies = {"SESSIONID"=> json_body[:sessionID]}
+      @cookies = {"SESSIONID"=> json_body[:sessionID]}
     end
-    token = ''
+    @token = ''
     if !headers["authorization"].nil?
-      token = headers["authorization"]
+      @token = headers["authorization"]
     end
     Airborne.configure do |config|
-      config.headers = {:cookies => cookies, content_type: 'application/json' }
-      config.headers["Authorization"] = token
+      config.headers = {:cookies => @cookies, content_type: 'application/json' }
+      config.headers["Authorization"] = @token
     end
-    cookies
+    @cookies
   end
   
   def get_user_roles(user)

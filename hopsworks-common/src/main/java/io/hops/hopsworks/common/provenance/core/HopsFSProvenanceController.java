@@ -140,14 +140,14 @@ public class HopsFSProvenanceController {
     }
   }
   
-  public void updateProjectProvType(Users user, Project project, ProvTypeDTO provType) throws ProvenanceException {
-    String hdfsUsername = hdfsUsersController.getHdfsUserName(project, user);
-    DistributedFileSystemOps udfso = dfs.getDfsOps(hdfsUsername);
+  public void updateProjectProvTypeBySuperUser(Project project, ProvTypeDTO provType)
+    throws ProvenanceException {
+    DistributedFileSystemOps dfso = dfs.getDfsOps();
     try {
-      updateProjectProvType(project, provType, udfso);
+      updateProjectProvType(project, provType, dfso);
     } finally {
-      if(udfso != null) {
-        dfs.closeDfsClient(udfso);
+      if(dfso != null) {
+        dfso.close();
       }
     }
   }

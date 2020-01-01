@@ -1241,3 +1241,180 @@ describe "On #{ENV['OS']}" do
     end
   end
 end
+describe "provenance migrate&revert by admin" do
+  before :each do
+    prov_wait_for_epipe
+    @project1_name = "prov_proj_#{short_random_id}"
+    with_admin_session
+    pp "user email: #{@user.email}"
+    @project1 = create_project_by_name(@project1_name)
+    pp @project1_name
+  end
+
+  # after :each do
+  #   #pp "delete projects"
+  #   delete_project(@project1)
+  #   @project1 = nil
+  #   prov_wait_for_epipe
+  # end
+
+  def datasetType(datasets, name, type)
+    #pp name
+    dataset = datasets.select { |e| e["name"] == name }
+    #pp dataset
+    expect(dataset.length).to eq 1
+    expect(dataset[0]["status"]["meta_status"]).to eq type
+  end
+
+  def baseDatasetsMinProv(project, datasets)
+    datasetType(datasets, "DataValidation", "MIN_PROV_ENABLED")
+    datasetType(datasets, "Experiments", "MIN_PROV_ENABLED")
+    datasetType(datasets, "Jupyter", "MIN_PROV_ENABLED")
+    datasetType(datasets, "Logs", "DISABLED")
+    datasetType(datasets, "Models", "MIN_PROV_ENABLED")
+    datasetType(datasets, "#{project[:inode_name]}.db", "MIN_PROV_ENABLED")
+    datasetType(datasets, "#{project[:inode_name]}_featurestore.db", "MIN_PROV_ENABLED")
+    datasetType(datasets, "#{project[:inode_name]}_Training_Datasets", "MIN_PROV_ENABLED")
+    datasetType(datasets, "Resources", "DISABLED")
+  end
+
+  def baseDatasetsMetaProv(project, datasets)
+    datasetType(datasets, "DataValidation", "META_ENABLED")
+    datasetType(datasets, "Experiments", "META_ENABLED")
+    datasetType(datasets, "Jupyter", "META_ENABLED")
+    datasetType(datasets, "Logs", "DISABLED")
+    datasetType(datasets, "Models", "META_ENABLED")
+    datasetType(datasets, "#{project[:inode_name]}.db", "META_ENABLED")
+    datasetType(datasets, "#{project[:inode_name]}_featurestore.db", "META_ENABLED")
+    datasetType(datasets, "#{project[:inode_name]}_Training_Datasets", "META_ENABLED")
+    datasetType(datasets, "Resources", "DISABLED")
+  end
+
+  it "base datasets - owner has admin rights" do
+
+    project = @project1
+    query = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance?type=PROJECT"
+    result = get "#{query}"
+    expect_status(200)
+    parsed_result = JSON.parse(result)
+    #pp parsed_result
+    expect(parsed_result["meta_status"]).to eq "MIN_PROV_ENABLED"
+
+    query = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance?type=DATASETS"
+    result = get "#{query}"
+    expect_status(200)
+    parsed_result = JSON.parse(result)
+    #pp parsed_result
+    expect(parsed_result.length).to eq 9
+    baseDatasetsMinProv(project, parsed_result)
+
+    query = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance?provenance=META"
+    result = post "#{query}"
+
+    query = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance?type=PROJECT"
+    result = get "#{query}"
+    expect_status(200)
+    parsed_result = JSON.parse(result)
+    # pp parsed_result
+    expect(parsed_result["meta_status"]).to eq "META_ENABLED"
+
+    query = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance?type=DATASETS"
+    result = get "#{query}"
+    expect_status(200)
+    parsed_result = JSON.parse(result)
+    # pp parsed_result
+    expect(parsed_result.length).to eq 9
+    baseDatasetsMetaProv(project, parsed_result)
+
+    query = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance?provenance=MIN"
+    result = post "#{query}"
+
+    query = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance?type=PROJECT"
+    result = get "#{query}"
+    expect_status(200)
+    parsed_result = JSON.parse(result)
+    # pp parsed_result
+    expect(parsed_result["meta_status"]).to eq "MIN_PROV_ENABLED"
+
+    query = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance?type=DATASETS"
+    result = get "#{query}"
+    expect_status(200)
+    parsed_result = JSON.parse(result)
+    # pp parsed_result
+    expect(parsed_result.length).to eq 9
+    baseDatasetsMinProv(project, parsed_result)
+  end
+
+  it "base datasets - other user with admin rights", focus: true do
+
+    project = @project1
+    query = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance?type=PROJECT"
+    result = get "#{query}"
+    expect_status(200)
+    parsed_result = JSON.parse(result)
+    #pp parsed_result
+    expect(parsed_result["meta_status"]).to eq "MIN_PROV_ENABLED"
+
+    query = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance?type=DATASETS"
+    result = get "#{query}"
+    expect_status(200)
+    parsed_result = JSON.parse(result)
+    #pp parsed_result
+    expect(parsed_result.length).to eq 9
+    baseDatasetsMinProv(project, parsed_result)
+
+    saved_user = @user.email
+    reset_session
+    with_admin_session
+    query = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance?provenance=META"
+    result = post "#{query}"
+    reset_session
+    create_session(saved_user, "Pass123")
+
+    query = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance?type=PROJECT"
+    result = get "#{query}"
+    expect_status(200)
+    parsed_result = JSON.parse(result)
+    # pp parsed_result
+    expect(parsed_result["meta_status"]).to eq "META_ENABLED"
+
+    query = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance?type=DATASETS"
+    result = get "#{query}"
+    expect_status(200)
+    parsed_result = JSON.parse(result)
+    # pp parsed_result
+    expect(parsed_result.length).to eq 9
+    baseDatasetsMetaProv(project, parsed_result)
+  end
+end
+
+describe "provenance migrate&revert by regular user - access denied" do
+  before :all do
+    @project1_name = "prov_proj_#{short_random_id}"
+    with_valid_session
+    pp "user email: #{@user.email}"
+    @project1 = create_project_by_name(@project1_name)
+    pp @project1_name
+  end
+
+  # after :all do
+  #   #pp "delete projects"
+  #   delete_project(@project1)
+  #   @project1 = nil
+  # end
+
+  before :each do
+    prov_wait_for_epipe
+  end
+
+  after :each do
+    prov_wait_for_epipe
+  end
+
+  it "test" do
+    project = @project1
+    query = "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/provenance?provenance=META"
+    result = post "#{query}"
+    expect_status(403)
+  end
+end

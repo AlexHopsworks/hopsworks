@@ -24,6 +24,7 @@ import io.hops.hopsworks.common.dao.project.Project;
 import io.hops.hopsworks.common.dao.project.ProjectFacade;
 import io.hops.hopsworks.common.dao.user.Users;
 import io.hops.hopsworks.common.provenance.core.HopsFSProvenanceController;
+import io.hops.hopsworks.common.provenance.core.Provenance;
 import io.hops.hopsworks.common.provenance.core.dto.ProvDatasetDTO;
 import io.hops.hopsworks.common.provenance.state.ProvStateController;
 import io.hops.hopsworks.common.provenance.core.dto.ProvTypeDTO;
@@ -45,6 +46,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.BeanParam;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
@@ -56,7 +58,7 @@ import javax.ws.rs.core.SecurityContext;
 
 @RequestScoped
 @TransactionAttribute(TransactionAttributeType.NEVER)
-@Api(value = "Provenance Service", description = "Provenance Service")
+@Api(value = "Project Provenance Service", description = "Project Provenance Service")
 public class ProvenanceResource {
   private static final Logger logger = Logger.getLogger(ProvenanceResource.class.getName());
   
@@ -79,7 +81,7 @@ public class ProvenanceResource {
   @Produces(MediaType.APPLICATION_JSON)
   @AllowedProjectRoles({AllowedProjectRoles.ANYONE})
   @JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
-  public Response getProvenanceStatus(
+  public Response getProvenanceType(
     @QueryParam("type") @DefaultValue("PROJECT") TypeOf typeOf,
     @Context SecurityContext sc)
     throws ProvenanceException {
@@ -98,9 +100,14 @@ public class ProvenanceResource {
     }
   }
   
-  public enum TypeOf {
-    PROJECT,
-    DATASETS
+  @POST
+  @Produces(MediaType.APPLICATION_JSON)
+  @JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN"})
+  public Response setProjectProvenanceType(
+    @QueryParam("provenance") @DefaultValue("MIN") Provenance.Type provenance)
+    throws ProvenanceException {
+    fsProvenanceCtrl.updateProjectProvTypeBySuperUser(project, provenance.dto);
+    return Response.ok().build();
   }
   
   @GET
@@ -126,6 +133,11 @@ public class ProvenanceResource {
     logger.log(Level.INFO, "Local content path:{0} file state params:{1} ",
       new Object[]{req.getRequestURL().toString(), params});
     return getFileStates(project, paramBuilder, params.getReturnType());
+  }
+  
+  public enum TypeOf {
+    PROJECT,
+    DATASETS
   }
   
   private Response getFileStates(Project project,
