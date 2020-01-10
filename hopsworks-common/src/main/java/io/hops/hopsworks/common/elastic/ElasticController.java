@@ -252,6 +252,14 @@ public class ElasticController {
     try {
       acked = getClient().indices().delete(new DeleteIndexRequest(index),
           RequestOptions.DEFAULT).isAcknowledged();
+      try {
+        acked = getClient().indices().delete(new DeleteIndexRequest(index),
+          RequestOptions.DEFAULT).isAcknowledged();
+      } catch (Exception e) {
+        if(e.getCause() instanceof ElasticsearchException) {
+          ElasticsearchException ee = (ElasticsearchException)e;
+        }
+      }
     } catch (IOException e) {
       throw new ElasticException(RESTCodes.ElasticErrorCode.ELASTIC_INTERNAL_REQ_ERROR,
           Level.INFO,"Error while deleting an index", e.getMessage(), e);
@@ -318,13 +326,6 @@ public class ElasticController {
     for (String index : indices.keySet()) {
       if (!deleteIndex(index)) {
         LOG.log(Level.SEVERE, "Could not delete project index:{0}", index);
-      }
-      try {
-        deleteIndex(index);
-      } catch (Exception e) {
-        if(e.getCause() instanceof ElasticsearchException) {
-          ElasticsearchException ee = (ElasticsearchException)e;
-        }
       }
     }
   }
