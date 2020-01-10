@@ -53,6 +53,7 @@ import io.hops.hopsworks.exceptions.ServiceException;
 import io.hops.hopsworks.common.util.Settings;
 import org.apache.http.util.EntityUtils;
 import org.apache.lucene.search.join.ScoreMode;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
@@ -317,6 +318,13 @@ public class ElasticController {
     for (String index : indices.keySet()) {
       if (!deleteIndex(index)) {
         LOG.log(Level.SEVERE, "Could not delete project index:{0}", index);
+      }
+      try {
+        deleteIndex(index);
+      } catch (Exception e) {
+        if(e.getCause() instanceof ElasticsearchException) {
+          ElasticsearchException ee = (ElasticsearchException)e;
+        }
       }
     }
   }
