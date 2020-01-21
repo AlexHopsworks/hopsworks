@@ -150,4 +150,17 @@ module ProjectHelper
       json_body.map{|project| project[:id]}.each{|i| post "#{ENV['HOPSWORKS_API']}/project/#{i}/delete" }
     end
   end
+
+  def clean_all_test_projects(name_pattern)
+    test_projects = Project.where("projectname LIKE ?", name_pattern)
+    test_projects.each do |test_project|
+      pp test_project[:projectname]
+      pp test_project[:username]
+      user = User.where("email=?", test_project[:username])
+      expect(user.length).to eq 1
+      create_session(test_project[:username], "Pass123")
+      delete_project(test_project)
+    end
+    reset_session
+  end
 end
