@@ -381,7 +381,7 @@ describe "On #{ENV['OS']}" do
               config.base_url = "https://#{ENV['WEB_HOST']}:#{ENV['WEB_PORT']}"
             end
 
-            expect(response.body).to  eq(nil)
+            expect(response.body).to eq("")
 
             if not conda_exists
               skip "Anaconda is not installed in the machine or test is run locally"
