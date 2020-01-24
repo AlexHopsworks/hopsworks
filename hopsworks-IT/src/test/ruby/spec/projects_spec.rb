@@ -340,6 +340,13 @@ describe "On #{ENV['OS']}" do
           end
           delete_project(project)
           project = create_project_tour("featurestore")
+          wait_for_execution do
+            get_executions(project[:id], job_name, "")
+            execution_id = json_body[:items][0][:id]
+            stop_execution(project[:id], job_name, execution_id)
+            get_execution(project[:id], job_name, execution_id)
+            json_body[:state].eql? "KILLED"
+          end
           delete_project(project)
         end
       end
