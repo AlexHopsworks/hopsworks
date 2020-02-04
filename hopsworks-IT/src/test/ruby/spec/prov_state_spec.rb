@@ -1289,4 +1289,20 @@ describe "On #{ENV['OS']}" do
       create_session(@email, "Pass123")
     end
   end
+
+  describe 'epipe tests' do
+    it 'project and prov index deleted before epipe processed all related operations - should just drop operations' do
+      prov_wait_for_epipe
+      project = create_project_by_name(@project1_name)
+      prov_wait_for_epipe
+      prov_index = prov_index_name_from_project(project)
+      pp prov_index
+      stop_epipe
+      delete_project(project)
+      elastic_is_success { elastic_delete_index(prov_index) }
+      restart_epipe
+      prov_wait_for_epipe
+      elastic_is_index_not_found { elastic_delete_index(prov_index) }
+    end
+  end
 end

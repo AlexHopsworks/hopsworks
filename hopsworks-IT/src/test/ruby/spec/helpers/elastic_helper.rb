@@ -54,9 +54,37 @@ module ElasticHelper
     Net::HTTP.start(uri.hostname, uri.port, req_options) do |http| http.request(request) end
   end
 
-  def check_index_not_found(response)
-    expect(response.status).to eq(401)
+  def elastic_delete(path)
+    uri = URI.parse("https://#{ENV['ELASTIC_API']}/#{path}")
+    request = Net::HTTP::Delete.new(uri)
+    request.basic_auth("#{ENV['ELASTIC_USER']}", "#{ENV['ELASTIC_PASS']}")
+
+    req_options = {
+        use_ssl: uri.scheme == "https",
+        verify_mode: OpenSSL::SSL::VERIFY_NONE,
+    }
+
+    Net::HTTP.start(uri.hostname, uri.port, req_options) do |http| http.request(request) end
+  end
+
+  def elastic_error_details(response)
     body = JSON.parse(response.body)
-    expect(body["error"]["type"]).to  eq("index_not_found_exception")
+    return "found code:#{response.code} and body:#{body}"
+  end
+
+  def elastic_delete_index(index_name)
+    elastic_delete(index_name)
+  end
+
+  def elastic_is_success()
+    response = yield
+    expect(response.code).to eq(resolve_status(200, response.code)), elastic_error_details(response)
+  end
+
+  def elastic_is_index_not_found()
+    response = yield
+    expect(response.code).to eq(resolve_status(404, response.code)), elastic_error_details(response)
+    body = JSON.parse(response.body)
+    expect(body["error"]["type"]).to eq("index_not_found_exception")
   end
 end

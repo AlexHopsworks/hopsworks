@@ -150,4 +150,8 @@ module ProjectHelper
       json_body.map{|project| project[:id]}.each{|i| post "#{ENV['HOPSWORKS_API']}/project/#{i}/delete" }
     end
   end
+
+  def project_get_inode(project)
+    INode.where("parent_id": project[:inode_pid], "name": project[:inode_name], "partition_id": project[:partition_id])[0]
+  end
 end

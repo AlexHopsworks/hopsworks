@@ -375,4 +375,13 @@ module ProvStateHelper
     result = post "#{target}#{param}"
     expect_status(200)
   end
+
+  def prov_index_name_from_project(project)
+    project_inode = project_get_inode(project)
+    prov_index_name_from_inode_id(project_inode[:id])
+  end
+
+  def prov_index_name_from_inode_id(inode_id)
+    return "#{inode_id}__file_prov"
+  end
 end
