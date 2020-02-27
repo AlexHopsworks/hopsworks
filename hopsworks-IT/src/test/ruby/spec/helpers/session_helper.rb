@@ -145,6 +145,13 @@ module SessionHelper
   end
 
   def create_session(email, password)
+    raw_create_session(email, password)
+    expect_status(200)
+    expect_json(sessionID: ->(value){ expect(value).not_to be_empty})
+    @user = get_user_by_mail(email)
+  end
+
+  def login_user(email, password)
     reset_session
     post "#{ENV['HOPSWORKS_API']}/auth/login", URI.encode_www_form({ email: email, password: password}), { content_type: 'application/x-www-form-urlencoded'}
     if !headers["set_cookie"].nil? && !headers["set_cookie"][1].nil?
@@ -161,7 +168,13 @@ module SessionHelper
       config.headers = {:cookies => cookies, content_type: 'application/json' }
       config.headers["Authorization"] = token
     end
+<<<<<<< HEAD
     cookies
+=======
+    @cookies
+    pp "session with user:#{email}" if defined?(@debugOpt) && @debugOpt == true
+    return response
+>>>>>>> cec9eea6a... [HOPSWORKS-1558] use datasetId instead of inodeId for dataset share/unshare with cluster (#497)
   end
   
   def get_user_roles(user)
@@ -222,7 +235,11 @@ module SessionHelper
       BbcGroup.create(group_name: role_type, gid: Random.rand(1000))
     end
   end
-  
+
+  def get_user_by_mail(email)
+    User.find_by(email: email)
+  end
+
   def create_user(params={})
     params[:email] = "#{random_id}@email.com" unless params[:email]
     create_validated_user(params)
