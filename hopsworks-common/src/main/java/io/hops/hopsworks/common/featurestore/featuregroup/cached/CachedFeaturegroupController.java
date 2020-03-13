@@ -266,7 +266,7 @@ public class CachedFeaturegroupController {
     
     //Create Hive Table for Offline Cached Feature Group
     createHiveFeaturegroup(cachedFeaturegroupDTO, featurestore, user, hiveFeatureStr, tableName);
-    fsController.featuregroupAttachXAttrs(user, featurestore.getProject(), cachedFeaturegroupDTO);
+//    fsController.featuregroupAttachXAttrs(user, featurestore.getProject(), cachedFeaturegroupDTO);
   
     //Create MySQL Table for Online Cached Feature Group
     OnlineFeaturegroup onlineFeaturegroup = null;
