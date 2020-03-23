@@ -124,6 +124,11 @@ public final class Utils {
   public static String getFeaturegroupName(String featuregroupName, Integer version) {
     return featuregroupName + "_" + version.toString();
   }
+  
+  public static String getTrainingDatasetName(Project project) {
+    return project.getName() + "_Training_Dataset";
+  
+  }
 
   public static String ensurePathEndsInSlash(String path) {
     if (!path.endsWith(File.separator)) {

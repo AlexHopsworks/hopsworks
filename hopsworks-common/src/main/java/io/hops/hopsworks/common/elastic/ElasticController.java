@@ -39,9 +39,12 @@
 
 package io.hops.hopsworks.common.elastic;
 
+import io.hops.hopsworks.common.dao.dataset.DatasetSharedWithFacade;
+import io.hops.hopsworks.common.hdfs.Utils;
 import io.hops.hopsworks.persistence.entity.dataset.Dataset;
 import io.hops.hopsworks.common.dao.dataset.DatasetFacade;
 import io.hops.hopsworks.persistence.entity.dataset.DatasetSharedWith;
+import io.hops.hopsworks.persistence.entity.dataset.DatasetType;
 import io.hops.hopsworks.persistence.entity.project.Project;
 import io.hops.hopsworks.common.dao.project.ProjectFacade;
 import io.hops.hopsworks.persistence.entity.user.Users;
@@ -76,9 +79,11 @@ import javax.ejb.TransactionAttributeType;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -110,6 +115,8 @@ public class ElasticController {
   private DatasetFacade datasetFacade;
   @EJB
   private DatasetController datasetController;
+  @EJB
+  private DatasetSharedWithFacade datasetSharedWithFacade;
   @EJB
   private ElasticClient elasticClient;
   @EJB
@@ -245,7 +252,8 @@ public class ElasticController {
         Level.INFO,"Error while executing query, code: "+  response.status().getStatus());
   }
   
-  public List<ElasticHit> featurestoreSearch(String searchTerm) throws ElasticException, ServiceException {
+  public List<FeaturestoreElasticHit> featurestoreSearch(FeaturestoreDocType docType, String searchTerm)
+    throws ElasticException, ServiceException {
     RestHighLevelClient client = getClient();
     //check if the indices are up and running
     if (!this.indexExists(client, Settings.FEATURESTORE_INDEX)) {
@@ -254,17 +262,16 @@ public class ElasticController {
     }
   
     SearchResponse response = executeFeaturestoreSearchQuery(client,
-      globalFeaturestoreSearchQuery(searchTerm.toLowerCase()));
+      globalFeaturestoreSearchQuery(docType, searchTerm.toLowerCase()));
   
     if (response.status().getStatus() == 200) {
       //construct the response
-      List<ElasticHit> elasticHits = new LinkedList<>();
+      List<FeaturestoreElasticHit> elasticHits = new LinkedList<>();
       if (response.getHits().getHits().length > 0) {
         SearchHit[] hits = response.getHits().getHits();
-        ElasticHit eHit;
+        FeaturestoreElasticHit eHit;
         for (SearchHit hit : hits) {
-          eHit = new ElasticHit(hit);
-          eHit.setLocalDataset(true);
+          eHit = FeaturestoreElasticHit.instance(hit);
           elasticHits.add(eHit);
         }
       }
@@ -277,7 +284,8 @@ public class ElasticController {
       Level.INFO,"Error while executing query, code: "+  response.status().getStatus());
   }
   
-  public List<ElasticHit> featurestoreSearch(Integer projectId, String featurestoreName, String searchTerm)
+  public List<FeaturestoreElasticHit> featurestoreSearch(FeaturestoreDocType docType, String searchTerm,
+    Integer projectId)
     throws ElasticException, ServiceException {
     RestHighLevelClient client = getClient();
     //check if the indices are up and running
@@ -285,31 +293,37 @@ public class ElasticController {
       throw new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_INDEX_NOT_FOUND,
         Level.SEVERE, "index: " + Settings.FEATURESTORE_INDEX);
     }
-  
-    String dsName = featurestoreName;
-    Project project;
-    if (featurestoreName.contains(Settings.SHARED_FILE_SEPARATOR)) {
-      String[] sharedFeaturestore = featurestoreName.split(Settings.SHARED_FILE_SEPARATOR);
-      dsName = sharedFeaturestore[1];
-      project = projectFacade.findByName(sharedFeaturestore[0]);
-    } else {
-      project = projectFacade.find(projectId);
+    
+    Project project = projectFacade.find(projectId);
+    Set<Integer> searchProjects = new HashSet<>();
+    searchProjects.add(projectId);
+    List<DatasetSharedWith> sharedDS = datasetSharedWithFacade.findByProject(project);
+    for(DatasetSharedWith ds : sharedDS) {
+      switch(docType) {
+        case FEATUREGROUP: {
+          if(DatasetType.FEATURESTORE.equals(ds.getDataset().getDsType())) {
+            searchProjects.add(ds.getProject().getId());
+          }
+        } break;
+        case TRAININGDATASET: {
+          if(Utils.getTrainingDatasetName(project).equals(ds.getDataset().getName())) {
+            searchProjects.add(ds.getProject().getId());
+          }
+        } break;
+      }
     }
-  
-    Dataset dataset = datasetController.getByProjectAndDsName(project,null, dsName);
-  
+    
     SearchResponse response = executeFeaturestoreSearchQuery(client,
-      localFeaturestoreSearchQuery(dataset.getInodeId(), searchTerm.toLowerCase()));
+      localFeaturestoreSearchQuery(docType, searchTerm.toLowerCase(), searchProjects));
   
     if (response.status().getStatus() == 200) {
       //construct the response
-      List<ElasticHit> elasticHits = new LinkedList<>();
+      List<FeaturestoreElasticHit> elasticHits = new LinkedList<>();
       if (response.getHits().getHits().length > 0) {
         SearchHit[] hits = response.getHits().getHits();
-        ElasticHit eHit;
+        FeaturestoreElasticHit eHit;
         for (SearchHit hit : hits) {
-          eHit = new ElasticHit(hit);
-          eHit.setLocalDataset(true);
+          eHit = FeaturestoreElasticHit.instance(hit);
           elasticHits.add(eHit);
         }
       }
@@ -599,12 +613,13 @@ public class ElasticController {
    * @param searchTerm
    * @return
    */
-  private QueryBuilder localFeaturestoreSearchQuery(long datasetInodeId, String searchTerm) {
-    QueryBuilder datasetIdQuery = termQuery(Settings.FEATURESTORE_DATASET_IID_FIELD, datasetInodeId);
-    QueryBuilder query = getNameDescriptionMetadataQuery(searchTerm);
+  private QueryBuilder localFeaturestoreSearchQuery(FeaturestoreDocType docType, String searchTerm,
+    Set<Integer> projectIds) {
+    QueryBuilder query = globalFeaturestoreSearchQuery(docType, searchTerm);
+    QueryBuilder projectIdQuery = termsQuery(Settings.FEATURESTORE_PROJECT_ID_FIELD, projectIds);
     
     QueryBuilder cq = boolQuery()
-      .must(datasetIdQuery)
+      .must(projectIdQuery)
       .must(query);
     return cq;
   }
@@ -615,11 +630,25 @@ public class ElasticController {
    * @param searchTerm
    * @return
    */
-  private QueryBuilder globalFeaturestoreSearchQuery(String searchTerm) {
-    QueryBuilder query = getNameDescriptionMetadataQuery(searchTerm);
+  private QueryBuilder globalFeaturestoreSearchQuery(FeaturestoreDocType docType, String searchTerm) {
     
-    QueryBuilder cq = boolQuery().must(query);
-    return cq;
+    QueryBuilder nameQuery = getNameQuery(searchTerm);
+    QueryBuilder metadataQuery = getMetadataQuery(searchTerm);
+    
+    QueryBuilder termCondition = boolQuery()
+      .should(nameQuery)
+      .should(metadataQuery);
+  
+    if(FeaturestoreDocType.ALL.equals(docType)) {
+      return termCondition;
+    } else {
+      QueryBuilder docTypeQuery = termQuery("doc_type", docType.toString().toLowerCase());
+      QueryBuilder query = boolQuery()
+        .must(docTypeQuery)
+        .must(termCondition);
+      return query;
+    }
+    
   }
 
   /**

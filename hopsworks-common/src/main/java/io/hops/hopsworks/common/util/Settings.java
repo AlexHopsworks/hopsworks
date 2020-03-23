@@ -3835,5 +3835,5 @@ public class Settings implements Serializable {
   }
   //------------------------------ END PROVENANCE --------------------------------------------//
   public static final String FEATURESTORE_INDEX = "featurestore";
-  public static final String FEATURESTORE_DATASET_IID_FIELD = "dataset_iid";
+  public static final String FEATURESTORE_PROJECT_ID_FIELD = "project_id";
 }

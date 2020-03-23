@@ -47,6 +47,8 @@ import io.hops.hopsworks.api.jwt.ElasticJWTResponseDTO;
 import io.hops.hopsworks.api.jwt.JWTHelper;
 import io.hops.hopsworks.common.elastic.ElasticController;
 import io.hops.hopsworks.common.elastic.ElasticHit;
+import io.hops.hopsworks.common.elastic.FeaturestoreDocType;
+import io.hops.hopsworks.common.elastic.FeaturestoreElasticHit;
 import io.hops.hopsworks.exceptions.ElasticException;
 import io.hops.hopsworks.exceptions.ServiceException;
 import io.hops.hopsworks.jwt.annotation.JWTRequired;
@@ -58,10 +60,12 @@ import javax.ejb.Stateless;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.GenericEntity;
 import javax.ws.rs.core.MediaType;
@@ -124,7 +128,9 @@ public class ElasticService {
   @Path("projectsearch/{projectId}/{searchTerm}")
   @Produces(MediaType.APPLICATION_JSON)
   @AllowedProjectRoles({AllowedProjectRoles.DATA_SCIENTIST, AllowedProjectRoles.DATA_OWNER})
-  public Response projectSearch(@PathParam("projectId") Integer projectId, @PathParam("searchTerm") String searchTerm,
+  public Response projectSearch(
+    @PathParam("projectId") Integer projectId,
+    @PathParam("searchTerm") String searchTerm,
     @Context SecurityContext sc) throws ServiceException, ElasticException {
     if (Strings.isNullOrEmpty(searchTerm) || projectId == null) {
       throw new IllegalArgumentException("One or more required parameters were not provided.");
@@ -171,19 +177,21 @@ public class ElasticService {
    * @return
    */
   @GET
-  @Path("globalfeaturestore/{searchTerm}")
+  @Path("globalfeaturestore/{docType}/{searchTerm}")
   @Produces(MediaType.APPLICATION_JSON)
   @AllowedProjectRoles({AllowedProjectRoles.DATA_SCIENTIST, AllowedProjectRoles.DATA_OWNER})
   public Response globalFeaturestoreSearch(
-    @PathParam("searchTerm") String searchTerm, @Context SecurityContext sc)
+    @PathParam("searchTerm") String searchTerm,
+    @QueryParam("docType") @DefaultValue("ALL") FeaturestoreDocType docType,
+    @Context SecurityContext sc)
     throws ServiceException, ElasticException {
     
     if (Strings.isNullOrEmpty(searchTerm)) {
       throw new IllegalArgumentException("One or more required parameters were not provided.");
     }
     
-    GenericEntity<List<ElasticHit>> searchResults = new GenericEntity<List<ElasticHit>>(
-      elasticController.featurestoreSearch(searchTerm)) {};
+    GenericEntity<List<FeaturestoreElasticHit>> searchResults = new GenericEntity<List<FeaturestoreElasticHit>>(
+      elasticController.featurestoreSearch(docType, searchTerm)) {};
     return noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK). entity(searchResults).build();
   }
   
@@ -196,21 +204,22 @@ public class ElasticService {
    * @return
    */
   @GET
-  @Path("localfeaturestore/{projectId}/{featurestoreName}/{searchTerm}")
+  @Path("localfeaturestore/{projectId}/{searchTerm}")
   @Produces(MediaType.APPLICATION_JSON)
   @AllowedProjectRoles({AllowedProjectRoles.DATA_SCIENTIST, AllowedProjectRoles.DATA_OWNER})
   public Response localFeaturestoreSearch(
     @PathParam("projectId") Integer projectId,
-    @PathParam("featurestoreName") String featurestoreName,
-    @PathParam("searchTerm") String searchTerm, @Context SecurityContext sc)
+    @PathParam("searchTerm") String searchTerm,
+    @QueryParam("docType") @DefaultValue("ALL") FeaturestoreDocType docType,
+    @Context SecurityContext sc)
     throws ServiceException, ElasticException {
     
-    if (Strings.isNullOrEmpty(searchTerm) || Strings.isNullOrEmpty(featurestoreName) || projectId == null) {
+    if (Strings.isNullOrEmpty(searchTerm) || projectId == null) {
       throw new IllegalArgumentException("One or more required parameters were not provided.");
     }
     
-    GenericEntity<List<ElasticHit>> searchResults = new GenericEntity<List<ElasticHit>>(
-      elasticController.featurestoreSearch(projectId, featurestoreName, searchTerm)) {};
+    GenericEntity<List<FeaturestoreElasticHit>> searchResults = new GenericEntity<List<FeaturestoreElasticHit>>(
+      elasticController.featurestoreSearch(docType, searchTerm, projectId)) {};
     return noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK). entity(searchResults).build();
   }
   

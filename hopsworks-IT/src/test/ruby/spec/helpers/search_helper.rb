@@ -36,6 +36,19 @@ module SearchHelper
     json_body
   end
 
+  def global_featurestore_search(doc_type, term)
+    get "#{ENV['HOPSWORKS_API']}/elastic/globalfeaturestore/#{doc_type}/#{term}"
+    pp "#{ENV['HOPSWORKS_API']}/elastic/globalfeaturestore/#{doc_type}/#{term}" if defined? (@debugOpt) && @debugOpt == true
+    expect_status_details(200)
+    json_body
+  end
+
+  def local_featurestore_search(project, doc_type, term)
+    get "#{ENV['HOPSWORKS_API']}/elastic/localfeaturestore/#{project[:id]}/#{doc_type}/#{term}"
+    pp "#{ENV['HOPSWORKS_API']}/elastic/localfeaturestore/#{project[:id]}/#{doc_type}/#{term}" if defined? (@debugOpt) && @debugOpt == true
+    expect_status_details(200)
+    json_body
+  end
   def result_contains_xattr_one_of(result, &xattr_predicate)
     array_contains_one_of(result) do |r|
       selected_aux = r[:map][:entry].select {|x| x[:key] == "xattr"}

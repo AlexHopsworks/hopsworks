@@ -59,8 +59,6 @@ public class ElasticHitsHandler<R, S, A, E extends Exception> {
   
   public static <R, E extends Exception> ElasticHitsHandler<R, List<R>, ?, E> instanceAddToList(
     ElasticHitParser<R, E> parser) {
-    List<R> s = new ArrayList<>();
-    s.forEach();
     return new ElasticHitsHandler<>(new ArrayList<R>(), parser,
       (R item, List<R> state) -> state.add(item),
       Optional.empty());
