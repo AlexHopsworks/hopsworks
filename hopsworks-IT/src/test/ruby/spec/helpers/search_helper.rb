@@ -49,7 +49,7 @@ module SearchHelper
     expect_status_details(200)
     json_body
   end
-  
+
   def result_contains_xattr_one_of(result, &xattr_predicate)
     array_contains_one_of(result) do |r|
       selected_aux = r[:map][:entry].select {|x| x[:key] == "xattr"}

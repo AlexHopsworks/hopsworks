@@ -19,6 +19,7 @@ import org.javatuples.Pair;
 
 import javax.xml.bind.annotation.XmlRootElement;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 
 @XmlRootElement
@@ -30,7 +31,7 @@ public class ElasticFeaturestoreItemDTO {
   private Integer version;
   //access fields
   private Pair<Integer, String> parentProject;
-  private List<Pair<Integer, String>> accessProjects;
+  private List<Pair<Integer, String>> accessProjects = new LinkedList<>();
   
   public ElasticFeaturestoreItemDTO() {
   }
