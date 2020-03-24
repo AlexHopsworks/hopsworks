@@ -16,6 +16,7 @@
 package io.hops.hopsworks.common.elastic;
 
 public enum FeaturestoreDocType {
+  FEATURE,
   FEATUREGROUP,
   TRAININGDATASET,
   ALL;

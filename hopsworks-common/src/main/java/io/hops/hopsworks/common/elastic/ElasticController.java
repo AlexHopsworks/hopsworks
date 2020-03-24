@@ -631,24 +631,33 @@ public class ElasticController {
    * @return
    */
   private QueryBuilder globalFeaturestoreSearchQuery(FeaturestoreDocType docType, String searchTerm) {
-    
-    QueryBuilder nameQuery = getNameQuery(searchTerm);
-    QueryBuilder metadataQuery = getMetadataQuery(searchTerm);
-    
-    QueryBuilder termCondition = boolQuery()
-      .should(nameQuery)
-      .should(metadataQuery);
-  
-    if(FeaturestoreDocType.ALL.equals(docType)) {
-      return termCondition;
-    } else {
+    if(FeaturestoreDocType.FEATURE.equals(docType)) {
       QueryBuilder docTypeQuery = termQuery("doc_type", docType.toString().toLowerCase());
+      String xattrKey = Settings.META_DATA_NESTED_FIELD + ".features.*";
       QueryBuilder query = boolQuery()
         .must(docTypeQuery)
-        .must(termCondition);
+        .must(getXAttrQuery(xattrKey, searchTerm));
       return query;
+    } else {
+      QueryBuilder termCondition = boolQuery()
+        .should(getNameQuery(searchTerm))
+        .should(getMetadataQuery(searchTerm));
+  
+      if(FeaturestoreDocType.ALL.equals(docType)) {
+        return termCondition;
+      } else if(FeaturestoreDocType.FEATUREGROUP.equals(docType)
+        || FeaturestoreDocType.TRAININGDATASET.equals(docType)) {
+        QueryBuilder docTypeQuery = termQuery("doc_type", docType.toString().toLowerCase());
+        QueryBuilder query = boolQuery()
+          .must(docTypeQuery)
+          .must(termCondition);
+        return query;
+      } else {
+          //should not happen
+        LOG.warning("unhandled new featurestore doc type:" + docType);
+        return termCondition;
+      }
     }
-    
   }
 
   /**
@@ -749,14 +758,15 @@ public class ElasticController {
    * @return
    */
   private QueryBuilder getMetadataQuery(String searchTerm) {
-
-    QueryBuilder metadataQuery = queryStringQuery(String.format("*%s*",
-        searchTerm))
-        .lenient(Boolean.TRUE)
-        .field(Settings.META_DATA_FIELDS);
-    QueryBuilder nestedQuery = nestedQuery(Settings.META_DATA_NESTED_FIELD,
-        metadataQuery, ScoreMode.Avg);
-
+    return getXAttrQuery(Settings.META_DATA_FIELDS, searchTerm);
+  }
+  
+  private QueryBuilder getXAttrQuery(String key, String searchTerm) {
+    QueryBuilder metadataQuery = queryStringQuery(String.format("*%s*", searchTerm))
+      .lenient(Boolean.TRUE)
+      .field(key);
+    QueryBuilder nestedQuery = nestedQuery(Settings.META_DATA_NESTED_FIELD, metadataQuery, ScoreMode.Avg);
+  
     return nestedQuery;
   }
 
