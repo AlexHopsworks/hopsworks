@@ -53,10 +53,6 @@ public class ElasticFeaturestoreDTO {
   }
   
   public void addFeaturegroup(ElasticFeaturestoreItemDTO featuregroup) {
-    trainingdatasets.add(featuregroup);
-  }
-  
-  public void addFeature(ElasticFeaturestoreItemDTO feature) {
-    trainingdatasets.add(feature);
+    featuregroups.add(featuregroup);
   }
 }
