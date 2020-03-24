@@ -39,7 +39,6 @@ public class FeaturestoreElasticHit implements Comparator<FeaturestoreElasticHit
   //the inode id
   private String id;
   private float score;
-  private Map<String, Object> map;
   
   //inode name
   private String docType;
@@ -47,6 +46,7 @@ public class FeaturestoreElasticHit implements Comparator<FeaturestoreElasticHit
   private Integer version;
   private Integer projectId;
   private String projectName;
+  private Long datasetIId;
   private Set<String> features = new HashSet<>();
   private Map<String, String> tags = new HashMap<>();
   private Map<String, String> otherXAttrs = new HashMap<>();
@@ -55,17 +55,17 @@ public class FeaturestoreElasticHit implements Comparator<FeaturestoreElasticHit
   }
   
   public FeaturestoreElasticHit(String id, float score, Map<String, Object> map,
-    String docType, String name, int version, int projectId, String projectName,
+    String docType, String name, int version, int projectId, String projectName, Long datasetIId,
     Set<String> features,  Map<String, String> tags, Map<String, String> otherXAttrs) {
     this.id = id;
     this.score = score;
-    this.map = map;
     
     this.docType = docType;
     this.name = name;
     this.version = version;
     this.projectId = projectId;
     this.projectName = projectName;
+    this.datasetIId = datasetIId;
     this.features = features;
     this.tags = tags;
     this.otherXAttrs = otherXAttrs;
@@ -76,11 +76,10 @@ public class FeaturestoreElasticHit implements Comparator<FeaturestoreElasticHit
     FeaturestoreElasticHit feHit = new FeaturestoreElasticHit();
     feHit.id = hit.getId();
     //the source of the retrieved record (i.e. all the indexed information)
-    feHit.map = hit.getSourceAsMap();
     feHit.score = hit.getScore();
   
     try {
-      for (Map.Entry<String, Object> entry : feHit.map.entrySet()) {
+      for (Map.Entry<String, Object> entry : hit.getSourceAsMap().entrySet()) {
         //set the name explicitly so that it's easily accessible in the frontend
         if (entry.getKey().equals("doc_type")) {
           feHit.docType = entry.getValue().toString();
@@ -92,6 +91,8 @@ public class FeaturestoreElasticHit implements Comparator<FeaturestoreElasticHit
           feHit.projectId = Integer.parseInt(entry.getValue().toString());
         } else if (entry.getKey().equals("project_name")) {
           feHit.projectName = entry.getValue().toString();
+        } else if (entry.getKey().equals("dataset_iid")) {
+          feHit.datasetIId = Long.parseLong(entry.getValue().toString());
         } else if (entry.getKey().equals("xattr")) {
           Map<String, Object> xattrs = (Map)entry.getValue();
           for(Map.Entry<String, Object> e : xattrs.entrySet()) {
@@ -136,26 +137,6 @@ public class FeaturestoreElasticHit implements Comparator<FeaturestoreElasticHit
     this.score = score;
   }
   
-  public Map<String, String> getMap() {
-    //flatten hits (remove nested json objects) to make it more readable
-    Map<String, String> refined = new HashMap<>();
-    
-    if (this.map != null) {
-      for (Map.Entry<String, Object> entry : this.map.entrySet()) {
-        //convert value to string
-        String value = (entry.getValue() == null) ? "null" : entry.getValue().
-          toString();
-        refined.put(entry.getKey(), value);
-      }
-    }
-    
-    return refined;
-  }
-  
-  public void setMap(Map<String, Object> map) {
-    this.map = map;
-  }
-  
   public String getDocType() {
     return docType;
   }
@@ -196,6 +177,14 @@ public class FeaturestoreElasticHit implements Comparator<FeaturestoreElasticHit
     this.projectName = projectName;
   }
   
+  public Long getDatasetIId() {
+    return datasetIId;
+  }
+  
+  public void setDatasetIId(Long datasetIId) {
+    this.datasetIId = datasetIId;
+  }
+  
   public Set<String> getFeatures() {
     return features;
   }
@@ -218,5 +207,22 @@ public class FeaturestoreElasticHit implements Comparator<FeaturestoreElasticHit
   
   public void setOtherXAttrs(Map<String, String> otherXAttrs) {
     this.otherXAttrs = otherXAttrs;
+  }
+  
+  @Override
+  public String toString() {
+    return "FeaturestoreElasticHit{" +
+      "id='" + id + '\'' +
+      ", score=" + score +
+      ", docType='" + docType + '\'' +
+      ", name='" + name + '\'' +
+      ", version=" + version +
+      ", projectId=" + projectId +
+      ", projectName='" + projectName + '\'' +
+      ", datasetIId=" + datasetIId +
+      ", features=" + features +
+      ", tags=" + tags +
+      ", otherXAttrs=" + otherXAttrs +
+      '}';
   }
 }

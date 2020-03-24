@@ -40,6 +40,9 @@
 package io.hops.hopsworks.api.elastic;
 
 import com.google.common.base.Strings;
+import io.hops.hopsworks.api.elastic.featurestore.ElasticFeaturestoreBuilder;
+import io.hops.hopsworks.api.elastic.featurestore.ElasticFeaturestoreDTO;
+import io.hops.hopsworks.api.elastic.featurestore.ElasticFeaturestoreRequest;
 import io.hops.hopsworks.api.filter.AllowedProjectRoles;
 import io.hops.hopsworks.api.filter.Audience;
 import io.hops.hopsworks.api.filter.NoCacheResponse;
@@ -48,10 +51,10 @@ import io.hops.hopsworks.api.jwt.JWTHelper;
 import io.hops.hopsworks.common.elastic.ElasticController;
 import io.hops.hopsworks.common.elastic.ElasticHit;
 import io.hops.hopsworks.common.elastic.FeaturestoreDocType;
-import io.hops.hopsworks.common.elastic.FeaturestoreElasticHit;
 import io.hops.hopsworks.exceptions.ElasticException;
 import io.hops.hopsworks.exceptions.ServiceException;
 import io.hops.hopsworks.jwt.annotation.JWTRequired;
+import io.hops.hopsworks.persistence.entity.user.Users;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 
@@ -59,6 +62,7 @@ import javax.ejb.EJB;
 import javax.ejb.Stateless;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
+import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
@@ -91,6 +95,8 @@ public class ElasticService {
   private ElasticController elasticController;
   @EJB
   private JWTHelper jWTHelper;
+  @Inject
+  private ElasticFeaturestoreBuilder elasticFeaturestoreBuilder;
   
   /**
    * Searches for content composed of projects and datasets. Hits two elastic
@@ -184,14 +190,14 @@ public class ElasticService {
     @QueryParam("docType") @DefaultValue("ALL") FeaturestoreDocType docType,
     @Context SecurityContext sc)
     throws ServiceException, ElasticException {
-    
     if (Strings.isNullOrEmpty(searchTerm)) {
       throw new IllegalArgumentException("One or more required parameters were not provided.");
     }
-    
-    GenericEntity<List<FeaturestoreElasticHit>> searchResults = new GenericEntity<List<FeaturestoreElasticHit>>(
-      elasticController.featurestoreSearch(docType, searchTerm)) {};
-    return noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK). entity(searchResults).build();
+    Users user = jWTHelper.getUserPrincipal(sc);
+  
+    ElasticFeaturestoreDTO dto
+      = elasticFeaturestoreBuilder.build(user, new ElasticFeaturestoreRequest(searchTerm, docType));
+    return Response.ok().entity(dto).build();
   }
   
   /**
@@ -216,10 +222,10 @@ public class ElasticService {
     if (Strings.isNullOrEmpty(searchTerm) || projectId == null) {
       throw new IllegalArgumentException("One or more required parameters were not provided.");
     }
-    
-    GenericEntity<List<FeaturestoreElasticHit>> searchResults = new GenericEntity<List<FeaturestoreElasticHit>>(
-      elasticController.featurestoreSearch(docType, searchTerm, projectId)) {};
-    return noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK). entity(searchResults).build();
+  
+    ElasticFeaturestoreDTO dto
+      = elasticFeaturestoreBuilder.build(new ElasticFeaturestoreRequest(searchTerm, docType), projectId);
+    return Response.ok().entity(dto).build();
   }
   
   @ApiOperation( value = "Get a jwt token for elastic.")

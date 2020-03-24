@@ -39,12 +39,8 @@
 
 package io.hops.hopsworks.common.elastic;
 
-import io.hops.hopsworks.common.dao.dataset.DatasetSharedWithFacade;
-import io.hops.hopsworks.common.hdfs.Utils;
 import io.hops.hopsworks.persistence.entity.dataset.Dataset;
-import io.hops.hopsworks.common.dao.dataset.DatasetFacade;
 import io.hops.hopsworks.persistence.entity.dataset.DatasetSharedWith;
-import io.hops.hopsworks.persistence.entity.dataset.DatasetType;
 import io.hops.hopsworks.persistence.entity.project.Project;
 import io.hops.hopsworks.common.dao.project.ProjectFacade;
 import io.hops.hopsworks.persistence.entity.user.Users;
@@ -66,6 +62,7 @@ import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.client.indices.CreateIndexRequest;
 import org.elasticsearch.client.indices.GetIndexRequest;
+import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
@@ -79,7 +76,6 @@ import javax.ejb.TransactionAttributeType;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -112,11 +108,7 @@ public class ElasticController {
   @EJB
   private ProjectFacade projectFacade;
   @EJB
-  private DatasetFacade datasetFacade;
-  @EJB
   private DatasetController datasetController;
-  @EJB
-  private DatasetSharedWithFacade datasetSharedWithFacade;
   @EJB
   private ElasticClient elasticClient;
   @EJB
@@ -284,8 +276,8 @@ public class ElasticController {
       Level.INFO,"Error while executing query, code: "+  response.status().getStatus());
   }
   
-  public List<FeaturestoreElasticHit> featurestoreSearch(FeaturestoreDocType docType, String searchTerm,
-    Integer projectId)
+  public List<FeaturestoreElasticHit> featurestoreSearch(String searchTerm,
+    Map<FeaturestoreDocType, Set<Integer>> docProjectIds)
     throws ElasticException, ServiceException {
     RestHighLevelClient client = getClient();
     //check if the indices are up and running
@@ -294,27 +286,8 @@ public class ElasticController {
         Level.SEVERE, "index: " + Settings.FEATURESTORE_INDEX);
     }
     
-    Project project = projectFacade.find(projectId);
-    Set<Integer> searchProjects = new HashSet<>();
-    searchProjects.add(projectId);
-    List<DatasetSharedWith> sharedDS = datasetSharedWithFacade.findByProject(project);
-    for(DatasetSharedWith ds : sharedDS) {
-      switch(docType) {
-        case FEATUREGROUP: {
-          if(DatasetType.FEATURESTORE.equals(ds.getDataset().getDsType())) {
-            searchProjects.add(ds.getProject().getId());
-          }
-        } break;
-        case TRAININGDATASET: {
-          if(Utils.getTrainingDatasetName(project).equals(ds.getDataset().getName())) {
-            searchProjects.add(ds.getProject().getId());
-          }
-        } break;
-      }
-    }
-    
     SearchResponse response = executeFeaturestoreSearchQuery(client,
-      localFeaturestoreSearchQuery(docType, searchTerm.toLowerCase(), searchProjects));
+      localFeaturestoreSearchQuery(searchTerm.toLowerCase(), docProjectIds));
   
     if (response.status().getStatus() == 200) {
       //construct the response
@@ -613,14 +586,16 @@ public class ElasticController {
    * @param searchTerm
    * @return
    */
-  private QueryBuilder localFeaturestoreSearchQuery(FeaturestoreDocType docType, String searchTerm,
-    Set<Integer> projectIds) {
-    QueryBuilder query = globalFeaturestoreSearchQuery(docType, searchTerm);
-    QueryBuilder projectIdQuery = termsQuery(Settings.FEATURESTORE_PROJECT_ID_FIELD, projectIds);
-    
-    QueryBuilder cq = boolQuery()
-      .must(projectIdQuery)
-      .must(query);
+  private QueryBuilder localFeaturestoreSearchQuery(String searchTerm,
+    Map<FeaturestoreDocType, Set<Integer>> docProjectIds) {
+    BoolQueryBuilder cq = boolQuery();
+    for(Map.Entry<FeaturestoreDocType, Set<Integer>> e : docProjectIds.entrySet()) {
+      //for each docType
+      QueryBuilder aux = boolQuery()
+        .must(termsQuery(Settings.FEATURESTORE_PROJECT_ID_FIELD, e.getValue()))
+        .must(globalFeaturestoreSearchQuery(e.getKey(), searchTerm));
+      cq.should(aux);
+    }
     return cq;
   }
   
