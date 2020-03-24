@@ -204,7 +204,6 @@ describe "On #{ENV['OS']}" do
             true
           else
             pp "received:#{result.length}"
-            pp "#{result}"
             false
           end
         end
