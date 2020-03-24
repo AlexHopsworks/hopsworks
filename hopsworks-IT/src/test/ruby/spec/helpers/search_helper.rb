@@ -37,15 +37,15 @@ module SearchHelper
   end
 
   def global_featurestore_search(doc_type, term)
-    get "#{ENV['HOPSWORKS_API']}/elastic/globalfeaturestore/#{doc_type}/#{term}"
-    pp "#{ENV['HOPSWORKS_API']}/elastic/globalfeaturestore/#{doc_type}/#{term}" if defined? (@debugOpt) && @debugOpt == true
+    get "#{ENV['HOPSWORKS_API']}/elastic/globalfeaturestore#{term}?docType=#{doc_type}"
+    pp "#{ENV['HOPSWORKS_API']}/elastic/globalfeaturestore#{term}?docType=#{doc_type}" if defined? (@debugOpt) && @debugOpt == true
     expect_status_details(200)
     json_body
   end
 
   def local_featurestore_search(project, doc_type, term)
-    get "#{ENV['HOPSWORKS_API']}/elastic/localfeaturestore/#{project[:id]}/#{doc_type}/#{term}"
-    pp "#{ENV['HOPSWORKS_API']}/elastic/localfeaturestore/#{project[:id]}/#{doc_type}/#{term}" if defined? (@debugOpt) && @debugOpt == true
+    get "#{ENV['HOPSWORKS_API']}/elastic/localfeaturestore/#{project[:id]}/#{term}?docType=#{doc_type}"
+    pp "#{ENV['HOPSWORKS_API']}/elastic/localfeaturestore/#{project[:id]}/#{term}?docType=#{doc_type}" if defined? (@debugOpt) && @debugOpt == true
     expect_status_details(200)
     json_body
   end
