@@ -177,9 +177,8 @@ public class ElasticService {
    * @return
    */
   @GET
-  @Path("globalfeaturestore/{docType}/{searchTerm}")
+  @Path("globalfeaturestore/{searchTerm}")
   @Produces(MediaType.APPLICATION_JSON)
-  @AllowedProjectRoles({AllowedProjectRoles.DATA_SCIENTIST, AllowedProjectRoles.DATA_OWNER})
   public Response globalFeaturestoreSearch(
     @PathParam("searchTerm") String searchTerm,
     @QueryParam("docType") @DefaultValue("ALL") FeaturestoreDocType docType,
