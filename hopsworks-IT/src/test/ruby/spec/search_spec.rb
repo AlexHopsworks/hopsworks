@@ -195,13 +195,13 @@ describe "On #{ENV['OS']}" do
       featurestore_name = @project[:projectname].downcase + "_featurestore.db"
       featurestore_id = get_featurestore_id(@project[:id])
 
-      featuregroup1_name = "animal1"
+      featuregroup1_name = "fg_animal1"
       featuregroup1_id = s_create_featuregroup_checked(@project, featurestore_id, featuregroup1_name)
-      featuregroup2_name = "dog1"
+      featuregroup2_name = "fg_dog1"
       featuregroup2_id = s_create_featuregroup_checked(@project, featurestore_id, featuregroup2_name)
-      featuregroup3_name = "othername1"
+      featuregroup3_name = "fg_othername1"
       featuregroup3_id = s_create_featuregroup_checked(@project, featurestore_id, featuregroup3_name)
-      featuregroup4_name = "othername2"
+      featuregroup4_name = "fg_othername2"
       features4 = [
           {
               type: "INT",
@@ -211,7 +211,7 @@ describe "On #{ENV['OS']}" do
           }
       ]
       featuregroup4_id = s_create_featuregroup_checked2(@project, featurestore_id, featuregroup4_name, features4)
-      featuregroup5_name = "othername3"
+      featuregroup5_name = "fg_othername3"
       features5 = [
           {
               type: "INT",
@@ -222,21 +222,21 @@ describe "On #{ENV['OS']}" do
       ]
       featuregroup5_id = s_create_featuregroup_checked2(@project, featurestore_id, featuregroup5_name, features5)
       add_xattr_featuregroup(@project, featurestore_id, featuregroup5_id, "hobby", "tennis")
-      featuregroup6_name = "othername4"
+      featuregroup6_name = "fg_othername4"
       featuregroup6_id = s_create_featuregroup_checked(@project, featurestore_id, featuregroup6_name)
       add_xattr_featuregroup(@project, featurestore_id, featuregroup6_id, "animal", "dog")
 
       td_name = "#{@project[:projectname]}_Training_Datasets"
       td_dataset = get_dataset(@project, td_name)
       connector = get_hopsfs_training_datasets_connector(@project[:projectname])
-      training_dataset_name1 = "animal1"
+      training_dataset_name1 = "td_animal1"
       td1 = s_create_training_dataset_checked(@project, featurestore_id, connector, training_dataset_name1)
-      training_dataset_name2 = "dog1"
+      training_dataset_name2 = "td_dog1"
       td2 = s_create_training_dataset_checked(@project, featurestore_id, connector, training_dataset_name2)
-      training_dataset_name3 = "something1"
+      training_dataset_name3 = "td_something1"
       td3 = s_create_training_dataset_checked(@project, featurestore_id, connector, training_dataset_name3)
       add_xattr(@project, get_path_dir(@project, td_dataset, "#{training_dataset_name3}_#{td3[:version]}"), "td_key", "dog_td")
-      training_dataset_name4 = "something2"
+      training_dataset_name4 = "td_something2"
       td4 = s_create_training_dataset_checked(@project, featurestore_id, connector, training_dataset_name4)
       add_xattr(@project, get_path_dir(@project, td_dataset, "#{training_dataset_name4}_#{td4[:version]}"), "td_key", "something_val")
       sleep(1)
