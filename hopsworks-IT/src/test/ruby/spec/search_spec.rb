@@ -230,15 +230,14 @@ describe "On #{ENV['OS']}" do
       td_dataset = get_dataset(@project, td_name)
       connector = get_hopsfs_training_datasets_connector(@project[:projectname])
       training_dataset_name1 = "animal1"
-      res = s_create_training_dataset_checked(@project, featurestore_id, connector, training_dataset_name1)
-      pp res
+      td1 = s_create_training_dataset_checked(@project, featurestore_id, connector, training_dataset_name1)
       training_dataset_name2 = "dog1"
-      s_create_training_dataset_checked(@project, featurestore_id, connector, training_dataset_name2)
+      td2 = s_create_training_dataset_checked(@project, featurestore_id, connector, training_dataset_name2)
       training_dataset_name3 = "something1"
-      s_create_training_dataset_checked(@project, featurestore_id, connector, training_dataset_name3)
+      td3 = s_create_training_dataset_checked(@project, featurestore_id, connector, training_dataset_name3)
       add_xattr(@project, get_path_dir(@project, td_dataset, training_dataset_name3), "td_key", "dog_td")
       training_dataset_name4 = "something2"
-      s_create_training_dataset_checked(@project, featurestore_id, connector, training_dataset_name4)
+      td4 = s_create_training_dataset_checked(@project, featurestore_id, connector, training_dataset_name4)
       add_xattr(@project, get_path_dir(@project, td_dataset, training_dataset_name4), "td_key", "something_val")
       sleep(1)
       time_this do
@@ -260,8 +259,8 @@ describe "On #{ENV['OS']}" do
         wait_for_me(15) do
           result = local_featurestore_search(@project, "TRAININGDATASETS", "training")
           if result[:trainingdatasets].length == 2
-            array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{training_dataset_name2}"}
-            array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{training_dataset_name3}"}
+            array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{training_dataset_name2}_#{td2[:version]}"}
+            array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{training_dataset_name3}_#{td3[:version]}"}
             true
           else
             pp "received:#{result[:trainingdatasets].length}"
