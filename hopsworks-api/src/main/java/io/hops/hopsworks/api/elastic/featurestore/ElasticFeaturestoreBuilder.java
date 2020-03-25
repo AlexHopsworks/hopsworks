@@ -52,9 +52,9 @@ public class ElasticFeaturestoreBuilder {
       ElasticFeaturestoreItemDTO item = new ElasticFeaturestoreItemDTO(hit.getName(), hit.getVersion(),
         hit.getProjectId(), hit.getProjectName());
       
-      if(FeaturestoreDocType.TRAININGDATASET.toString().equals(hit.getDocType())) {
+      if(FeaturestoreDocType.TRAININGDATASET.toString().toLowerCase().equals(hit.getDocType())) {
         result.addTrainingdataset(item);
-      } else if(FeaturestoreDocType.FEATUREGROUP.toString().equals(hit.getDocType())) {
+      } else if(FeaturestoreDocType.FEATUREGROUP.toString().toLowerCase().equals(hit.getDocType())) {
         result.addTrainingdataset(item);
       }
       dataAccessCtrl.addAccessProjects(user, accessMapper(item, hit), cache);
@@ -102,10 +102,10 @@ public class ElasticFeaturestoreBuilder {
       ElasticFeaturestoreItemDTO item = new ElasticFeaturestoreItemDTO(hit.getName(), hit.getVersion(),
         hit.getProjectId(), hit.getProjectName());
     
-      if(FeaturestoreDocType.TRAININGDATASET.toString().equals(hit.getDocType())) {
+      if(FeaturestoreDocType.TRAININGDATASET.toString().toLowerCase().equals(hit.getDocType())) {
         result.addTrainingdataset(item);
-      } else if(FeaturestoreDocType.FEATUREGROUP.toString().equals(hit.getDocType())) {
-        result.addTrainingdataset(item);
+      } else if(FeaturestoreDocType.FEATUREGROUP.toString().toLowerCase().equals(hit.getDocType())) {
+        result.addFeaturegroup(item);
       }
       item.addAccessProject(hit.getProjectId(), hit.getProjectName());
     }

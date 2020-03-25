@@ -15,12 +15,10 @@
  */
 package io.hops.hopsworks.api.elastic.featurestore;
 
-import org.javatuples.Pair;
-
 import javax.xml.bind.annotation.XmlRootElement;
 import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 @XmlRootElement
 public class ElasticFeaturestoreItemDTO {
@@ -30,8 +28,9 @@ public class ElasticFeaturestoreItemDTO {
   private Date created;
   private Integer version;
   //access fields
-  private Pair<Integer, String> parentProject;
-  private List<Pair<Integer, String>> accessProjects = new LinkedList<>();
+  private Integer parentProjectId;
+  private String parentProjectName;
+  private Map<Integer, String> accessProjects = new HashMap<>();
   
   public ElasticFeaturestoreItemDTO() {
   }
@@ -41,7 +40,8 @@ public class ElasticFeaturestoreItemDTO {
     this.description = "";
     this.created = null;
     this.version = version;
-    this.parentProject = Pair.with(parentProjectId, parentProjectName);
+    this.parentProjectId = parentProjectId;
+    this.parentProjectName = parentProjectName;
   }
   
   public String getName() {
@@ -76,23 +76,31 @@ public class ElasticFeaturestoreItemDTO {
     this.version = version;
   }
   
-  public Pair<Integer, String> getParentProject() {
-    return parentProject;
+  public Integer getParentProjectId() {
+    return parentProjectId;
   }
   
-  public void setParentProject(Pair<Integer, String> parentProject) {
-    this.parentProject = parentProject;
+  public void setParentProjectId(Integer parentProjectId) {
+    this.parentProjectId = parentProjectId;
   }
   
-  public List<Pair<Integer, String>> getAccessProjects() {
+  public String getParentProjectName() {
+    return parentProjectName;
+  }
+  
+  public void setParentProjectName(String parentProjectName) {
+    this.parentProjectName = parentProjectName;
+  }
+  
+  public Map<Integer, String> getAccessProjects() {
     return accessProjects;
   }
   
-  public void setAccessProjects(List<Pair<Integer, String>> accessProjects) {
+  public void setAccessProjects(Map<Integer, String> accessProjects) {
     this.accessProjects = accessProjects;
   }
   
   public void addAccessProject(Integer projectId, String projectName) {
-    accessProjects.add(Pair.with(projectId, projectName));
+    accessProjects.put(projectId, projectName);
   }
 }

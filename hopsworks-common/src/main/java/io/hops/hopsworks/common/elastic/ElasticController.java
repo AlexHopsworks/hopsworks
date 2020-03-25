@@ -607,10 +607,9 @@ public class ElasticController {
    */
   private QueryBuilder globalFeaturestoreSearchQuery(FeaturestoreDocType docType, String searchTerm) {
     if(FeaturestoreDocType.FEATURE.equals(docType)) {
-      QueryBuilder docTypeQuery = termQuery("doc_type", docType.toString().toLowerCase());
       String xattrKey = Settings.META_DATA_NESTED_FIELD + ".features.*";
       QueryBuilder query = boolQuery()
-        .must(docTypeQuery)
+        .must(termQuery("doc_type", FeaturestoreDocType.FEATUREGROUP.toString().toLowerCase()))
         .must(getXAttrQuery(xattrKey, searchTerm));
       return query;
     } else {

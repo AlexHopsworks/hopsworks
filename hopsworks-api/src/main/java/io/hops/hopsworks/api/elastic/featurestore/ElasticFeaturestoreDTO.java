@@ -16,12 +16,13 @@
 package io.hops.hopsworks.api.elastic.featurestore;
 
 import javax.xml.bind.annotation.XmlRootElement;
+import java.util.LinkedList;
 import java.util.List;
 
 @XmlRootElement
 public class ElasticFeaturestoreDTO {
-  private List<ElasticFeaturestoreItemDTO> featuregroups;
-  private List<ElasticFeaturestoreItemDTO> trainingdatasets;
+  private List<ElasticFeaturestoreItemDTO> featuregroups = new LinkedList<>();
+  private List<ElasticFeaturestoreItemDTO> trainingdatasets = new LinkedList<>();
   
   public ElasticFeaturestoreDTO() {
   }

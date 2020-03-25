@@ -196,6 +196,7 @@ describe "On #{ENV['OS']}" do
       time_this do
         wait_for_me(15) do
           result = local_featurestore_search(@project, "FEATUREGROUP", "car")
+          pp result
           if result[:featuregroup].length == 3
             array_contains_one_of(result[:featuregroup]) {|r| r[:name] == "#{featuregroup1_name}"}
             array_contains_one_of(result[:featuregroup]) {|r| r[:name] == "#{featuregroup2_name}"}
