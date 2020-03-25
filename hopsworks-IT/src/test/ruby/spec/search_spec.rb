@@ -29,6 +29,13 @@ describe "On #{ENV['OS']}" do
     parsed_json[:id]
   end
 
+  def s_create_featuregroup_checked(project, featurestore_id, featuregroup_name, features)
+    json_result, f_name = create_cached_featuregroup(project[:id], featurestore_id, featuregroup_name: featuregroup_name, features:features)
+    expect_status_details(201)
+    parsed_json = JSON.parse(json_result, :symbolize_names => true)
+    parsed_json[:id]
+  end
+
   context "global" do
   end
 
@@ -177,66 +184,53 @@ describe "On #{ENV['OS']}" do
       with_valid_project
     end
 
-    it "search featuregroup in name and xattr" do
+    it "search featuregroup with name, features, xattr" do
       featurestore_name = @project[:projectname].downcase + "_featurestore.db"
       featurestore_id = get_featurestore_id(@project[:id])
-      featuregroup1_name = "car1"
+
+      featuregroup1_name = "animal1"
       featuregroup1_id = s_create_featuregroup_checked(@project, featurestore_id, featuregroup1_name)
-      featuregroup2_name = "car2"
+      featuregroup2_name = "animal2"
       featuregroup2_id = s_create_featuregroup_checked(@project, featurestore_id, featuregroup2_name)
       featuregroup3_name = "othername1"
       featuregroup3_id = s_create_featuregroup_checked(@project, featurestore_id, featuregroup3_name)
       featuregroup4_name = "othername2"
-      featuregroup4_id = s_create_featuregroup_checked(@project, featurestore_id, featuregroup4_name)
-      add_xattr_featuregroup(@project, featurestore_id, featuregroup4_id, "car", "audi")
+      features4 = [
+          {
+              type: "INT",
+              name: "dog",
+              description: "--",
+              primary: false
+          }
+      ]
+      featuregroup4_id = s_create_featuregroup_checked(@project, featurestore_id, featuregroup4_name, features4)
       featuregroup5_name = "othername3"
-      featuregroup5_id = s_create_featuregroup_checked(@project, featurestore_id, featuregroup5_name)
-      add_xattr_featuregroup(@project, featurestore_id, featuregroup5_id, "hobby", "cars")
+      features5 = [
+          {
+              type: "INT",
+              name: "cat",
+              description: "--",
+              primary: false
+          }
+      ]
+      featuregroup5_id = s_create_featuregroup_checked(@project, featurestore_id, featuregroup5_name, features5)
+      add_xattr_featuregroup(@project, featurestore_id, featuregroup5_id, "hobby", "tennis")
+      featuregroup6_name = "othername4"
+      featuregroup6_id = s_create_featuregroup_checked(@project, featurestore_id, featuregroup6_name)
+      add_xattr_featuregroup(@project, featurestore_id, featuregroup6_id, "animal", "dog")
+
       sleep(1)
       time_this do
         wait_for_me(15) do
-          result = local_featurestore_search(@project, "FEATUREGROUP", "car")
-          pp result
-          if result[:featuregroups].length == 3
+          result = local_featurestore_search(@project, "dog")
+          if result[:featuregroups].length == 4
             array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{featuregroup1_name}"}
             array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{featuregroup2_name}"}
             array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{featuregroup5_name}"}
+            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{featuregroup6_name}"}
             true
           else
             pp "received:#{result[:featuregroups].length}"
-            false
-          end
-        end
-      end
-    end
-
-    it "search training dataset in name and xattr" do
-      featurestore_name = @project[:projectname].downcase + "_featurestore.db"
-      featurestore_id = get_featurestore_id(@project[:id])
-      featuregroup1_name = "car1"
-      featuregroup1_id = s_create_featuregroup_checked(@project, featurestore_id, featuregroup1_name)
-      featuregroup2_name = "car2"
-      featuregroup2_id = s_create_featuregroup_checked(@project, featurestore_id, featuregroup2_name)
-      featuregroup3_name = "othername1"
-      featuregroup3_id = s_create_featuregroup_checked(@project, featurestore_id, featuregroup3_name)
-      featuregroup4_name = "othername2"
-      featuregroup4_id = s_create_featuregroup_checked(@project, featurestore_id, featuregroup4_name)
-      add_xattr_featuregroup(@project, featurestore_id, featuregroup4_id, "car", "audi")
-      featuregroup5_name = "othername3"
-      featuregroup5_id = s_create_featuregroup_checked(@project, featurestore_id, featuregroup5_name)
-      add_xattr_featuregroup(@project, featurestore_id, featuregroup5_id, "hobby", "cars")
-      sleep(1)
-      time_this do
-        wait_for_me(15) do
-          result = local_featurestore_search(@project, "car")
-          if result.length == 3
-            array_contains_one_of(result) {|r| r[:name] == "#{featuregroup1_name}"}
-            array_contains_one_of(result) {|r| r[:name] == "#{featuregroup2_name}"}
-            array_contains_one_of(result) {|r| r[:name] == "#{featuregroup5_name}"}
-            result_contains_xattr_one_of(result) {|r| r.key?(:hobby) && r[:hobby] == "cars"}
-            true
-          else
-            pp "received:#{result.length}"
             false
           end
         end
