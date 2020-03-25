@@ -29,7 +29,7 @@ describe "On #{ENV['OS']}" do
     parsed_json[:id]
   end
 
-  def s_create_featuregroup_checked(project, featurestore_id, featuregroup_name, features)
+  def s_create_featuregroup_checked2(project, featurestore_id, featuregroup_name, features)
     json_result, f_name = create_cached_featuregroup(project[:id], featurestore_id, featuregroup_name: featuregroup_name, features:features)
     expect_status_details(201)
     parsed_json = JSON.parse(json_result, :symbolize_names => true)
@@ -203,7 +203,7 @@ describe "On #{ENV['OS']}" do
               primary: false
           }
       ]
-      featuregroup4_id = s_create_featuregroup_checked(@project, featurestore_id, featuregroup4_name, features4)
+      featuregroup4_id = s_create_featuregroup_checked2(@project, featurestore_id, featuregroup4_name, features4)
       featuregroup5_name = "othername3"
       features5 = [
           {
@@ -213,10 +213,10 @@ describe "On #{ENV['OS']}" do
               primary: false
           }
       ]
-      featuregroup5_id = s_create_featuregroup_checked(@project, featurestore_id, featuregroup5_name, features5)
+      featuregroup5_id = s_create_featuregroup_checked2(@project, featurestore_id, featuregroup5_name, features5)
       add_xattr_featuregroup(@project, featurestore_id, featuregroup5_id, "hobby", "tennis")
       featuregroup6_name = "othername4"
-      featuregroup6_id = s_create_featuregroup_checked(@project, featurestore_id, featuregroup6_name)
+      featuregroup6_id = s_create_featuregroup_checked2(@project, featurestore_id, featuregroup6_name)
       add_xattr_featuregroup(@project, featurestore_id, featuregroup6_id, "animal", "dog")
 
       sleep(1)
@@ -235,6 +235,12 @@ describe "On #{ENV['OS']}" do
           end
         end
       end
+    end
+
+    it "search training dataset with name, xattr" do
+      featurestore_id = get_featurestore_id(@project[:id])
+      connector = get_hopsfs_training_datasets_connector(@project[:projectname])
+      json_result1, training_dataset_name = create_hopsfs_training_dataset(project.id, featurestore_id, connector)
     end
   end
 end
