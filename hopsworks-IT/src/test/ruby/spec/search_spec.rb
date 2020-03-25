@@ -208,7 +208,7 @@ describe "On #{ENV['OS']}" do
               type: "INT",
               name: "dog",
               description: "--",
-              primary: false
+              primary: true
           }
       ]
       featuregroup4_id = s_create_featuregroup_checked2(@project, featurestore_id, featuregroup4_name, features4)
@@ -218,7 +218,7 @@ describe "On #{ENV['OS']}" do
               type: "INT",
               name: "cat",
               description: "--",
-              primary: false
+              primary: true
           }
       ]
       featuregroup5_id = s_create_featuregroup_checked2(@project, featurestore_id, featuregroup5_name, features5)
