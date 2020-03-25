@@ -36,6 +36,14 @@ describe "On #{ENV['OS']}" do
     parsed_json[:id]
   end
 
+  def s_create_training_dataset_checked(project, featurestore_id, connector)
+    json_result, training_dataset_name = create_hopsfs_training_dataset(project.id, featurestore_id, connector)
+    expect_status_details(201)
+    parsed_json = JSON.parse(json_result, :symbolize_names => true)
+    pp parsed_json
+    training_dataset_name
+  end
+
   context "global" do
   end
 
@@ -240,7 +248,8 @@ describe "On #{ENV['OS']}" do
     it "search training dataset with name, xattr" do
       featurestore_id = get_featurestore_id(@project[:id])
       connector = get_hopsfs_training_datasets_connector(@project[:projectname])
-      json_result1, training_dataset_name = create_hopsfs_training_dataset(project.id, featurestore_id, connector)
+      training_dataset_name = s_create_training_dataset_checked(project.id, featurestore_id, connector)
+      pp training_dataset_name
     end
   end
 end
