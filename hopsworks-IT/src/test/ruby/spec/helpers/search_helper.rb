@@ -37,8 +37,8 @@ module SearchHelper
   end
 
   def global_featurestore_search(doc_type, term)
-    get "#{ENV['HOPSWORKS_API']}/elastic/globalfeaturestore#{term}?docType=#{doc_type}"
-    pp "#{ENV['HOPSWORKS_API']}/elastic/globalfeaturestore#{term}?docType=#{doc_type}" if defined? (@debugOpt) && @debugOpt == true
+    get "#{ENV['HOPSWORKS_API']}/elastic/globalfeaturestore/#{term}?docType=#{doc_type}"
+    pp "#{ENV['HOPSWORKS_API']}/elastic/globalfeaturestore/#{term}?docType=#{doc_type}" if defined? (@debugOpt) && @debugOpt == true
     expect_status_details(200)
     json_body
   end

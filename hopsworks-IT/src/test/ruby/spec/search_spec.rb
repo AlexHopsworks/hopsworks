@@ -257,7 +257,7 @@ describe "On #{ENV['OS']}" do
       sleep(1)
       time_this do
         wait_for_me(15) do
-          result = local_featurestore_search(@project, "TRAININGDATASETS", "training")
+          result = local_featurestore_search(@project, "TRAININGDATASET", "training")
           if result[:trainingdatasets].length == 2
             array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{training_dataset_name2}_#{td2[:version]}"}
             array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{training_dataset_name3}_#{td3[:version]}"}
