@@ -36,12 +36,11 @@ describe "On #{ENV['OS']}" do
     parsed_json[:id]
   end
 
-  def s_create_training_dataset_checked(project, featurestore_id, connector)
-    json_result, training_dataset_name = create_hopsfs_training_dataset(project.id, featurestore_id, connector)
+  def s_create_training_dataset_checked(project, featurestore_id, connector, name)
+    json_result, training_dataset_name = create_hopsfs_training_dataset(project.id, featurestore_id, connector, name)
     expect_status_details(201)
     parsed_json = JSON.parse(json_result, :symbolize_names => true)
-    pp parsed_json
-    training_dataset_name
+    parsed_json
   end
 
   context "global" do
@@ -192,13 +191,13 @@ describe "On #{ENV['OS']}" do
       with_valid_project
     end
 
-    it "search featuregroup with name, features, xattr" do
+    it "search featuregroup, training datasets with name, features, xattr" do
       featurestore_name = @project[:projectname].downcase + "_featurestore.db"
       featurestore_id = get_featurestore_id(@project[:id])
 
       featuregroup1_name = "animal1"
       featuregroup1_id = s_create_featuregroup_checked(@project, featurestore_id, featuregroup1_name)
-      featuregroup2_name = "animal2"
+      featuregroup2_name = "dog1"
       featuregroup2_id = s_create_featuregroup_checked(@project, featurestore_id, featuregroup2_name)
       featuregroup3_name = "othername1"
       featuregroup3_id = s_create_featuregroup_checked(@project, featurestore_id, featuregroup3_name)
@@ -224,17 +223,29 @@ describe "On #{ENV['OS']}" do
       featuregroup5_id = s_create_featuregroup_checked2(@project, featurestore_id, featuregroup5_name, features5)
       add_xattr_featuregroup(@project, featurestore_id, featuregroup5_id, "hobby", "tennis")
       featuregroup6_name = "othername4"
-      featuregroup6_id = s_create_featuregroup_checked2(@project, featurestore_id, featuregroup6_name)
+      featuregroup6_id = s_create_featuregroup_checked(@project, featurestore_id, featuregroup6_name)
       add_xattr_featuregroup(@project, featurestore_id, featuregroup6_id, "animal", "dog")
 
+      td_name = "#{@project[:projectname]}_Training_Datasets"
+      td_dataset = get_dataset(@project, td_name)
+      connector = get_hopsfs_training_datasets_connector(@project[:projectname])
+      training_dataset_name1 = "animal1"
+      s_create_training_dataset_checked(@project, featurestore_id, connector, training_dataset_name1)
+      training_dataset_name2 = "dog1"
+      s_create_training_dataset_checked(@project, featurestore_id, connector, training_dataset_name2)
+      training_dataset_name3 = "something1"
+      s_create_training_dataset_checked(@project, featurestore_id, connector, training_dataset_name3)
+      add_xattr(@project, get_path_dir(@project, td_dataset, training_dataset_name3, "td_key", "dog_td"))
+      training_dataset_name4 = "something2"
+      s_create_training_dataset_checked(@project, featurestore_id, connector, training_dataset_name4)
+      add_xattr(@project, get_path_dir(@project, td_dataset, training_dataset_name4, "td_key", "something_val"))
       sleep(1)
       time_this do
         wait_for_me(15) do
-          result = local_featurestore_search(@project, "dog")
-          if result[:featuregroups].length == 4
-            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{featuregroup1_name}"}
+          result = local_featurestore_search(@project, "FEATUREGROUP", "dog")
+          if result[:featuregroups].length == 3
             array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{featuregroup2_name}"}
-            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{featuregroup5_name}"}
+            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{featuregroup4_name}"}
             array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{featuregroup6_name}"}
             true
           else
@@ -243,13 +254,20 @@ describe "On #{ENV['OS']}" do
           end
         end
       end
-    end
-
-    it "search training dataset with name, xattr" do
-      featurestore_id = get_featurestore_id(@project[:id])
-      connector = get_hopsfs_training_datasets_connector(@project[:projectname])
-      training_dataset_name = s_create_training_dataset_checked(@project, featurestore_id, connector)
-      pp training_dataset_name
+      sleep(1)
+      time_this do
+        wait_for_me(15) do
+          result = local_featurestore_search(@project, "TRAININGDATASETS", "training")
+          if result[:trainingdatasets].length == 2
+            array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{training_dataset_name2}"}
+            array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{training_dataset_name3}"}
+            true
+          else
+            pp "received:#{result[:trainingdatasets].length}"
+            false
+          end
+        end
+      end
     end
   end
 end
