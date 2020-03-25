@@ -36,8 +36,8 @@ describe "On #{ENV['OS']}" do
     parsed_json[:id]
   end
 
-  def s_create_training_dataset_checked(project, featurestore_id, connector, name)
-    json_result, training_dataset_name = create_hopsfs_training_dataset(project.id, featurestore_id, connector, name)
+  def s_create_training_dataset_checked(project, featurestore_id, connector, training_dataset_name)
+    json_result, _training_dataset_name = create_hopsfs_training_dataset(project.id, featurestore_id, connector, name:training_dataset_name)
     expect_status_details(201)
     parsed_json = JSON.parse(json_result, :symbolize_names => true)
     parsed_json
