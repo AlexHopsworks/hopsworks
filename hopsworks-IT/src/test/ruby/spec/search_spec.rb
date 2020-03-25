@@ -197,14 +197,14 @@ describe "On #{ENV['OS']}" do
         wait_for_me(15) do
           result = local_featurestore_search(@project, "FEATUREGROUP", "car")
           pp result
-          if result[:featuregroup].length == 3
-            array_contains_one_of(result[:featuregroup]) {|r| r[:name] == "#{featuregroup1_name}"}
-            array_contains_one_of(result[:featuregroup]) {|r| r[:name] == "#{featuregroup2_name}"}
-            array_contains_one_of(result[:featuregroup]) {|r| r[:name] == "#{featuregroup5_name}"}
-            result_contains_xattr_one_of(result[:featuregroup]) {|r| r.key?(:hobby) && r[:hobby] == "cars"}
+          if result[:featuregroups].length == 3
+            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{featuregroup1_name}"}
+            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{featuregroup2_name}"}
+            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{featuregroup5_name}"}
+            result_contains_xattr_one_of(result[:featuregroups]) {|r| r.key?(:hobby) && r[:hobby] == "cars"}
             true
           else
-            pp "received:#{result[:featuregroup].length}"
+            pp "received:#{result[:featuregroups].length}"
             false
           end
         end
