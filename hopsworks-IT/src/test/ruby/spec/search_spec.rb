@@ -248,7 +248,7 @@ describe "On #{ENV['OS']}" do
     it "search training dataset with name, xattr" do
       featurestore_id = get_featurestore_id(@project[:id])
       connector = get_hopsfs_training_datasets_connector(@project[:projectname])
-      training_dataset_name = s_create_training_dataset_checked(project.id, featurestore_id, connector)
+      training_dataset_name = s_create_training_dataset_checked(@project, featurestore_id, connector)
       pp training_dataset_name
     end
   end
