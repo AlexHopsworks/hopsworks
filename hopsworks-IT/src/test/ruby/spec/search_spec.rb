@@ -235,10 +235,10 @@ describe "On #{ENV['OS']}" do
       td2 = s_create_training_dataset_checked(@project, featurestore_id, connector, training_dataset_name2)
       training_dataset_name3 = "something1"
       td3 = s_create_training_dataset_checked(@project, featurestore_id, connector, training_dataset_name3)
-      add_xattr(@project, get_path_dir(@project, td_dataset, training_dataset_name3), "td_key", "dog_td")
+      add_xattr(@project, get_path_dir(@project, td_dataset, "#{training_dataset_name3}_#{td3[:version]}"), "td_key", "dog_td")
       training_dataset_name4 = "something2"
       td4 = s_create_training_dataset_checked(@project, featurestore_id, connector, training_dataset_name4)
-      add_xattr(@project, get_path_dir(@project, td_dataset, training_dataset_name4), "td_key", "something_val")
+      add_xattr(@project, get_path_dir(@project, td_dataset, "#{training_dataset_name4}_#{td4[:version]}"), "td_key", "something_val")
       sleep(1)
       time_this do
         wait_for_me(15) do
