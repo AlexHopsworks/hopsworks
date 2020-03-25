@@ -37,10 +37,10 @@ describe "On #{ENV['OS']}" do
   end
 
   def s_create_training_dataset_checked(project, featurestore_id, connector, training_dataset_name)
-    json_result, _training_dataset_name = create_hopsfs_training_dataset(project.id, featurestore_id, connector, name:training_dataset_name)
+    json_result, training_dataset_name_aux = create_hopsfs_training_dataset(project.id, featurestore_id, connector, name:training_dataset_name)
     expect_status_details(201)
     parsed_json = JSON.parse(json_result, :symbolize_names => true)
-    parsed_json
+    training_dataset_name_aux
   end
 
   context "global" do
@@ -229,15 +229,11 @@ describe "On #{ENV['OS']}" do
       td_name = "#{@project[:projectname]}_Training_Datasets"
       td_dataset = get_dataset(@project, td_name)
       connector = get_hopsfs_training_datasets_connector(@project[:projectname])
-      training_dataset_name1 = "animal1"
-      s_create_training_dataset_checked(@project, featurestore_id, connector, training_dataset_name1)
-      training_dataset_name2 = "dog1"
-      s_create_training_dataset_checked(@project, featurestore_id, connector, training_dataset_name2)
-      training_dataset_name3 = "something1"
-      s_create_training_dataset_checked(@project, featurestore_id, connector, training_dataset_name3)
+      training_dataset_name1 = s_create_training_dataset_checked(@project, featurestore_id, connector, "animal1")
+      training_dataset_name2 = s_create_training_dataset_checked(@project, featurestore_id, connector, "dog1")
+      training_dataset_name3 = s_create_training_dataset_checked(@project, featurestore_id, connector, "something1")
       add_xattr(@project, get_path_dir(@project, td_dataset, training_dataset_name3), "td_key", "dog_td")
-      training_dataset_name4 = "something2"
-      s_create_training_dataset_checked(@project, featurestore_id, connector, training_dataset_name4)
+      training_dataset_name4 = s_create_training_dataset_checked(@project, featurestore_id, connector, "something2")
       add_xattr(@project, get_path_dir(@project, td_dataset, training_dataset_name4), "td_key", "something_val")
       sleep(1)
       time_this do
