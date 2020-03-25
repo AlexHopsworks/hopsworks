@@ -201,7 +201,6 @@ describe "On #{ENV['OS']}" do
             array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{featuregroup1_name}"}
             array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{featuregroup2_name}"}
             array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{featuregroup5_name}"}
-            result_contains_xattr_one_of(result[:featuregroups]) {|r| r.key?(:hobby) && r[:hobby] == "cars"}
             true
           else
             pp "received:#{result[:featuregroups].length}"
