@@ -40,7 +40,7 @@ describe "On #{ENV['OS']}" do
     json_result, training_dataset_name_aux = create_hopsfs_training_dataset(project.id, featurestore_id, connector, name:training_dataset_name)
     expect_status_details(201)
     parsed_json = JSON.parse(json_result, :symbolize_names => true)
-    training_dataset_name_aux
+    parsed_json
   end
 
   context "global" do
