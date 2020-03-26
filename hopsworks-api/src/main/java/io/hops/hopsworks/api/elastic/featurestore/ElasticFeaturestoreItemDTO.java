@@ -22,6 +22,7 @@ import java.util.Map;
 
 @XmlRootElement
 public class ElasticFeaturestoreItemDTO {
+  private String elasticId;
   //base fields
   private String name;
   private String description;
@@ -35,13 +36,23 @@ public class ElasticFeaturestoreItemDTO {
   public ElasticFeaturestoreItemDTO() {
   }
   
-  public ElasticFeaturestoreItemDTO(String name, Integer version, Integer parentProjectId, String parentProjectName) {
+  public ElasticFeaturestoreItemDTO(String elasticId, String name, Integer version, Integer parentProjectId,
+    String parentProjectName) {
+    this.elasticId = elasticId;
     this.name = name;
     this.description = "";
     this.created = null;
     this.version = version;
     this.parentProjectId = parentProjectId;
     this.parentProjectName = parentProjectName;
+  }
+  
+  public String getElasticId() {
+    return elasticId;
+  }
+  
+  public void setElasticId(String elasticId) {
+    this.elasticId = elasticId;
   }
   
   public String getName() {

@@ -49,7 +49,7 @@ public class ElasticFeaturestoreBuilder {
     List<FeaturestoreElasticHit> hits = elasticCtrl.featurestoreSearch(req.getDocType(), req.getTerm());
     DataAccessController.ShortLivedCache cache = dataAccessCtrl.newCache();
     for(FeaturestoreElasticHit hit : hits) {
-      ElasticFeaturestoreItemDTO item = new ElasticFeaturestoreItemDTO(hit.getName(), hit.getVersion(),
+      ElasticFeaturestoreItemDTO item = new ElasticFeaturestoreItemDTO(hit.getId(), hit.getName(), hit.getVersion(),
         hit.getProjectId(), hit.getProjectName());
       
       if(FeaturestoreDocType.TRAININGDATASET.toString().toLowerCase().equals(hit.getDocType())) {
@@ -99,7 +99,7 @@ public class ElasticFeaturestoreBuilder {
     List<FeaturestoreElasticHit> hits = elasticCtrl.featurestoreSearch(req.getTerm(), searchProjects);
   
     for(FeaturestoreElasticHit hit : hits) {
-      ElasticFeaturestoreItemDTO item = new ElasticFeaturestoreItemDTO(hit.getName(), hit.getVersion(),
+      ElasticFeaturestoreItemDTO item = new ElasticFeaturestoreItemDTO(hit.getId(), hit.getName(), hit.getVersion(),
         hit.getProjectId(), hit.getProjectName());
     
       if(FeaturestoreDocType.TRAININGDATASET.toString().toLowerCase().equals(hit.getDocType())) {
