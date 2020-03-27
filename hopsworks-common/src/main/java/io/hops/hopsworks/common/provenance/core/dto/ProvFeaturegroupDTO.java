@@ -16,27 +16,35 @@
 package io.hops.hopsworks.common.provenance.core.dto;
 
 import javax.xml.bind.annotation.XmlRootElement;
+import java.util.LinkedList;
+import java.util.List;
 
 @XmlRootElement
-public class ProvFeatureDTO {
-  private String group;
+public class ProvFeaturegroupDTO {
+  private Integer featurestoreId;
   private String name;
   private Integer version;
+  private List<String> features = new LinkedList<>();
   
-  public ProvFeatureDTO() {}
+  public ProvFeaturegroupDTO() {}
   
-  public ProvFeatureDTO(String group, String name, Integer version) {
-    this.group = group;
+  public ProvFeaturegroupDTO(Integer featurestoreId, String name, Integer version) {
+    this(featurestoreId, name, version, new LinkedList<>());
+  }
+  
+  public ProvFeaturegroupDTO(Integer featurestoreId, String name, Integer version, List<String> features) {
+    this.featurestoreId = featurestoreId;
     this.name = name;
     this.version = version;
+    this.features = features;
   }
   
-  public String getGroup() {
-    return group;
+  public Integer getFeaturestoreId() {
+    return featurestoreId;
   }
   
-  public void setGroup(String group) {
-    this.group = group;
+  public void setFeaturestoreId(Integer featurestoreId) {
+    this.featurestoreId = featurestoreId;
   }
   
   public String getName() {
@@ -53,5 +61,17 @@ public class ProvFeatureDTO {
   
   public void setVersion(Integer version) {
     this.version = version;
+  }
+  
+  public List<String> getFeatures() {
+    return features;
+  }
+  
+  public void setFeatures(List<String> features) {
+    this.features = features;
+  }
+  
+  public void addFeature(String feature) {
+    features.add(feature);
   }
 }

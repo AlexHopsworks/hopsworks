@@ -23,14 +23,16 @@ import java.util.List;
 public class ElasticFeaturestoreDTO {
   private List<ElasticFeaturestoreItemDTO> featuregroups = new LinkedList<>();
   private List<ElasticFeaturestoreItemDTO> trainingdatasets = new LinkedList<>();
+  private List<ElasticFeatureDTO> features = new LinkedList<>();
   
   public ElasticFeaturestoreDTO() {
   }
   
   public ElasticFeaturestoreDTO(List<ElasticFeaturestoreItemDTO> featuregroups,
-    List<ElasticFeaturestoreItemDTO> trainingdatasets) {
+    List<ElasticFeaturestoreItemDTO> trainingdatasets, List<ElasticFeatureDTO> features) {
     this.featuregroups = featuregroups;
     this.trainingdatasets = trainingdatasets;
+    this.features = features;
   }
   
   public List<ElasticFeaturestoreItemDTO> getFeaturegroups() {
@@ -55,5 +57,9 @@ public class ElasticFeaturestoreDTO {
   
   public void addFeaturegroup(ElasticFeaturestoreItemDTO featuregroup) {
     featuregroups.add(featuregroup);
+  }
+  
+  public void addFeature(ElasticFeatureDTO feature) {
+    features.add(feature);
   }
 }

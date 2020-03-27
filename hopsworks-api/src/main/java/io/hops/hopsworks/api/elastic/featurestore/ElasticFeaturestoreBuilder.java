@@ -23,6 +23,7 @@ import io.hops.hopsworks.exceptions.ElasticException;
 import io.hops.hopsworks.exceptions.ServiceException;
 import io.hops.hopsworks.persistence.entity.project.Project;
 import io.hops.hopsworks.persistence.entity.user.Users;
+import org.javatuples.Pair;
 
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
@@ -46,9 +47,10 @@ public class ElasticFeaturestoreBuilder {
   public ElasticFeaturestoreDTO build(Users user, ElasticFeaturestoreRequest req)
     throws ElasticException, ServiceException {
     ElasticFeaturestoreDTO result = new ElasticFeaturestoreDTO();
-    List<FeaturestoreElasticHit> hits = elasticCtrl.featurestoreSearch(req.getDocType(), req.getTerm());
+    Pair<List<FeaturestoreElasticHit>, List<FeaturestoreElasticHit>> hits =
+      elasticCtrl.featurestoreSearch(req.getDocType(), req.getTerm());
     DataAccessController.ShortLivedCache cache = dataAccessCtrl.newCache();
-    for(FeaturestoreElasticHit hit : hits) {
+    for(FeaturestoreElasticHit hit : hits.getValue1()) {
       ElasticFeaturestoreItemDTO item = new ElasticFeaturestoreItemDTO(hit.getId(), hit.getName(), hit.getVersion(),
         hit.getProjectId(), hit.getProjectName());
       
@@ -96,9 +98,10 @@ public class ElasticFeaturestoreBuilder {
     Map<FeaturestoreDocType, Set<Integer>> searchProjects
       = dataAccessCtrl.featurestoreSearchContext(project, req.getDocType());
     
-    List<FeaturestoreElasticHit> hits = elasticCtrl.featurestoreSearch(req.getTerm(), searchProjects);
+    Pair<List<FeaturestoreElasticHit>,List<FeaturestoreElasticHit>> hits =
+      elasticCtrl.featurestoreSearch(req.getTerm(), searchProjects);
   
-    for(FeaturestoreElasticHit hit : hits) {
+    for(FeaturestoreElasticHit hit : hits.getValue1()) {
       ElasticFeaturestoreItemDTO item = new ElasticFeaturestoreItemDTO(hit.getId(), hit.getName(), hit.getVersion(),
         hit.getProjectId(), hit.getProjectName());
     

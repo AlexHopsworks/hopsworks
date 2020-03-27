@@ -26,7 +26,7 @@ import io.hops.hopsworks.common.hdfs.DistributedFileSystemOps;
 import io.hops.hopsworks.common.hdfs.DistributedFsService;
 import io.hops.hopsworks.common.hdfs.HdfsUsersController;
 import io.hops.hopsworks.common.hdfs.Utils;
-import io.hops.hopsworks.common.provenance.core.dto.ProvFeatureDTO;
+import io.hops.hopsworks.common.provenance.core.dto.ProvFeaturegroupDTO;
 import io.hops.hopsworks.common.provenance.core.dto.ProvDatasetDTO;
 import io.hops.hopsworks.common.provenance.core.dto.ProvCoreDTO;
 import io.hops.hopsworks.common.provenance.core.dto.ProvTypeDTO;
@@ -42,8 +42,10 @@ import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 
 @Stateless(name = "HopsFSProvenanceController")
@@ -94,7 +96,7 @@ public class HopsFSProvenanceController {
     if(features == null) {
       return;
     }
-    List<ProvFeatureDTO> featuresDTO = fromFeatures(features);
+    List<ProvFeaturegroupDTO> featuresDTO = fromFeatures(features);
     try {
       udfso.upsertXAttr(path, ProvXAttrs.PROV_XATTR_FEATURES, converter.marshal(featuresDTO).getBytes());
     } catch (IOException | GenericException e) {
@@ -105,9 +107,9 @@ public class HopsFSProvenanceController {
   
   private void setFeaturesXAttr(String path, FeaturegroupDTO featuregroup, DistributedFileSystemOps udfso)
     throws ProvenanceException {
-    List<ProvFeatureDTO> featuresDTO = fromFeatures(featuregroup);
+    ProvFeaturegroupDTO featuregroupDTO = fromFeaturegroup(featuregroup);
     try {
-      udfso.upsertXAttr(path, ProvXAttrs.PROV_XATTR_FEATURES, converter.marshal(featuresDTO).getBytes());
+      udfso.upsertXAttr(path, ProvXAttrs.PROV_XATTR_FEATURES, converter.marshal(featuregroupDTO).getBytes());
     } catch (IOException | GenericException e) {
       throw new ProvenanceException(RESTCodes.ProvenanceErrorCode.FS_ERROR, Level.WARNING,
         "hopsfs - set xattr - prov features - error", "hopsfs - set xattr - prov features - error", e);
@@ -290,19 +292,28 @@ public class HopsFSProvenanceController {
     }
   }
   
-  private List<ProvFeatureDTO> fromFeatures(List<FeatureDTO> features) {
-    List<ProvFeatureDTO> result = new LinkedList<>();
+  //TODO - featurestore without knowing the featurestoreId I can't split them
+  private List<ProvFeaturegroupDTO> fromFeatures(List<FeatureDTO> features) {
+    List<ProvFeaturegroupDTO> result = new LinkedList<>();
+    Map<String, ProvFeaturegroupDTO> featuregroups = new HashMap<>();
     for(FeatureDTO feature : features) {
-      result.add(new ProvFeatureDTO(feature.getFeaturegroup(), feature.getName(), feature.getVersion()));
+      ProvFeaturegroupDTO featuregroup = featuregroups.get(feature.getFeaturegroup());
+      if(featuregroup == null) {
+        featuregroup = new ProvFeaturegroupDTO(-1, feature.getFeaturegroup(), feature.getVersion());
+        featuregroups.put(feature.getFeaturegroup(), featuregroup);
+        result.add(featuregroup);
+      }
+      featuregroup.addFeature(feature.getName());
     }
     return result;
   }
   
-  private List<ProvFeatureDTO> fromFeatures(FeaturegroupDTO featuregroup) {
-    List<ProvFeatureDTO> result = new LinkedList<>();
+  private ProvFeaturegroupDTO fromFeaturegroup(FeaturegroupDTO featuregroup) {
+    List<String> features = new LinkedList<>();
     for(FeatureDTO feature : featuregroup.getFeatures()) {
-      result.add(new ProvFeatureDTO(featuregroup.getName(), feature.getName(), featuregroup.getVersion()));
+      features.add(feature.getName());
     }
-    return result;
+    return new ProvFeaturegroupDTO(featuregroup.getFeaturestoreId(), featuregroup.getName(),
+      featuregroup.getVersion(), features);
   }
 }
