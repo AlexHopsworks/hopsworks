@@ -243,6 +243,7 @@ describe "On #{ENV['OS']}" do
       time_this do
         wait_for_me(15) do
           result = local_featurestore_search(@project, "FEATUREGROUP", "dog")
+          pp result
           if result[:featuregroups].length == 3
             array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{featuregroup2_name}"}
             array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{featuregroup4_name}"}
@@ -258,6 +259,7 @@ describe "On #{ENV['OS']}" do
       time_this do
         wait_for_me(15) do
           result = local_featurestore_search(@project, "TRAININGDATASET", "dog")
+          pp result
           if result[:trainingdatasets].length == 2
             array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{training_dataset_name2}"}
             array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{training_dataset_name3}"}
