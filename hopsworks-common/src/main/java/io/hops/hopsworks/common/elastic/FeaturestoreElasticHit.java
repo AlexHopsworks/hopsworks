@@ -21,10 +21,7 @@ import org.elasticsearch.search.SearchHit;
 
 import javax.xml.bind.annotation.XmlRootElement;
 import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -47,29 +44,9 @@ public class FeaturestoreElasticHit implements Comparator<FeaturestoreElasticHit
   private Integer projectId;
   private String projectName;
   private Long datasetIId;
-  private Set<String> features = new HashSet<>();
-  private Map<String, String> tags = new HashMap<>();
-  private Map<String, String> otherXAttrs = new HashMap<>();
+  private Map<String, Object> xattrs;
 
   public FeaturestoreElasticHit() {
-  }
-  
-  public FeaturestoreElasticHit(String id, float score, Map<String, Object> map,
-    String docType, String name, int version, int projectId, String projectName, Long datasetIId,
-    Set<String> features,  Map<String, String> tags, Map<String, String> otherXAttrs) {
-    this.id = id;
-    this.score = score;
-    
-    this.docType = docType;
-    this.name = name;
-    this.version = version;
-    this.projectId = projectId;
-    this.projectName = projectName;
-    this.datasetIId = datasetIId;
-    this.features = features;
-    this.tags = tags;
-    this.otherXAttrs = otherXAttrs;
-    
   }
   
   public static FeaturestoreElasticHit instance(SearchHit hit) throws ElasticException {
@@ -94,24 +71,14 @@ public class FeaturestoreElasticHit implements Comparator<FeaturestoreElasticHit
         } else if (entry.getKey().equals("dataset_iid")) {
           feHit.datasetIId = Long.parseLong(entry.getValue().toString());
         } else if (entry.getKey().equals("xattr")) {
-          Map<String, Object> xattrs = (Map)entry.getValue();
-          for(Map.Entry<String, Object> e : xattrs.entrySet()) {
-            if(e.getKey().equals("features")) {
-              feHit.features.add(e.getValue().toString());
-            } else if(e.getKey().equals("tags")) {
-              Map<String, Object> tags = (Map)e.getValue();
-              for(Map.Entry<String, Object> ee : tags.entrySet()) {
-                feHit.tags.put(ee.getKey(), ee.getValue().toString());
-              }
-            } else {
-              feHit.otherXAttrs.put(e.getKey(), e.getValue().toString());
-            }
-          }
+          feHit.xattrs = (Map)entry.getValue();
         }
       }
     } catch (NumberFormatException e) {
-      throw new ElasticException(RESTCodes.ElasticErrorCode.ELASTIC_INTERNAL_REQ_ERROR,
-        Level.WARNING, "Hopsworks and Elastic types do not match - number problem");
+      String userMsg = "Internal error during query";
+      String devMsg = "Hopsworks and Elastic types do not match - parsing problem";
+      throw new ElasticException(RESTCodes.ElasticErrorCode.ELASTIC_INTERNAL_REQ_ERROR, Level.WARNING,
+        userMsg, devMsg, e);
     }
     return feHit;
   }
@@ -185,28 +152,12 @@ public class FeaturestoreElasticHit implements Comparator<FeaturestoreElasticHit
     this.datasetIId = datasetIId;
   }
   
-  public Set<String> getFeatures() {
-    return features;
+  public Map<String, Object> getXattrs() {
+    return xattrs;
   }
   
-  public void setFeatures(Set<String> features) {
-    this.features = features;
-  }
-  
-  public Map<String, String> getTags() {
-    return tags;
-  }
-  
-  public void setTags(Map<String, String> tags) {
-    this.tags = tags;
-  }
-  
-  public Map<String, String> getOtherXAttrs() {
-    return otherXAttrs;
-  }
-  
-  public void setOtherXAttrs(Map<String, String> otherXAttrs) {
-    this.otherXAttrs = otherXAttrs;
+  public void setXattrs(Map<String, Object> xattrs) {
+    this.xattrs = xattrs;
   }
   
   @Override
@@ -220,9 +171,7 @@ public class FeaturestoreElasticHit implements Comparator<FeaturestoreElasticHit
       ", projectId=" + projectId +
       ", projectName='" + projectName + '\'' +
       ", datasetIId=" + datasetIId +
-      ", features=" + features +
-      ", tags=" + tags +
-      ", otherXAttrs=" + otherXAttrs +
+      ", features=" + xattrs +
       '}';
   }
 }

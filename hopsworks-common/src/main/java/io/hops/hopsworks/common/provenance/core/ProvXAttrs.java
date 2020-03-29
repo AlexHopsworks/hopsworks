@@ -22,9 +22,24 @@ public class ProvXAttrs {
   public static final String PROV_CORE_PROJECT_IID_KEY = "project_iid";
   public static final String PROV_CORE_META_STATUS_KEY = "meta_status";
   public static final String PROV_CORE_STATUS_KEY = "prov_status";
-  public static final String PROV_XATTR_FEATURES = PROV_XATTR + ".features";
+  
   public static final String PROV_XATTR_EXPERIMENT_SUMMARY = PROV_XATTR + ".experiment_summary";
   public static final String PROV_EXP_EXECUTABLE = "executable";
   public static final String PROV_EXP_ENVIRONMENT = "environment";
   public static final String PROV_XATTR_MODEL = PROV_XATTR + ".model";
+  
+  public static class Featurestore {
+    public static final String FEATUREGROUP = "featuregroup";
+    public static final String XATTR_FEATUREGROUP = PROV_XATTR + "." + FEATUREGROUP;
+    public static final String TRAINING_DATASET = "training_dataset";
+    public static final String XATTR_TRAINING_DATASET = PROV_XATTR + "." + TRAINING_DATASET;
+    public static final String TAGS = "tags";
+    public static final String FEATURESTORE_ID = "featurestore_id";
+    public static final String NAME = "name";
+    public static final String VERSION = "version";
+    public static final String FEATURES = "features";
+    public static final String DESCRIPTION = "description";
+    public static final String CREATE_DATE = "create_date";
+    public static final String CREATOR = "creator";
+  }
 }

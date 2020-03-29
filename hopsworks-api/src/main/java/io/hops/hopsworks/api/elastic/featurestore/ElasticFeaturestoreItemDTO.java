@@ -15,6 +15,13 @@
  */
 package io.hops.hopsworks.api.elastic.featurestore;
 
+import io.hops.hopsworks.common.elastic.FeaturestoreElasticHit;
+import io.hops.hopsworks.common.provenance.core.ProvXAttrs;
+import io.hops.hopsworks.common.provenance.core.dto.ProvFeaturegroupDTO;
+import io.hops.hopsworks.common.provenance.core.dto.ProvTrainingDatasetDTO;
+import io.hops.hopsworks.common.util.HopsworksJAXBContext;
+import io.hops.hopsworks.exceptions.GenericException;
+
 import javax.xml.bind.annotation.XmlRootElement;
 import java.util.Date;
 import java.util.HashMap;
@@ -27,6 +34,8 @@ public class ElasticFeaturestoreItemDTO {
   private String name;
   private String description;
   private Date created;
+  private String creator;
+  private Integer featurestoreId;
   private Integer version;
   //access fields
   private Integer parentProjectId;
@@ -36,15 +45,50 @@ public class ElasticFeaturestoreItemDTO {
   public ElasticFeaturestoreItemDTO() {
   }
   
-  public ElasticFeaturestoreItemDTO(String elasticId, String name, Integer version, Integer parentProjectId,
-    String parentProjectName) {
-    this.elasticId = elasticId;
-    this.name = name;
-    this.description = "";
-    this.created = null;
-    this.version = version;
-    this.parentProjectId = parentProjectId;
-    this.parentProjectName = parentProjectName;
+  public static ElasticFeaturestoreItemDTO fromFeaturegroup(FeaturestoreElasticHit hit,
+    HopsworksJAXBContext converter) throws GenericException {
+    ElasticFeaturestoreItemDTO item = new ElasticFeaturestoreItemDTO();
+    item.elasticId = hit.getId();
+    item.name = hit.getName();
+    item.version = hit.getVersion();
+    item.parentProjectId = hit.getProjectId();
+    item.parentProjectName = hit.getProjectName();
+    for(Map.Entry<String, Object> e : hit.getXattrs().entrySet()) {
+      switch (e.getKey()) {
+        case ProvXAttrs.Featurestore.FEATUREGROUP: {
+          ProvFeaturegroupDTO.Extended fg
+            = converter.unmarshal(e.getValue().toString(), ProvFeaturegroupDTO.Extended.class);
+          item.featurestoreId = fg.getFeaturestoreId();
+          item.description = fg.getDescription();
+          item.created = new Date(fg.getCreateDate());
+          item.creator = fg.getCreator();
+        } break;
+      }
+    }
+    return item;
+  }
+  
+  public static ElasticFeaturestoreItemDTO fromTrainingDataset(FeaturestoreElasticHit hit,
+    HopsworksJAXBContext converter) throws GenericException {
+    ElasticFeaturestoreItemDTO item = new ElasticFeaturestoreItemDTO();
+    item.elasticId = hit.getId();
+    item.name = hit.getName();
+    item.version = hit.getVersion();
+    item.parentProjectId = hit.getProjectId();
+    item.parentProjectName = hit.getProjectName();
+    for(Map.Entry<String, Object> e : hit.getXattrs().entrySet()) {
+      switch (e.getKey()) {
+        case ProvXAttrs.Featurestore.TRAINING_DATASET: {
+          ProvTrainingDatasetDTO td
+            = converter.unmarshal(e.getValue().toString(), ProvTrainingDatasetDTO.class);
+          item.featurestoreId = td.getFeaturestoreId();
+          item.description = td.getDescription();
+          item.created = new Date(td.getCreateDate());
+          item.creator = td.getCreator();
+        } break;
+      }
+    }
+    return item;
   }
   
   public String getElasticId() {
@@ -55,12 +99,28 @@ public class ElasticFeaturestoreItemDTO {
     this.elasticId = elasticId;
   }
   
+  public Integer getFeaturestoreId() {
+    return featurestoreId;
+  }
+  
+  public void setFeaturestoreId(Integer featurestoreId) {
+    this.featurestoreId = featurestoreId;
+  }
+  
   public String getName() {
     return name;
   }
   
   public void setName(String name) {
     this.name = name;
+  }
+  
+  public Integer getVersion() {
+    return version;
+  }
+  
+  public void setVersion(Integer version) {
+    this.version = version;
   }
   
   public String getDescription() {
@@ -79,12 +139,12 @@ public class ElasticFeaturestoreItemDTO {
     this.created = created;
   }
   
-  public Integer getVersion() {
-    return version;
+  public String getCreator() {
+    return creator;
   }
   
-  public void setVersion(Integer version) {
-    this.version = version;
+  public void setCreator(String creator) {
+    this.creator = creator;
   }
   
   public Integer getParentProjectId() {

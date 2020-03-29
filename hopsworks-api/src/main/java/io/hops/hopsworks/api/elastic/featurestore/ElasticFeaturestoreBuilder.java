@@ -19,7 +19,9 @@ import io.hops.hopsworks.common.dao.project.ProjectFacade;
 import io.hops.hopsworks.common.elastic.ElasticController;
 import io.hops.hopsworks.common.elastic.FeaturestoreDocType;
 import io.hops.hopsworks.common.elastic.FeaturestoreElasticHit;
+import io.hops.hopsworks.common.util.HopsworksJAXBContext;
 import io.hops.hopsworks.exceptions.ElasticException;
+import io.hops.hopsworks.exceptions.GenericException;
 import io.hops.hopsworks.exceptions.ServiceException;
 import io.hops.hopsworks.persistence.entity.project.Project;
 import io.hops.hopsworks.persistence.entity.user.Users;
@@ -43,20 +45,22 @@ public class ElasticFeaturestoreBuilder {
   private DataAccessController dataAccessCtrl;
   @EJB
   private ProjectFacade projectFacade;
+  @EJB
+  private HopsworksJAXBContext converter;
   
   public ElasticFeaturestoreDTO build(Users user, ElasticFeaturestoreRequest req)
-    throws ElasticException, ServiceException {
+    throws ElasticException, ServiceException, GenericException {
     ElasticFeaturestoreDTO result = new ElasticFeaturestoreDTO();
     Pair<List<FeaturestoreElasticHit>, List<FeaturestoreElasticHit>> hits =
       elasticCtrl.featurestoreSearch(req.getDocType(), req.getTerm());
     DataAccessController.ShortLivedCache cache = dataAccessCtrl.newCache();
     for(FeaturestoreElasticHit hit : hits.getValue1()) {
-      ElasticFeaturestoreItemDTO item = new ElasticFeaturestoreItemDTO(hit.getId(), hit.getName(), hit.getVersion(),
-        hit.getProjectId(), hit.getProjectName());
-      
+      ElasticFeaturestoreItemDTO item = null;
       if(FeaturestoreDocType.TRAININGDATASET.toString().toLowerCase().equals(hit.getDocType())) {
+        item = ElasticFeaturestoreItemDTO.fromTrainingDataset(hit, converter);
         result.addTrainingdataset(item);
       } else if(FeaturestoreDocType.FEATUREGROUP.toString().toLowerCase().equals(hit.getDocType())) {
+        item = ElasticFeaturestoreItemDTO.fromFeaturegroup(hit, converter);
         result.addTrainingdataset(item);
       }
       dataAccessCtrl.addAccessProjects(user, accessMapper(item, hit), cache);
@@ -90,7 +94,7 @@ public class ElasticFeaturestoreBuilder {
   }
   
   public ElasticFeaturestoreDTO build(ElasticFeaturestoreRequest req, Integer projectId)
-    throws ElasticException, ServiceException {
+    throws ElasticException, ServiceException, GenericException {
     ElasticFeaturestoreDTO result = new ElasticFeaturestoreDTO();
     
     Project project = projectFacade.find(projectId);
@@ -102,15 +106,17 @@ public class ElasticFeaturestoreBuilder {
       elasticCtrl.featurestoreSearch(req.getTerm(), searchProjects);
   
     for(FeaturestoreElasticHit hit : hits.getValue1()) {
-      ElasticFeaturestoreItemDTO item = new ElasticFeaturestoreItemDTO(hit.getId(), hit.getName(), hit.getVersion(),
-        hit.getProjectId(), hit.getProjectName());
-    
+      ElasticFeaturestoreItemDTO item = null;
       if(FeaturestoreDocType.TRAININGDATASET.toString().toLowerCase().equals(hit.getDocType())) {
+        item = ElasticFeaturestoreItemDTO.fromTrainingDataset(hit, converter);
         result.addTrainingdataset(item);
       } else if(FeaturestoreDocType.FEATUREGROUP.toString().toLowerCase().equals(hit.getDocType())) {
+        item = ElasticFeaturestoreItemDTO.fromFeaturegroup(hit, converter);
         result.addFeaturegroup(item);
       }
-      item.addAccessProject(hit.getProjectId(), hit.getProjectName());
+      if(item != null) {
+        item.addAccessProject(hit.getProjectId(), hit.getProjectName());
+      }
     }
     return result;
   }

@@ -52,6 +52,7 @@ import io.hops.hopsworks.common.elastic.ElasticController;
 import io.hops.hopsworks.common.elastic.ElasticHit;
 import io.hops.hopsworks.common.elastic.FeaturestoreDocType;
 import io.hops.hopsworks.exceptions.ElasticException;
+import io.hops.hopsworks.exceptions.GenericException;
 import io.hops.hopsworks.exceptions.ServiceException;
 import io.hops.hopsworks.jwt.annotation.JWTRequired;
 import io.hops.hopsworks.persistence.entity.user.Users;
@@ -189,7 +190,7 @@ public class ElasticService {
     @PathParam("searchTerm") String searchTerm,
     @QueryParam("docType") @DefaultValue("ALL") FeaturestoreDocType docType,
     @Context SecurityContext sc)
-    throws ServiceException, ElasticException {
+    throws ServiceException, ElasticException, GenericException {
     if (Strings.isNullOrEmpty(searchTerm)) {
       throw new IllegalArgumentException("One or more required parameters were not provided.");
     }
@@ -217,7 +218,7 @@ public class ElasticService {
     @PathParam("searchTerm") String searchTerm,
     @QueryParam("docType") @DefaultValue("ALL") FeaturestoreDocType docType,
     @Context SecurityContext sc)
-    throws ServiceException, ElasticException {
+    throws ServiceException, ElasticException, GenericException {
     
     if (Strings.isNullOrEmpty(searchTerm) || projectId == null) {
       throw new IllegalArgumentException("One or more required parameters were not provided.");

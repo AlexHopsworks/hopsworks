@@ -15,63 +15,141 @@
  */
 package io.hops.hopsworks.common.provenance.core.dto;
 
+import io.hops.hopsworks.common.provenance.core.ProvXAttrs;
+
+import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
-@XmlRootElement
 public class ProvFeaturegroupDTO {
-  private Integer featurestoreId;
-  private String name;
-  private Integer version;
-  private List<String> features = new LinkedList<>();
+  @XmlRootElement
+  public static class Base {
+    @XmlElement(nillable = false, name = ProvXAttrs.Featurestore.FEATURESTORE_ID)
+    private Integer featurestoreId;
+    @XmlElement(nillable = false, name = ProvXAttrs.Featurestore.NAME)
+    private String name;
+    @XmlElement(nillable = false, name = ProvXAttrs.Featurestore.VERSION)
+    private Integer version;
+    @XmlElement(nillable = false, name = ProvXAttrs.Featurestore.FEATURES)
+    private List<String> features = new LinkedList<>();
   
-  public ProvFeaturegroupDTO() {}
+    public Base() {}
   
-  public ProvFeaturegroupDTO(Integer featurestoreId, String name, Integer version) {
-    this(featurestoreId, name, version, new LinkedList<>());
+    public Base(Integer featurestoreId, String name, Integer version) {
+      this(featurestoreId, name, version, new LinkedList<>());
+    }
+  
+    public Base(Integer featurestoreId, String name, Integer version, List<String> features) {
+      this.featurestoreId = featurestoreId;
+      this.name = name;
+      this.version = version;
+      this.features = features;
+    }
+  
+    public Integer getFeaturestoreId() {
+      return featurestoreId;
+    }
+  
+    public void setFeaturestoreId(Integer featurestoreId) {
+      this.featurestoreId = featurestoreId;
+    }
+  
+    public String getName() {
+      return name;
+    }
+  
+    public void setName(String name) {
+      this.name = name;
+    }
+  
+    public Integer getVersion() {
+      return version;
+    }
+  
+    public void setVersion(Integer version) {
+      this.version = version;
+    }
+  
+    public List<String> getFeatures() {
+      return features;
+    }
+  
+    public void setFeatures(List<String> features) {
+      this.features = features;
+    }
+  
+    public void addFeature(String feature) {
+      features.add(feature);
+    }
+  
+    @Override
+    public String toString() {
+      return "Base{" +
+        "featurestoreId=" + featurestoreId +
+        ", name='" + name + '\'' +
+        ", version=" + version +
+        ", features=" + features +
+        '}';
+    }
   }
   
-  public ProvFeaturegroupDTO(Integer featurestoreId, String name, Integer version, List<String> features) {
-    this.featurestoreId = featurestoreId;
-    this.name = name;
-    this.version = version;
-    this.features = features;
-  }
+  @XmlRootElement
+  public static class Extended extends Base {
+    @XmlElement(nillable = true, name = ProvXAttrs.Featurestore.DESCRIPTION)
+    private String description;
+    @XmlElement(nillable = true, name = ProvXAttrs.Featurestore.CREATE_DATE)
+    private Long createDate;
+    @XmlElement(nillable = true, name = ProvXAttrs.Featurestore.CREATOR)
+    private String creator;
   
-  public Integer getFeaturestoreId() {
-    return featurestoreId;
-  }
+    public Extended() {}
   
-  public void setFeaturestoreId(Integer featurestoreId) {
-    this.featurestoreId = featurestoreId;
-  }
+    public Extended(Integer featurestoreId, String name, Integer version, String description,
+      Date createDate, String creator) {
+      this(featurestoreId, name, version, description, createDate, creator, new LinkedList<>());
+    }
   
-  public String getName() {
-    return name;
-  }
+    public Extended(Integer featurestoreId, String name, Integer version, String description,
+      Date createDate, String creator, List<String> features) {
+      super(featurestoreId, name, version, features);
+      this.description = description;
+      this.createDate = createDate.getTime();
+      this.creator = creator;
+    }
   
-  public void setName(String name) {
-    this.name = name;
-  }
+    public String getDescription() {
+      return description;
+    }
   
-  public Integer getVersion() {
-    return version;
-  }
+    public void setDescription(String description) {
+      this.description = description;
+    }
   
-  public void setVersion(Integer version) {
-    this.version = version;
-  }
+    public Long getCreateDate() {
+      return createDate;
+    }
   
-  public List<String> getFeatures() {
-    return features;
-  }
+    public void setCreateDate(Long createDate) {
+      this.createDate = createDate;
+    }
   
-  public void setFeatures(List<String> features) {
-    this.features = features;
-  }
+    public String getCreator() {
+      return creator;
+    }
   
-  public void addFeature(String feature) {
-    features.add(feature);
+    public void setCreator(String creator) {
+      this.creator = creator;
+    }
+  
+    @Override
+    public String toString() {
+      return super.toString() + "Extended{" +
+        "description='" + description + '\'' +
+        ", createDate=" + createDate +
+        ", creator='" + creator + '\'' +
+        '}';
+    }
   }
 }

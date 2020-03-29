@@ -199,8 +199,7 @@ public class TrainingDatasetController {
       }
 
       inode = inodeController.getInodeAtPath(trainingDatasetPath);
-      fsProvenanceController.trainingDatasetAttachXAttr(user, project, trainingDatasetPath,
-          trainingDatasetDTO.getFeatures());
+      fsProvenanceController.trainingDatasetAttachXAttr(user, project, trainingDatasetPath, trainingDatasetDTO);
     } else {
       s3Connector = S3ConnectorFacade.findByIdAndFeaturestore(trainingDatasetDTO.getStorageConnectorId(), featurestore)
           .orElseThrow(() -> new FeaturestoreException(RESTCodes.FeaturestoreErrorCode.S3_CONNECTOR_NOT_FOUND,
