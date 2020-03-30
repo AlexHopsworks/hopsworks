@@ -39,6 +39,7 @@
 
 package io.hops.hopsworks.common.elastic;
 
+import io.hops.hopsworks.common.provenance.core.ProvXAttrs;
 import io.hops.hopsworks.persistence.entity.dataset.Dataset;
 import io.hops.hopsworks.persistence.entity.dataset.DatasetSharedWith;
 import io.hops.hopsworks.persistence.entity.project.Project;
@@ -68,6 +69,7 @@ import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.javatuples.Pair;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -247,8 +249,7 @@ public class ElasticController {
         Level.INFO,"Error while executing query, code: "+  response.status().getStatus());
   }
   
-  public Pair<List<FeaturestoreElasticHit>, List<FeaturestoreElasticHit>> featurestoreSearch(
-    FeaturestoreDocType docType, String searchTerm)
+  public Pair<SearchHit[], SearchHit[]> featurestoreSearch(FeaturestoreDocType docType, String searchTerm)
     throws ElasticException, ServiceException {
     RestHighLevelClient client = getClient();
     //check if the indices are up and running
@@ -259,33 +260,13 @@ public class ElasticController {
   
     Pair<QueryBuilder, QueryBuilder> queries = globalFeaturestoreSearchQuery(docType, searchTerm.toLowerCase());
     Pair<SearchResponse, SearchResponse> response = executeFeaturestoreSearchQuery(client,
-      queries.getValue0(), queries.getValue1());
-    List<FeaturestoreElasticHit> featureHits = parseFeaturestoreHits(response.getValue0());
-    List<FeaturestoreElasticHit> otherHits = parseFeaturestoreHits(response.getValue1());
-    return Pair.with(featureHits, otherHits);
+      queries.getValue0(), queries.getValue1(), featurestoreHighlighter());
+    SearchHit[] featureHits = getHits(response.getValue0());
+    SearchHit[] searchHits = getHits(response.getValue1());
+    return Pair.with(featureHits, searchHits);
   }
   
-  private List<FeaturestoreElasticHit> parseFeaturestoreHits(SearchResponse response) throws ElasticException {
-    if(response == null) {
-      return null;
-    }
-    if(response.status().getStatus() == 200) {
-      List<FeaturestoreElasticHit> result = new LinkedList<>();
-      FeaturestoreElasticHit eHit;
-      for (SearchHit hit : response.getHits().getHits()) {
-        eHit = FeaturestoreElasticHit.instance(hit);
-        result.add(eHit);
-      }
-      return result;
-    } else {
-      //we need to further check the status if it is a problem with
-      // elasticsearch rather than a bad query
-      throw new ElasticException(RESTCodes.ElasticErrorCode.ELASTIC_QUERY_ERROR,
-        Level.INFO,"Error while executing query(0), code: "+  response.status().getStatus());
-    }
-  }
-  
-  public Pair<List<FeaturestoreElasticHit>, List<FeaturestoreElasticHit>> featurestoreSearch(String searchTerm,
+  public Pair<SearchHit[], SearchHit[]> featurestoreSearch(String searchTerm,
     Map<FeaturestoreDocType, Set<Integer>> docProjectIds)
     throws ElasticException, ServiceException {
     RestHighLevelClient client = getClient();
@@ -297,12 +278,26 @@ public class ElasticController {
     
     Pair<QueryBuilder, QueryBuilder> queries = localFeaturestoreSearchQuery(searchTerm.toLowerCase(), docProjectIds);
     Pair<SearchResponse, SearchResponse> response = executeFeaturestoreSearchQuery(client,
-      queries.getValue0(), queries.getValue1());
-    List<FeaturestoreElasticHit> featureHits = parseFeaturestoreHits(response.getValue0());
-    List<FeaturestoreElasticHit> otherHits = parseFeaturestoreHits(response.getValue1());
+      queries.getValue0(), queries.getValue1(), featurestoreHighlighter());
+    SearchHit[] featureHits = getHits(response.getValue0());
+    SearchHit[] otherHits = getHits(response.getValue1());
     return Pair.with(featureHits, otherHits);
   }
-
+  
+  private SearchHit[] getHits(SearchResponse response) throws ElasticException {
+    if (response == null) {
+      return null;
+    }
+    if (response.status().getStatus() == 200) {
+      return response.getHits().getHits();
+    } else {
+      //we need to further check the status if it is a problem with
+      // elasticsearch rather than a bad query
+      throw new ElasticException(RESTCodes.ElasticErrorCode.ELASTIC_QUERY_ERROR,
+        Level.INFO, "Error while executing query(0), code: " + response.status().getStatus());
+    }
+  }
+    
   @TransactionAttribute(TransactionAttributeType.NOT_SUPPORTED)
   public boolean deleteIndex(String index)
       throws ElasticException {
@@ -487,13 +482,6 @@ public class ElasticController {
     return executeSearchQuery(client, Settings.META_INDEX, query);
   }
   
-  private Pair<SearchResponse, SearchResponse> executeFeaturestoreSearchQuery(RestHighLevelClient client,
-    QueryBuilder featureQuery, QueryBuilder searchQuery)
-    throws ServiceException {
-    
-    return executeSearchQuery(client, Settings.FEATURESTORE_INDEX, featureQuery, searchQuery);
-  }
-  
   private SearchResponse executeSearchQuery(RestHighLevelClient client,
       String index, QueryBuilder query)
       throws ServiceException {
@@ -512,23 +500,25 @@ public class ElasticController {
     }
   }
   
-  private Pair<SearchResponse, SearchResponse> executeSearchQuery(RestHighLevelClient client,
-    String index, QueryBuilder featureQuery, QueryBuilder otherQuery)
+  private Pair<SearchResponse, SearchResponse> executeFeaturestoreSearchQuery(RestHighLevelClient client,
+    QueryBuilder featureQuery, QueryBuilder searchQuery, HighlightBuilder searchQHighlighter)
     throws ServiceException {
     //hit the indices - execute the queries
     MultiSearchRequest mSearchRequest = new MultiSearchRequest();
     if(featureQuery != null) {
-      SearchRequest searchRequest = new SearchRequest(index);
+      SearchRequest searchRequest = new SearchRequest(Settings.FEATURESTORE_INDEX);
       SearchSourceBuilder sb = new SearchSourceBuilder();
       sb.query(featureQuery);
+     
       searchRequest.source(sb);
       LOG.log(Level.INFO, "Search Elastic query is: {0}", searchRequest);
       mSearchRequest.add(searchRequest);
     }
-    if(otherQuery != null) {
-      SearchRequest searchRequest = new SearchRequest(index);
+    if(searchQuery != null) {
+      SearchRequest searchRequest = new SearchRequest(Settings.FEATURESTORE_INDEX);
       SearchSourceBuilder sb = new SearchSourceBuilder();
-      sb.query(otherQuery);
+      sb.query(searchQuery);
+      sb.highlighter(searchQHighlighter);
       searchRequest.source(sb);
       LOG.log(Level.INFO, "Search Elastic query is: {0}", searchRequest);
       mSearchRequest.add(searchRequest);
@@ -537,8 +527,8 @@ public class ElasticController {
     try {
       MultiSearchResponse response = client.msearch(mSearchRequest, RequestOptions.DEFAULT);
       SearchResponse featureHits = featureQuery == null ? null : response.getResponses()[0].getResponse();
-      SearchResponse otherHits = otherQuery == null ? null : response.getResponses()[1].getResponse();
-      return Pair.with(featureHits, otherHits);
+      SearchResponse searchHits = searchQuery == null ? null : response.getResponses()[1].getResponse();
+      return Pair.with(featureHits, searchHits);
     } catch (IOException e) {
       throw new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_SERVER_NOT_FOUND,
         Level.SEVERE,"Error while executing search", e.getMessage());
@@ -665,11 +655,23 @@ public class ElasticController {
     }
   }
   
+  private HighlightBuilder featurestoreHighlighter() {
+    HighlightBuilder hb = new HighlightBuilder();
+    hb.field(new HighlightBuilder.Field(ProvXAttrs.Featurestore.NAME));
+    hb.field(new HighlightBuilder.Field(
+      ProvXAttrs.Featurestore.getFeaturestoreElasticKey(ProvXAttrs.Featurestore.DESCRIPTION)));
+    hb.field(new HighlightBuilder.Field(
+      ProvXAttrs.Featurestore.getFeaturestoreElasticKey(ProvXAttrs.Featurestore.FG_FEATURES)));
+    hb.field(new HighlightBuilder.Field(ProvXAttrs.Featurestore.getTagsElasticKey()));
+    hb.field(new HighlightBuilder.Field(ProvXAttrs.ELASTIC_XATTR + ".*"));
+    return hb;
+  }
+  
   private QueryBuilder featureQueryBuilder(String searchTerm) {
-    String xattrKey = Settings.META_DATA_NESTED_FIELD + ".features.*";
+    String featureField = ProvXAttrs.Featurestore.getFeaturestoreElasticKey(ProvXAttrs.Featurestore.FG_FEATURES);
     QueryBuilder query = boolQuery()
       .must(termQuery("doc_type", FeaturestoreDocType.FEATUREGROUP.toString().toLowerCase()))
-      .must(getXAttrQuery(xattrKey, searchTerm));
+      .must(getXAttrQuery(featureField + ".*", searchTerm));
     return query;
   }
   

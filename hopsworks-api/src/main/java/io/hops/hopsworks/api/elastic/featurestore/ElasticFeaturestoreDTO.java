@@ -21,45 +21,54 @@ import java.util.List;
 
 @XmlRootElement
 public class ElasticFeaturestoreDTO {
-  private List<ElasticFeaturestoreItemDTO> featuregroups = new LinkedList<>();
-  private List<ElasticFeaturestoreItemDTO> trainingdatasets = new LinkedList<>();
-  private List<ElasticFeatureDTO> features = new LinkedList<>();
+  private List<ElasticFeaturestoreItemDTO.Base> featuregroups = new LinkedList<>();
+  private List<ElasticFeaturestoreItemDTO.Base> trainingdatasets = new LinkedList<>();
+  private List<ElasticFeaturestoreItemDTO.Feature> features = new LinkedList<>();
   
   public ElasticFeaturestoreDTO() {
   }
   
-  public ElasticFeaturestoreDTO(List<ElasticFeaturestoreItemDTO> featuregroups,
-    List<ElasticFeaturestoreItemDTO> trainingdatasets, List<ElasticFeatureDTO> features) {
+  public ElasticFeaturestoreDTO(List<ElasticFeaturestoreItemDTO.Base> featuregroups,
+    List<ElasticFeaturestoreItemDTO.Base> trainingdatasets, List<ElasticFeaturestoreItemDTO.Feature> features) {
     this.featuregroups = featuregroups;
     this.trainingdatasets = trainingdatasets;
     this.features = features;
   }
   
-  public List<ElasticFeaturestoreItemDTO> getFeaturegroups() {
+  public List<ElasticFeaturestoreItemDTO.Base> getFeaturegroups() {
     return featuregroups;
   }
   
-  public void setFeaturegroups(List<ElasticFeaturestoreItemDTO> featuregroups) {
+  public void setFeaturegroups(List<ElasticFeaturestoreItemDTO.Base> featuregroups) {
     this.featuregroups = featuregroups;
   }
   
-  public List<ElasticFeaturestoreItemDTO> getTrainingdatasets() {
+  public List<ElasticFeaturestoreItemDTO.Base> getTrainingdatasets() {
     return trainingdatasets;
   }
   
-  public void setTrainingdatasets(List<ElasticFeaturestoreItemDTO> trainingdatasets) {
+  public void setTrainingdatasets(List<ElasticFeaturestoreItemDTO.Base> trainingdatasets) {
     this.trainingdatasets = trainingdatasets;
   }
   
-  public void addTrainingdataset(ElasticFeaturestoreItemDTO trainingdataset) {
+  public List<ElasticFeaturestoreItemDTO.Feature> getFeatures() {
+    return features;
+  }
+  
+  public void setFeatures(
+    List<ElasticFeaturestoreItemDTO.Feature> features) {
+    this.features = features;
+  }
+  
+  public void addTrainingdataset(ElasticFeaturestoreItemDTO.Base trainingdataset) {
     trainingdatasets.add(trainingdataset);
   }
   
-  public void addFeaturegroup(ElasticFeaturestoreItemDTO featuregroup) {
+  public void addFeaturegroup(ElasticFeaturestoreItemDTO.Base featuregroup) {
     featuregroups.add(featuregroup);
   }
   
-  public void addFeature(ElasticFeatureDTO feature) {
+  public void addFeature(ElasticFeaturestoreItemDTO.Feature feature) {
     features.add(feature);
   }
 }

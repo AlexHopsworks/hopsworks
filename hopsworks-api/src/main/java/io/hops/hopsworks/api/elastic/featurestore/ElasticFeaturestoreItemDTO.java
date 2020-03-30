@@ -15,6 +15,7 @@
  */
 package io.hops.hopsworks.api.elastic.featurestore;
 
+import com.google.gson.Gson;
 import io.hops.hopsworks.common.elastic.FeaturestoreElasticHit;
 import io.hops.hopsworks.common.provenance.core.ProvXAttrs;
 import io.hops.hopsworks.common.provenance.core.dto.ProvFeaturegroupDTO;
@@ -27,151 +28,264 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
-@XmlRootElement
 public class ElasticFeaturestoreItemDTO {
-  private String elasticId;
-  //base fields
-  private String name;
-  private String description;
-  private Date created;
-  private String creator;
-  private Integer featurestoreId;
-  private Integer version;
-  //access fields
-  private Integer parentProjectId;
-  private String parentProjectName;
-  private Map<Integer, String> accessProjects = new HashMap<>();
-  
-  public ElasticFeaturestoreItemDTO() {
-  }
-  
-  public static ElasticFeaturestoreItemDTO fromFeaturegroup(FeaturestoreElasticHit hit,
-    HopsworksJAXBContext converter) throws GenericException {
-    ElasticFeaturestoreItemDTO item = new ElasticFeaturestoreItemDTO();
+  public static Base fromFeaturegroup(FeaturestoreElasticHit hit, HopsworksJAXBContext converter)
+    throws GenericException {
+    Base item = new Base();
     item.elasticId = hit.getId();
     item.name = hit.getName();
     item.version = hit.getVersion();
+    item.datasetIId = hit.getDatasetIId();
     item.parentProjectId = hit.getProjectId();
     item.parentProjectName = hit.getProjectName();
-    for(Map.Entry<String, Object> e : hit.getXattrs().entrySet()) {
+    for (Map.Entry<String, Object> e : hit.getXattrs().entrySet()) {
       switch (e.getKey()) {
-        case ProvXAttrs.Featurestore.FEATUREGROUP: {
+        case ProvXAttrs.Featurestore.FEATURESTORE: {
+          Gson gson = new Gson();
           ProvFeaturegroupDTO.Extended fg
-            = converter.unmarshal(e.getValue().toString(), ProvFeaturegroupDTO.Extended.class);
+            = converter.unmarshal(gson.toJson(e.getValue()), ProvFeaturegroupDTO.Extended.class);
           item.featurestoreId = fg.getFeaturestoreId();
           item.description = fg.getDescription();
           item.created = new Date(fg.getCreateDate());
           item.creator = fg.getCreator();
-        } break;
+        }
+        break;
       }
     }
     return item;
   }
   
-  public static ElasticFeaturestoreItemDTO fromTrainingDataset(FeaturestoreElasticHit hit,
-    HopsworksJAXBContext converter) throws GenericException {
-    ElasticFeaturestoreItemDTO item = new ElasticFeaturestoreItemDTO();
+  public static Base fromTrainingDataset(FeaturestoreElasticHit hit, HopsworksJAXBContext converter)
+    throws GenericException {
+    Base item = new Base();
     item.elasticId = hit.getId();
     item.name = hit.getName();
     item.version = hit.getVersion();
+    item.datasetIId = hit.getDatasetIId();
     item.parentProjectId = hit.getProjectId();
     item.parentProjectName = hit.getProjectName();
-    for(Map.Entry<String, Object> e : hit.getXattrs().entrySet()) {
+    for (Map.Entry<String, Object> e : hit.getXattrs().entrySet()) {
       switch (e.getKey()) {
-        case ProvXAttrs.Featurestore.TRAINING_DATASET: {
+        case ProvXAttrs.Featurestore.FEATURESTORE: {
+          Gson gson = new Gson();
           ProvTrainingDatasetDTO td
-            = converter.unmarshal(e.getValue().toString(), ProvTrainingDatasetDTO.class);
+            = converter.unmarshal(gson.toJson(e.getValue()), ProvTrainingDatasetDTO.class);
           item.featurestoreId = td.getFeaturestoreId();
           item.description = td.getDescription();
           item.created = new Date(td.getCreateDate());
           item.creator = td.getCreator();
-        } break;
+        }
+        break;
       }
     }
     return item;
   }
   
-  public String getElasticId() {
-    return elasticId;
+  public static Feature fromFeature(String featureName, ElasticFeaturestoreItemDTO.Base parent) {
+    Feature item = new Feature();
+    item.elasticId = parent.getElasticId() + "_" + featureName;
+    item.featurestoreId = parent.getFeaturestoreId();
+    item.name = featureName;
+    item.featuregroup = parent.getName();
+    item.datasetIId = parent.getDatasetIId();
+    item.version = parent.getVersion();
+    item.created = parent.getCreated();
+    item.creator = parent.getCreator();
+    
+    item.parentProjectId = parent.getParentProjectId();
+    item.parentProjectName = parent.getParentProjectName();
+    return item;
   }
   
-  public void setElasticId(String elasticId) {
-    this.elasticId = elasticId;
+  @XmlRootElement
+  public static class Base {
+    protected String elasticId;
+    //base fields
+    protected Integer featurestoreId;
+    protected String name;
+    protected Integer version;
+  
+    protected Long datasetIId;
+    protected String description;
+    protected Date created;
+    protected String creator;
+    
+    protected Highlights highlights;
+  
+    //access fields
+    protected Integer parentProjectId;
+    protected String parentProjectName;
+    protected Map<Integer, String> accessProjects = new HashMap<>();
+  
+    public Base() {
+    }
+  
+    public String getElasticId() {
+      return elasticId;
+    }
+  
+    public void setElasticId(String elasticId) {
+      this.elasticId = elasticId;
+    }
+  
+    public Integer getFeaturestoreId() {
+      return featurestoreId;
+    }
+  
+    public void setFeaturestoreId(Integer featurestoreId) {
+      this.featurestoreId = featurestoreId;
+    }
+  
+    public String getName() {
+      return name;
+    }
+  
+    public void setName(String name) {
+      this.name = name;
+    }
+  
+    public Integer getVersion() {
+      return version;
+    }
+  
+    public void setVersion(Integer version) {
+      this.version = version;
+    }
+  
+    public Long getDatasetIId() {
+      return datasetIId;
+    }
+  
+    public void setDatasetIId(Long datasetIId) {
+      this.datasetIId = datasetIId;
+    }
+  
+    public String getDescription() {
+      return description;
+    }
+  
+    public void setDescription(String description) {
+      this.description = description;
+    }
+  
+    public Date getCreated() {
+      return created;
+    }
+  
+    public void setCreated(Date created) {
+      this.created = created;
+    }
+  
+    public String getCreator() {
+      return creator;
+    }
+  
+    public void setCreator(String creator) {
+      this.creator = creator;
+    }
+  
+    public Highlights getHighlights() {
+      return highlights;
+    }
+  
+    public void setHighlights(Highlights highlights) {
+      this.highlights = highlights;
+    }
+  
+    public Integer getParentProjectId() {
+      return parentProjectId;
+    }
+  
+    public void setParentProjectId(Integer parentProjectId) {
+      this.parentProjectId = parentProjectId;
+    }
+  
+    public String getParentProjectName() {
+      return parentProjectName;
+    }
+  
+    public void setParentProjectName(String parentProjectName) {
+      this.parentProjectName = parentProjectName;
+    }
+  
+    public Map<Integer, String> getAccessProjects() {
+      return accessProjects;
+    }
+  
+    public void setAccessProjects(Map<Integer, String> accessProjects) {
+      this.accessProjects = accessProjects;
+    }
+  
+    public void addAccessProject(Integer projectId, String projectName) {
+      accessProjects.put(projectId, projectName);
+    }
   }
   
-  public Integer getFeaturestoreId() {
-    return featurestoreId;
+  @XmlRootElement
+  public static class Feature extends Base {
+    protected String featuregroup;
+    
+    public Feature() {
+    }
+    
+    public String getFeaturegroup() {
+      return featuregroup;
+    }
+    
+    public void setFeaturegroup(String featuregroup) {
+      this.featuregroup = featuregroup;
+    }
   }
   
-  public void setFeaturestoreId(Integer featurestoreId) {
-    this.featurestoreId = featurestoreId;
-  }
+  @XmlRootElement
+  public static class Highlights {
+    private boolean name = false;
+    private boolean description = false;
+    private boolean feature = false;
+    private boolean tag = false;
+    private boolean otherXattr = false;
   
-  public String getName() {
-    return name;
-  }
+    public Highlights() {
+    }
   
-  public void setName(String name) {
-    this.name = name;
-  }
+    public boolean isName() {
+      return name;
+    }
   
-  public Integer getVersion() {
-    return version;
-  }
+    public void setName(boolean name) {
+      this.name = name;
+    }
   
-  public void setVersion(Integer version) {
-    this.version = version;
-  }
+    public boolean isDescription() {
+      return description;
+    }
   
-  public String getDescription() {
-    return description;
-  }
+    public void setDescription(boolean description) {
+      this.description = description;
+    }
   
-  public void setDescription(String description) {
-    this.description = description;
-  }
+    public boolean isFeature() {
+      return feature;
+    }
   
-  public Date getCreated() {
-    return created;
-  }
+    public void setFeature(boolean feature) {
+      this.feature = feature;
+    }
   
-  public void setCreated(Date created) {
-    this.created = created;
-  }
+    public boolean isTag() {
+      return tag;
+    }
   
-  public String getCreator() {
-    return creator;
-  }
+    public void setTag(boolean tag) {
+      this.tag = tag;
+    }
   
-  public void setCreator(String creator) {
-    this.creator = creator;
-  }
+    public boolean isOtherXattr() {
+      return otherXattr;
+    }
   
-  public Integer getParentProjectId() {
-    return parentProjectId;
-  }
-  
-  public void setParentProjectId(Integer parentProjectId) {
-    this.parentProjectId = parentProjectId;
-  }
-  
-  public String getParentProjectName() {
-    return parentProjectName;
-  }
-  
-  public void setParentProjectName(String parentProjectName) {
-    this.parentProjectName = parentProjectName;
-  }
-  
-  public Map<Integer, String> getAccessProjects() {
-    return accessProjects;
-  }
-  
-  public void setAccessProjects(Map<Integer, String> accessProjects) {
-    this.accessProjects = accessProjects;
-  }
-  
-  public void addAccessProject(Integer projectId, String projectName) {
-    accessProjects.put(projectId, projectName);
+    public void setOtherXattr(boolean otherXattr) {
+      this.otherXattr = otherXattr;
+    }
   }
 }

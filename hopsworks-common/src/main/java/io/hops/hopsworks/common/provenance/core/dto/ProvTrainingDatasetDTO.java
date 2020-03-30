@@ -37,7 +37,7 @@ public class ProvTrainingDatasetDTO {
   private Long createDate;
   @XmlElement(nillable = true, name = ProvXAttrs.Featurestore.CREATOR)
   private String creator;
-  @XmlElement(nillable = false, name = ProvXAttrs.Featurestore.FEATURES)
+  @XmlElement(nillable = false, name = ProvXAttrs.Featurestore.TD_FEATURES)
   private List<ProvFeaturegroupDTO.Base> features = new LinkedList<>();
   
   public ProvTrainingDatasetDTO() {

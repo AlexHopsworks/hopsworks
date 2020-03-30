@@ -28,18 +28,38 @@ public class ProvXAttrs {
   public static final String PROV_EXP_ENVIRONMENT = "environment";
   public static final String PROV_XATTR_MODEL = PROV_XATTR + ".model";
   
+  public static final String ELASTIC_XATTR = "xattr";
+  
   public static class Featurestore {
-    public static final String FEATUREGROUP = "featuregroup";
-    public static final String XATTR_FEATUREGROUP = PROV_XATTR + "." + FEATUREGROUP;
-    public static final String TRAINING_DATASET = "training_dataset";
-    public static final String XATTR_TRAINING_DATASET = PROV_XATTR + "." + TRAINING_DATASET;
-    public static final String TAGS = "tags";
+   
+    public static final String FEATURESTORE = "featurestore";
     public static final String FEATURESTORE_ID = "featurestore_id";
     public static final String NAME = "name";
     public static final String VERSION = "version";
-    public static final String FEATURES = "features";
+    public static final String FG_FEATURES = "fg_features";
+    public static final String TD_FEATURES = "td_features";
     public static final String DESCRIPTION = "description";
     public static final String CREATE_DATE = "create_date";
     public static final String CREATOR = "creator";
+  
+    public static final String TAGS = "tags";
+  
+    public static String getFeaturestoreXAttrKey() {
+      return PROV_XATTR
+        + "." + Featurestore.FEATURESTORE;
+    }
+    public static String getFeaturestoreElasticKey() {
+      return ELASTIC_XATTR
+        + "." + Featurestore.FEATURESTORE;
+    }
+    
+    public static String getFeaturestoreElasticKey(String key) {
+      return getFeaturestoreElasticKey() + "." + key;
+    }
+    
+    public static String getTagsElasticKey() {
+      return ProvXAttrs.ELASTIC_XATTR
+        + "." + Featurestore.TAGS;
+    }
   }
 }

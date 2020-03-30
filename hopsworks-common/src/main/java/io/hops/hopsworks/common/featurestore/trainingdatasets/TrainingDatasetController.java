@@ -199,14 +199,22 @@ public class TrainingDatasetController {
       }
 
       inode = inodeController.getInodeAtPath(trainingDatasetPath);
-      fsProvenanceController.trainingDatasetAttachXAttr(user, project, trainingDatasetPath, trainingDatasetDTO);
     } else {
       s3Connector = S3ConnectorFacade.findByIdAndFeaturestore(trainingDatasetDTO.getStorageConnectorId(), featurestore)
           .orElseThrow(() -> new FeaturestoreException(RESTCodes.FeaturestoreErrorCode.S3_CONNECTOR_NOT_FOUND,
               Level.FINE, "S3 connector: " + trainingDatasetDTO.getStorageConnectorId()));
     }
 
-    return createTrainingDatasetMetadata(user, featurestore, trainingDatasetDTO, hopsfsConnector,  inode, s3Connector);
+    TrainingDatasetDTO completeTrainingDatasetDTO = createTrainingDatasetMetadata(user, featurestore,
+      trainingDatasetDTO, hopsfsConnector,  inode, s3Connector);
+    if(TrainingDatasetType.HOPSFS_TRAINING_DATASET.equals(trainingDatasetDTO.getTrainingDatasetType())) {
+      Dataset trainingDatasetsFolder = hopsfsConnector.getHopsfsDataset();
+      String trainingDatasetPath = getTrainingDatasetPath(
+        inodeController.getPath(trainingDatasetsFolder.getInode()),
+        trainingDatasetDTO.getName(), trainingDatasetDTO.getVersion());
+      fsProvenanceController.trainingDatasetAttachXAttr(user, project, trainingDatasetPath, completeTrainingDatasetDTO);
+    }
+    return completeTrainingDatasetDTO;
   }
 
 

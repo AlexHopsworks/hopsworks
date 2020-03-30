@@ -236,7 +236,7 @@ public class HopsFSProvenanceController {
         + "/" + Utils.getFeaturegroupName(featuregroup.getName(), featuregroup.getVersion());
       ProvFeaturegroupDTO.Extended fg = fromFeaturegroup(featuregroup);
       try {
-        udfso.upsertXAttr(path, ProvXAttrs.Featurestore.XATTR_FEATUREGROUP,
+        udfso.upsertXAttr(path, ProvXAttrs.Featurestore.getFeaturestoreXAttrKey(),
           converter.marshal(fg).getBytes());
       } catch (IOException | GenericException e) {
         throw new ProvenanceException(RESTCodes.ProvenanceErrorCode.FS_ERROR, Level.WARNING,
@@ -263,7 +263,7 @@ public class HopsFSProvenanceController {
         td.setFeatures(featuresDTO);
       }
       try {
-        udfso.upsertXAttr(path, ProvXAttrs.Featurestore.XATTR_TRAINING_DATASET,
+        udfso.upsertXAttr(path, ProvXAttrs.Featurestore.getFeaturestoreXAttrKey(),
           converter.marshal(td).getBytes());
       } catch (IOException | GenericException e) {
         throw new ProvenanceException(RESTCodes.ProvenanceErrorCode.FS_ERROR, Level.WARNING,

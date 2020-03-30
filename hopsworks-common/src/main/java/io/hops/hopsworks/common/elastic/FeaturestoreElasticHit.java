@@ -15,6 +15,7 @@
  */
 package io.hops.hopsworks.common.elastic;
 
+import io.hops.hopsworks.common.provenance.core.ProvXAttrs;
 import io.hops.hopsworks.exceptions.ElasticException;
 import io.hops.hopsworks.restutils.RESTCodes;
 import org.elasticsearch.search.SearchHit;
@@ -70,7 +71,7 @@ public class FeaturestoreElasticHit implements Comparator<FeaturestoreElasticHit
           feHit.projectName = entry.getValue().toString();
         } else if (entry.getKey().equals("dataset_iid")) {
           feHit.datasetIId = Long.parseLong(entry.getValue().toString());
-        } else if (entry.getKey().equals("xattr")) {
+        } else if (entry.getKey().equals(ProvXAttrs.ELASTIC_XATTR)) {
           feHit.xattrs = (Map)entry.getValue();
         }
       }

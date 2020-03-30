@@ -32,7 +32,7 @@ public class ProvFeaturegroupDTO {
     private String name;
     @XmlElement(nillable = false, name = ProvXAttrs.Featurestore.VERSION)
     private Integer version;
-    @XmlElement(nillable = false, name = ProvXAttrs.Featurestore.FEATURES)
+    @XmlElement(nillable = false, name = ProvXAttrs.Featurestore.FG_FEATURES)
     private List<String> features = new LinkedList<>();
   
     public Base() {}
