@@ -23,13 +23,16 @@ describe "On #{ENV['OS']}" do
   end
 
   def s_create_featuregroup_checked(project, featurestore_id, featuregroup_name)
+    pp "create featuregroup:#{featuregroup_name}" if defined?(@debugOpt) && @debugOpt == true
     json_result, f_name = create_cached_featuregroup(project[:id], featurestore_id, featuregroup_name: featuregroup_name)
+    expect_status_details(200)
     expect_status_details(201)
     parsed_json = JSON.parse(json_result, :symbolize_names => true)
     parsed_json[:id]
   end
 
   def s_create_featuregroup_checked2(project, featurestore_id, featuregroup_name, features)
+    pp "create featuregroup:#{featuregroup_name}" if defined?(@debugOpt) && @debugOpt == true
     json_result, f_name = create_cached_featuregroup(project[:id], featurestore_id, featuregroup_name: featuregroup_name, features:features)
     expect_status_details(201)
     parsed_json = JSON.parse(json_result, :symbolize_names => true)
@@ -37,6 +40,7 @@ describe "On #{ENV['OS']}" do
   end
 
   def s_create_training_dataset_checked(project, featurestore_id, connector, training_dataset_name)
+    pp "create training dataset:#{training_dataset_name}" if defined?(@debugOpt) && @debugOpt == true
     json_result, training_dataset_name_aux = create_hopsfs_training_dataset(project.id, featurestore_id, connector, name:training_dataset_name)
     expect_status_details(201)
     parsed_json = JSON.parse(json_result, :symbolize_names => true)
