@@ -244,7 +244,7 @@ describe "On #{ENV['OS']}" do
 
     def trainingdataset_setup(project)
       featurestore_id = get_featurestore_id(project[:id])
-      
+
       td_name = "#{project[:projectname]}_Training_Datasets"
       td_dataset = get_dataset(project, td_name)
       connector = get_hopsfs_training_datasets_connector(project[:projectname])
@@ -254,7 +254,7 @@ describe "On #{ENV['OS']}" do
       td2 = s_create_training_dataset_checked(project, featurestore_id, connector, td2_name)
       td3_name = "td_something1"
       td3 = s_create_training_dataset_checked(project, featurestore_id, connector, td3_name)
-      add_xattr(project, get_path_dir(project, td_dataset, "#{training_dataset_name3}_#{td3[:version]}"), "td_key", "dog_td")
+      add_xattr(project, get_path_dir(project, td_dataset, "#{td3_name}_#{td3[:version]}"), "td_key", "dog_td")
       td4_name = "td_something2"
       td4 = s_create_training_dataset_checked(project, featurestore_id, connector, td4_name)
       add_xattr(project, get_path_dir(project, td_dataset, "#{td4_name}_#{td4[:version]}"), "td_key", "something_val")
