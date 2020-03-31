@@ -243,6 +243,8 @@ describe "On #{ENV['OS']}" do
     end
 
     def trainingdataset_setup(project)
+      featurestore_id = get_featurestore_id(project[:id])
+      
       td_name = "#{project[:projectname]}_Training_Datasets"
       td_dataset = get_dataset(project, td_name)
       connector = get_hopsfs_training_datasets_connector(project[:projectname])
