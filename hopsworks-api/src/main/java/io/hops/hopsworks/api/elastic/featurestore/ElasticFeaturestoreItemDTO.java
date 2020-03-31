@@ -26,6 +26,8 @@ import io.hops.hopsworks.exceptions.GenericException;
 import javax.xml.bind.annotation.XmlRootElement;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 public class ElasticFeaturestoreItemDTO {
@@ -239,53 +241,110 @@ public class ElasticFeaturestoreItemDTO {
   
   @XmlRootElement
   public static class Highlights {
-    private boolean name = false;
-    private boolean description = false;
-    private boolean feature = false;
-    private boolean tag = false;
-    private boolean otherXattr = false;
+    private String name;
+    private String description;
+    private List<String> features = null;
+    private List<Tag> tags = null;
+    private Map<String, String> otherXattrs = null;
   
     public Highlights() {
     }
   
-    public boolean isName() {
+    public String getName() {
       return name;
     }
   
-    public void setName(boolean name) {
+    public void setName(String name) {
       this.name = name;
     }
   
-    public boolean isDescription() {
+    public String getDescription() {
       return description;
     }
   
-    public void setDescription(boolean description) {
+    public void setDescription(String description) {
       this.description = description;
     }
   
-    public boolean isFeature() {
-      return feature;
+    public List<String> getFeatures() {
+      return features;
     }
   
-    public void setFeature(boolean feature) {
-      this.feature = feature;
+    public void setFeatures(List<String> features) {
+      this.features = features;
     }
   
-    public boolean isTag() {
-      return tag;
+    public List<Tag> getTags() {
+      return tags;
     }
   
-    public void setTag(boolean tag) {
-      this.tag = tag;
+    public void setTags(List<Tag> tags) {
+      this.tags = tags;
     }
   
-    public boolean isOtherXattr() {
-      return otherXattr;
+    public Map<String, String> getOtherXattrs() {
+      return otherXattrs;
     }
   
-    public void setOtherXattr(boolean otherXattr) {
-      this.otherXattr = otherXattr;
+    public void setOtherXattrs(Map<String, String> otherXattrs) {
+      this.otherXattrs = otherXattrs;
+    }
+  
+    public void addFeature(String feature) {
+      if(features == null) {
+        features = new LinkedList<>();
+      }
+      features.add(feature);
+    }
+  
+    public void addTagKey(String key) {
+      if(tags == null) {
+        tags = new LinkedList<>();
+      }
+      Tag tag = new Tag();
+      tag.key = key;
+      tags.add(tag);
+    }
+  
+    public void addTagValue(String value) {
+      if(tags == null) {
+        tags = new LinkedList<>();
+      }
+      Tag tag = new Tag();
+      tag.value = value;
+      tags.add(tag);
+    }
+  
+    public void addOtherXAttr(String key, String val) {
+      if(otherXattrs == null) {
+        otherXattrs = new HashMap<>();
+      }
+      otherXattrs.put(key, val);
+    }
+  }
+  
+  @XmlRootElement
+  public static class Tag {
+    private String key;
+    private String value;
+  
+    public Tag() {
+    }
+  
+    public String getKey() {
+      return key;
+    }
+  
+    public void setKey(String key) {
+      this.key = key;
+    }
+  
+    public String getValue() {
+      return value;
+    }
+  
+    public void setValue(String value) {
+      this.value = value;
     }
   }
 }

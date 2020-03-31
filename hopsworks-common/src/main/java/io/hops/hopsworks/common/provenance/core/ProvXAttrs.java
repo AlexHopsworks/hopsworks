@@ -59,7 +59,14 @@ public class ProvXAttrs {
     
     public static String getTagsElasticKey() {
       return ProvXAttrs.ELASTIC_XATTR
-        + "." + Featurestore.TAGS;
+        + "." + Featurestore.TAGS
+        + ".key";
+    }
+  
+    public static String getTagsElasticValue() {
+      return ProvXAttrs.ELASTIC_XATTR
+        + "." + Featurestore.TAGS
+        + ".value";
     }
   }
 }

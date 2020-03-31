@@ -663,6 +663,7 @@ public class ElasticController {
     hb.field(new HighlightBuilder.Field(
       ProvXAttrs.Featurestore.getFeaturestoreElasticKey(ProvXAttrs.Featurestore.FG_FEATURES)));
     hb.field(new HighlightBuilder.Field(ProvXAttrs.Featurestore.getTagsElasticKey()));
+    hb.field(new HighlightBuilder.Field(ProvXAttrs.Featurestore.getTagsElasticValue()));
     hb.field(new HighlightBuilder.Field(ProvXAttrs.ELASTIC_XATTR + ".*"));
     return hb;
   }

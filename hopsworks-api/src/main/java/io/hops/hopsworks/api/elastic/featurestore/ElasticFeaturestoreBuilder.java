@@ -102,7 +102,7 @@ public class ElasticFeaturestoreBuilder {
             result.addFeature(item);
             accessCtrl.accept(item, hit);
             ElasticFeaturestoreItemDTO.Highlights highlights = new ElasticFeaturestoreItemDTO.Highlights();
-            highlights.setName(true);
+            highlights.setName(e.toString());
             item.setHighlights(highlights);
           }
         }
@@ -113,35 +113,51 @@ public class ElasticFeaturestoreBuilder {
   
   private ElasticFeaturestoreItemDTO.Highlights getHighlights(Map<String, HighlightField> map) {
     ElasticFeaturestoreItemDTO.Highlights highlights = new ElasticFeaturestoreItemDTO.Highlights();
-    for(String key : map.keySet()) {
-      if(key.equals(Featurestore.NAME)
-        || key.equals(Featurestore.getFeaturestoreElasticKey(Featurestore.NAME))
-        || key.equals(Featurestore.getFeaturestoreElasticKey(Featurestore.NAME) + ".keyword")) {
-        highlights.setName(true);
+    for(Map.Entry<String, HighlightField> e : map.entrySet()) {
+      if(e.getKey().equals(Featurestore.NAME)
+        || e.getKey().equals(Featurestore.getFeaturestoreElasticKey(Featurestore.NAME))
+        || e.getKey().equals(Featurestore.getFeaturestoreElasticKey(Featurestore.NAME) + ".keyword")) {
+        highlights.setName(e.getValue().fragments()[0].toString());
         continue;
       }
-      if(key.equals(Featurestore.getFeaturestoreElasticKey(Featurestore.DESCRIPTION))
-        || key.equals(Featurestore.getFeaturestoreElasticKey(Featurestore.DESCRIPTION) + ".keyword")) {
-        highlights.setDescription(true);
+      if(e.getKey().equals(Featurestore.getFeaturestoreElasticKey(Featurestore.DESCRIPTION))
+        || e.getKey().equals(Featurestore.getFeaturestoreElasticKey(Featurestore.DESCRIPTION) + ".keyword")) {
+        highlights.setDescription(e.getValue().fragments()[0].toString());
         continue;
       }
-      if(key.equals(Featurestore.getFeaturestoreElasticKey(Featurestore.FG_FEATURES))
-        || key.equals(Featurestore.getFeaturestoreElasticKey(Featurestore.FG_FEATURES) + ".keyword")) {
-        highlights.setFeature(true);
+      if(e.getKey().equals(Featurestore.getFeaturestoreElasticKey(Featurestore.FG_FEATURES))
+        || e.getKey().equals(Featurestore.getFeaturestoreElasticKey(Featurestore.FG_FEATURES) + ".keyword")) {
+        for(Text t : e.getValue().fragments()) {
+          highlights.addFeature(t.toString());
+        }
         continue;
       }
-      if(key.equals(Featurestore.getFeaturestoreElasticKey(Featurestore.TD_FEATURES))
-        || key.equals(Featurestore.getFeaturestoreElasticKey(Featurestore.TD_FEATURES) + ".keyword")) {
-        highlights.setFeature(true);
+      if(e.getKey().equals(Featurestore.getFeaturestoreElasticKey(Featurestore.TD_FEATURES))
+        || e.getKey().equals(Featurestore.getFeaturestoreElasticKey(Featurestore.TD_FEATURES) + ".keyword")) {
+        for(Text t : e.getValue().fragments()) {
+          highlights.addFeature(t.toString());
+        }
         continue;
       }
-      if(key.equals(Featurestore.getFeaturestoreElasticKey(Featurestore.TD_FEATURES))
-        || key.equals(Featurestore.getFeaturestoreElasticKey(Featurestore.TD_FEATURES) + ".keyword")) {
-        highlights.setFeature(true);
+      if(e.getKey().equals(Featurestore.getTagsElasticKey())
+        || e.getKey().equals(Featurestore.getTagsElasticKey() + ".keyword")) {
+        for(Text t : e.getValue().fragments()) {
+          highlights.addTagKey(t.toString());
+        }
         continue;
       }
-      if(key.startsWith(ProvXAttrs.ELASTIC_XATTR + ".")) {
-        highlights.setOtherXattr(true);
+      if(e.getKey().equals(Featurestore.getTagsElasticValue())
+        || e.getKey().equals(Featurestore.getTagsElasticValue() + ".keyword")) {
+        for(Text t : e.getValue().fragments()) {
+          highlights.addTagValue(t.toString());
+        }
+        continue;
+      }
+      
+      if(e.getKey().startsWith(ProvXAttrs.ELASTIC_XATTR + ".")) {
+        for(Text t : e.getValue().fragments()) {
+          highlights.addOtherXAttr(e.getKey(), t.toString());
+        }
       }
     }
     return highlights;

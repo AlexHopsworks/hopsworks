@@ -191,17 +191,16 @@ describe "On #{ENV['OS']}" do
       with_valid_project
     end
 
-    it "search featuregroup, training datasets with name, features, xattr" do
-      featurestore_name = @project[:projectname].downcase + "_featurestore.db"
-      featurestore_id = get_featurestore_id(@project[:id])
+    def featuregroups_setup(project)
+      featurestore_id = get_featurestore_id(project[:id])
 
-      featuregroup1_name = "fg_animal1"
-      featuregroup1_id = s_create_featuregroup_checked(@project, featurestore_id, featuregroup1_name)
-      featuregroup2_name = "fg_dog1"
-      featuregroup2_id = s_create_featuregroup_checked(@project, featurestore_id, featuregroup2_name)
-      featuregroup3_name = "fg_othername1"
-      featuregroup3_id = s_create_featuregroup_checked(@project, featurestore_id, featuregroup3_name)
-      featuregroup4_name = "fg_othername2"
+      fg1_name = "fg_animal1"
+      featuregroup1_id = s_create_featuregroup_checked(project, featurestore_id, fg1_name)
+      fg2_name = "fg_dog1"
+      featuregroup2_id = s_create_featuregroup_checked(project, featurestore_id, fg1_name)
+      fg3_name = "fg_othername1"
+      featuregroup3_id = s_create_featuregroup_checked(project, featurestore_id, fg3_name)
+      fg4_name = "fg_othername2"
       features4 = [
           {
               type: "INT",
@@ -210,8 +209,8 @@ describe "On #{ENV['OS']}" do
               primary: true
           }
       ]
-      featuregroup4_id = s_create_featuregroup_checked2(@project, featurestore_id, featuregroup4_name, features4)
-      featuregroup5_name = "fg_othername3"
+      featuregroup4_id = s_create_featuregroup_checked2(project, featurestore_id, fg4_name, features4)
+      fg5_name = "fg_othername3"
       features5 = [
           {
               type: "INT",
@@ -220,25 +219,48 @@ describe "On #{ENV['OS']}" do
               primary: true
           }
       ]
-      featuregroup5_id = s_create_featuregroup_checked2(@project, featurestore_id, featuregroup5_name, features5)
-      add_xattr_featuregroup(@project, featurestore_id, featuregroup5_id, "hobby", "tennis")
-      featuregroup6_name = "fg_othername4"
-      featuregroup6_id = s_create_featuregroup_checked(@project, featurestore_id, featuregroup6_name)
-      add_xattr_featuregroup(@project, featurestore_id, featuregroup6_id, "animal", "dog")
+      featuregroup5_id = s_create_featuregroup_checked2(project, featurestore_id, fg5_name, features5)
+      add_xattr_featuregroup(project, featurestore_id, featuregroup5_id, "hobby", "tennis")
+      fg6_name = "fg_othername6"
+      featuregroup6_id = s_create_featuregroup_checked(project, featurestore_id, fg6_name)
+      add_xattr_featuregroup(project, featurestore_id, featuregroup6_id, "animal", "dog")
+      fg7_name = "fg_othername7"
+      featuregroup7_id = s_create_featuregroup_checked(project, featurestore_id, fg7_name)
+      fg7_tags = [{'key' => "dog", 'value' => "Luna"}, {'key' => "other", 'value' => "val"}]
+      add_xattr_featuregroup(project, featurestore_id, featuregroup7_id, "tags", fg7_tags.to_json)
+      fg8_name = "fg_othername8"
+      featuregroup8_id = s_create_featuregroup_checked(project, featurestore_id, fg8_name)
+      fg8_tags = [{'key' => "pet", 'value' => "dog"}, {'key' => "other", 'value' => "val"}]
+      add_xattr_featuregroup(project, featurestore_id, featuregroup8_id, "tags", fg8_tags.to_json)
+      fg9_name = "fg_othername9"
+      featuregroup9_id = s_create_featuregroup_checked(project, featurestore_id, fg9_name)
+      fg9_tags = [{'key' => "dog"}, {'key' => "other", 'value' => "val"}]
+      add_xattr_featuregroup(project, featurestore_id, featuregroup9_id, "tags", fg9_tags.to_json)
+      [fg1_name, fg2_name, fg3_name, fg4_name, fg5_name, fg6_name, fg7_name, fg8_name, fg9_name]
+    end
 
-      td_name = "#{@project[:projectname]}_Training_Datasets"
-      td_dataset = get_dataset(@project, td_name)
-      connector = get_hopsfs_training_datasets_connector(@project[:projectname])
-      training_dataset_name1 = "td_animal1"
-      td1 = s_create_training_dataset_checked(@project, featurestore_id, connector, training_dataset_name1)
-      training_dataset_name2 = "td_dog1"
-      td2 = s_create_training_dataset_checked(@project, featurestore_id, connector, training_dataset_name2)
-      training_dataset_name3 = "td_something1"
-      td3 = s_create_training_dataset_checked(@project, featurestore_id, connector, training_dataset_name3)
-      add_xattr(@project, get_path_dir(@project, td_dataset, "#{training_dataset_name3}_#{td3[:version]}"), "td_key", "dog_td")
-      training_dataset_name4 = "td_something2"
-      td4 = s_create_training_dataset_checked(@project, featurestore_id, connector, training_dataset_name4)
-      add_xattr(@project, get_path_dir(@project, td_dataset, "#{training_dataset_name4}_#{td4[:version]}"), "td_key", "something_val")
+    def trainingdataset_setup(project)
+      td_name = "#{project[:projectname]}_Training_Datasets"
+      td_dataset = get_dataset(project, td_name)
+      connector = get_hopsfs_training_datasets_connector(project[:projectname])
+      td1_name = "td_animal1"
+      td1 = s_create_training_dataset_checked(project, featurestore_id, connector, td1_name)
+      td2_name = "td_dog1"
+      td2 = s_create_training_dataset_checked(project, featurestore_id, connector, td2_name)
+      td3_name = "td_something1"
+      td3 = s_create_training_dataset_checked(project, featurestore_id, connector, td3_name)
+      add_xattr(project, get_path_dir(project, td_dataset, "#{training_dataset_name3}_#{td3[:version]}"), "td_key", "dog_td")
+      td4_name = "td_something2"
+      td4 = s_create_training_dataset_checked(project, featurestore_id, connector, td4_name)
+      add_xattr(project, get_path_dir(project, td_dataset, "#{td4_name}_#{td4[:version]}"), "td_key", "something_val")
+      #fake features
+      td4_name = "td_something4"
+      td4 = s_create_training_dataset_checked(project, featurestore_id, connector, td4_name)
+      td4_features = {}
+      add_xattr(project, get_path_dir(project, td_dataset, "#{td4_name}_#{td4[:version]}"), "td_key", "something_val")
+    end
+    it "search featuregroup, training datasets with name, features, xattr" do
+
       sleep(1)
       time_this do
         wait_for_me(15) do
