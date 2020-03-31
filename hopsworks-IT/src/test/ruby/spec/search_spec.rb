@@ -254,22 +254,31 @@ describe "On #{ENV['OS']}" do
       td4 = s_create_training_dataset_checked(project, featurestore_id, connector, td4_name)
       add_xattr(project, get_path_dir(project, td_dataset, "#{td4_name}_#{td4[:version]}"), "td_key", "something_val")
       #fake features
-      td4_name = "td_something4"
-      td4 = s_create_training_dataset_checked(project, featurestore_id, connector, td4_name)
-      td4_features = {}
-      add_xattr(project, get_path_dir(project, td_dataset, "#{td4_name}_#{td4[:version]}"), "td_key", "something_val")
+      td5_name = "td_something5"
+      td5 = s_create_training_dataset_checked(project, featurestore_id, connector, td5_name)
+      td5_features = [{'featurestore_id' => 100, 'name' => "dog", 'version' => 1, 'features' => ["feature1", "feature2"]}]
+      add_xattr(project, get_path_dir(project, td_dataset, "#{td5_name}_#{td5[:version]}"), "featurestore.td_features", td5_features.to_json)
+      td6_name = "td_something6"
+      td6 = s_create_training_dataset_checked(project, featurestore_id, connector, td6_name)
+      td6_features = [{'featurestore_id' => 100, 'name' => "fg", 'version' => 1, 'features' => ["dog", "feature2"]}]
+      add_xattr(project, get_path_dir(project, td_dataset, "#{td6_name}_#{td6[:version]}"), "featurestore.td_features", td6_features.to_json)
+      [td1_name, td2_name, td3_name, td4_name, td5_name, td6_name]
     end
     it "search featuregroup, training datasets with name, features, xattr" do
-
+      fgs = featuregroups_setup(@project)
+      tds = trainingdataset_setup(@project)
       sleep(1)
       time_this do
         wait_for_me(15) do
           result = local_featurestore_search(@project, "FEATUREGROUP", "dog")
           pp result
-          if result[:featuregroups].length == 3
-            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{featuregroup2_name}"}
-            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{featuregroup4_name}"}
-            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{featuregroup6_name}"}
+          if result[:featuregroups].length == 6
+            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs[1]}"}
+            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs[3]}"}
+            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs[5]}"}
+            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs[6]}"}
+            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs[7]}"}
+            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs[8]}"}
             true
           else
             pp "received:#{result[:featuregroups].length}"
@@ -283,8 +292,11 @@ describe "On #{ENV['OS']}" do
           result = local_featurestore_search(@project, "TRAININGDATASET", "dog")
           pp result
           if result[:trainingdatasets].length == 2
-            array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{training_dataset_name2}"}
-            array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{training_dataset_name3}"}
+            array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{tds[1]}"}
+            array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{tds[2]}"}
+            array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{tds[3]}"}
+            array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{tds[5]}"}
+            array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{tds[6]}"}
             true
           else
             pp "received:#{result[:trainingdatasets].length}"
