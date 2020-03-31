@@ -200,7 +200,7 @@ describe "On #{ENV['OS']}" do
       fg1_name = "fg_animal1"
       featuregroup1_id = s_create_featuregroup_checked(project, featurestore_id, fg1_name)
       fg2_name = "fg_dog1"
-      featuregroup2_id = s_create_featuregroup_checked(project, featurestore_id, fg1_name)
+      featuregroup2_id = s_create_featuregroup_checked(project, featurestore_id, fg2_name)
       fg3_name = "fg_othername1"
       featuregroup3_id = s_create_featuregroup_checked(project, featurestore_id, fg3_name)
       fg4_name = "fg_othername2"
