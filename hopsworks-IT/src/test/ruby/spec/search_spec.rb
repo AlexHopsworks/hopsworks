@@ -314,7 +314,7 @@ describe "On #{ENV['OS']}" do
           result = local_featurestore_search(@project, "FEATURE", "dog")
           pp result
           if result[:features].length == 1
-            array_contains_one_of(result[:features]) {|r| r[:featuregroup] == "#{fgs[5]}"}
+            array_contains_one_of(result[:features]) {|r| r[:featuregroup] == "#{fgs[2]}"}
             true
           else
             pp "received:#{result[:features].length}"
