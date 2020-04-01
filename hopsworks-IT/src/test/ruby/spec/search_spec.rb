@@ -308,6 +308,22 @@ describe "On #{ENV['OS']}" do
           end
         end
       end
+      sleep(1)
+      time_this do
+        wait_for_me(15) do
+          result = local_featurestore_search(@project, "FEATURE", "dog")
+          pp result
+          if result[:features].length == 3
+            array_contains_one_of(result[:features]) {|r| r[:featuregroup] == "#{fgs[6]}"}
+            array_contains_one_of(result[:features]) {|r| r[:featuregroup] == "#{fgs[7]}"}
+            array_contains_one_of(result[:features]) {|r| r[:featuregroup] == "#{fgs[8]}"}
+            true
+          else
+            pp "received:#{result[:features].length}"
+            false
+          end
+        end
+      end
     end
   end
 end
