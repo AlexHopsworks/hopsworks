@@ -296,7 +296,7 @@ describe "On #{ENV['OS']}" do
         wait_for_me(15) do
           result = local_featurestore_search(@project, "TRAININGDATASET", "dog")
           pp result
-          if result[:trainingdatasets].length == 2
+          if result[:trainingdatasets].length == 4
             array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{tds[1]}"}
             array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{tds[2]}"}
             array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{tds[3]}"}

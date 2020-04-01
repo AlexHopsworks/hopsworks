@@ -27,10 +27,6 @@ import java.util.List;
 public class ProvTrainingDatasetDTO {
   @XmlElement(nillable = false, name = ProvXAttrs.Featurestore.FEATURESTORE_ID)
   private Integer featurestoreId;
-  @XmlElement(nillable = false, name = ProvXAttrs.Featurestore.NAME)
-  private String name;
-  @XmlElement(nillable = false, name = ProvXAttrs.Featurestore.VERSION)
-  private Integer version;
   @XmlElement(nillable = true, name = ProvXAttrs.Featurestore.DESCRIPTION)
   private String description;
   @XmlElement(nillable = true, name = ProvXAttrs.Featurestore.CREATE_DATE)
@@ -51,8 +47,6 @@ public class ProvTrainingDatasetDTO {
   public ProvTrainingDatasetDTO(Integer featurestoreId, String name, Integer version, String description,
     Date createDate, String creator, List<ProvFeaturegroupDTO.Base> features) {
     this.featurestoreId = featurestoreId;
-    this.name = name;
-    this.version = version;
     this.description = description;
     this.createDate = createDate.getTime();
     this.creator = creator;
@@ -65,22 +59,6 @@ public class ProvTrainingDatasetDTO {
   
   public void setFeaturestoreId(Integer featurestoreId) {
     this.featurestoreId = featurestoreId;
-  }
-  
-  public String getName() {
-    return name;
-  }
-  
-  public void setName(String name) {
-    this.name = name;
-  }
-  
-  public Integer getVersion() {
-    return version;
-  }
-  
-  public void setVersion(Integer version) {
-    this.version = version;
   }
   
   public String getDescription() {

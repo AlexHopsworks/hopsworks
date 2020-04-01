@@ -28,10 +28,7 @@ public class ProvFeaturegroupDTO {
   public static class Base {
     @XmlElement(nillable = false, name = ProvXAttrs.Featurestore.FEATURESTORE_ID)
     private Integer featurestoreId;
-    @XmlElement(nillable = false, name = ProvXAttrs.Featurestore.NAME)
-    private String name;
-    @XmlElement(nillable = false, name = ProvXAttrs.Featurestore.VERSION)
-    private Integer version;
+    
     @XmlElement(nillable = false, name = ProvXAttrs.Featurestore.FG_FEATURES)
     private List<String> features = new LinkedList<>();
   
@@ -43,8 +40,6 @@ public class ProvFeaturegroupDTO {
   
     public Base(Integer featurestoreId, String name, Integer version, List<String> features) {
       this.featurestoreId = featurestoreId;
-      this.name = name;
-      this.version = version;
       this.features = features;
     }
   
@@ -54,22 +49,6 @@ public class ProvFeaturegroupDTO {
   
     public void setFeaturestoreId(Integer featurestoreId) {
       this.featurestoreId = featurestoreId;
-    }
-  
-    public String getName() {
-      return name;
-    }
-  
-    public void setName(String name) {
-      this.name = name;
-    }
-  
-    public Integer getVersion() {
-      return version;
-    }
-  
-    public void setVersion(Integer version) {
-      this.version = version;
     }
   
     public List<String> getFeatures() {
@@ -88,8 +67,6 @@ public class ProvFeaturegroupDTO {
     public String toString() {
       return "Base{" +
         "featurestoreId=" + featurestoreId +
-        ", name='" + name + '\'' +
-        ", version=" + version +
         ", features=" + features +
         '}';
     }
