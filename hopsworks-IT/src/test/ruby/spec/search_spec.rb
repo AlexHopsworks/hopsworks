@@ -283,7 +283,6 @@ describe "On #{ENV['OS']}" do
             array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs[5]}"}
             array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs[6]}"}
             array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs[7]}"}
-            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs[8]}"}
             true
           else
             pp "received:#{result[:featuregroups].length}"
