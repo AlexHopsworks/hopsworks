@@ -268,23 +268,27 @@ describe "On #{ENV['OS']}" do
       add_xattr(project, get_path_dir(project, td_dataset, "#{td6_name}_#{td6[:version]}"), "featurestore.td_features", td6_features.to_json)
       [td1_name, td2_name, td3_name, td4_name, td5_name, td6_name]
     end
+
     it "search featuregroup, training datasets with name, features, xattr" do
       project1 = create_project
       project2 = create_project
-      fgs = featuregroups_setup(project1)
-      tds = trainingdataset_setup(project1)
+      fgs1 = featuregroups_setup(project1)
+      fgs2 = featuregroups_setup(project2)
+      tds1 = trainingdataset_setup(project1)
+      tds2 = trainingdataset_setup(project2)
+      #local search - project1
       sleep(1)
       time_this do
         wait_for_me(15) do
           result = local_featurestore_search(project1, "FEATUREGROUP", "dog")
           pp result
           if result[:featuregroups].length == 6
-            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs[1]}"}
-            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs[3]}"}
-            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs[5]}"}
-            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs[6]}"}
-            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs[7]}"}
-            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs[8]}"}
+            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs1[1]}"}
+            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs1[3]}"}
+            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs1[5]}"}
+            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs1[6]}"}
+            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs1[7]}"}
+            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs1[8]}"}
             true
           else
             pp "received:#{result[:featuregroups].length}"
@@ -298,10 +302,10 @@ describe "On #{ENV['OS']}" do
           result = local_featurestore_search(project1, "TRAININGDATASET", "dog")
           pp result
           if result[:trainingdatasets].length == 4
-            array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{tds[1]}"}
-            array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{tds[2]}"}
-            array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{tds[4]}"}
-            array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{tds[5]}"}
+            array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{tds1[1]}"}
+            array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{tds1[2]}"}
+            array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{tds1[4]}"}
+            array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{tds1[5]}"}
             true
           else
             pp "received:#{result[:trainingdatasets].length}"
@@ -315,7 +319,71 @@ describe "On #{ENV['OS']}" do
           result = local_featurestore_search(project1, "FEATURE", "dog")
           pp result
           if result[:features].length == 1
-            array_contains_one_of(result[:features]) {|r| r[:featuregroup] == "#{fgs[3]}"}
+            array_contains_one_of(result[:features]) {|r| r[:featuregroup] == "#{fgs1[3]}"}
+            true
+          else
+            pp "received:#{result[:features].length}"
+            false
+          end
+        end
+      end
+      #global search
+      sleep(1)
+      time_this do
+        wait_for_me(15) do
+          result = global_featurestore_search("FEATUREGROUP", "dog")
+          pp result
+          if result[:featuregroups].length == 12
+            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs1[1]}"}
+            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs1[3]}"}
+            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs1[5]}"}
+            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs1[6]}"}
+            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs1[7]}"}
+            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs1[8]}"}
+
+            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs2[1]}"}
+            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs2[3]}"}
+            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs2[5]}"}
+            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs2[6]}"}
+            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs2[7]}"}
+            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs2[8]}"}
+            true
+          else
+            pp "received:#{result[:featuregroups].length}"
+            false
+          end
+        end
+      end
+      sleep(1)
+      time_this do
+        wait_for_me(15) do
+          result = global_featurestore_search("TRAININGDATASET", "dog")
+          pp result
+          if result[:trainingdatasets].length == 8
+            array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{tds1[1]}"}
+            array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{tds1[2]}"}
+            array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{tds1[4]}"}
+            array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{tds1[5]}"}
+
+            array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{tds2[1]}"}
+            array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{tds2[2]}"}
+            array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{tds2[4]}"}
+            array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{tds2[5]}"}
+            true
+          else
+            pp "received:#{result[:trainingdatasets].length}"
+            false
+          end
+        end
+      end
+      sleep(1)
+      time_this do
+        wait_for_me(15) do
+          result = local_featurestore_search(project1, "FEATURE", "dog")
+          pp result
+          if result[:features].length == 2
+            array_contains_one_of(result[:features]) {|r| r[:featuregroup] == "#{fgs1[3]}"}
+            array_contains_one_of(result[:features]) {|r| r[:featuregroup] == "#{fgs2[3]}"}
             true
           else
             pp "received:#{result[:features].length}"
