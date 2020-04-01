@@ -234,7 +234,7 @@ public class HopsFSProvenanceController {
     try {
       String path = Utils.getFeaturestorePath(project, settings)
         + "/" + Utils.getFeaturegroupName(featuregroup.getName(), featuregroup.getVersion());
-      ProvFeaturegroupDTO.Extended fg = fromFeaturegroup(featuregroup);
+      ProvFeaturegroupDTO.Featuregroup fg = fromFeaturegroup(featuregroup);
       try {
         udfso.upsertXAttr(path, ProvXAttrs.Featurestore.getFeaturestoreXAttrKey(),
           converter.marshal(fg).getBytes());
@@ -256,10 +256,9 @@ public class HopsFSProvenanceController {
     DistributedFileSystemOps udfso = dfs.getDfsOps(hdfsUsername);
     try {
       ProvTrainingDatasetDTO td = new ProvTrainingDatasetDTO(trainingDatasetDTO.getFeaturestoreId(),
-        trainingDatasetDTO.getName(), trainingDatasetDTO.getVersion(), trainingDatasetDTO.getDescription(),
-        trainingDatasetDTO.getCreated(), trainingDatasetDTO.getCreator());
+        trainingDatasetDTO.getDescription(), trainingDatasetDTO.getCreated(), trainingDatasetDTO.getCreator());
       if(trainingDatasetDTO.getFeatures() != null) {
-        List<ProvFeaturegroupDTO.Base> featuresDTO = fromFeatures(trainingDatasetDTO.getFeatures());
+        List<ProvFeaturegroupDTO.Base> featuresDTO = fromTrainingDataset(trainingDatasetDTO);
         td.setFeatures(featuresDTO);
       }
       try {
@@ -290,13 +289,14 @@ public class HopsFSProvenanceController {
   }
   
   //TODO - featurestore without knowing the featurestoreId I can't split them
-  private List<ProvFeaturegroupDTO.Base> fromFeatures(List<FeatureDTO> features) {
+  private List<ProvFeaturegroupDTO.Base> fromTrainingDataset(TrainingDatasetDTO trainingDatasetDTO) {
     List<ProvFeaturegroupDTO.Base> result = new LinkedList<>();
     Map<String, ProvFeaturegroupDTO.Base> featuregroups = new HashMap<>();
-    for(FeatureDTO feature : features) {
+    for(FeatureDTO feature : trainingDatasetDTO.getFeatures()) {
       ProvFeaturegroupDTO.Base featuregroup = featuregroups.get(feature.getFeaturegroup());
       if(featuregroup == null) {
-        featuregroup = new ProvFeaturegroupDTO.Base(-1, feature.getFeaturegroup(), feature.getVersion());
+        featuregroup = new ProvFeaturegroupDTO.TrainingDataset(trainingDatasetDTO.getFeaturestoreId(),
+          feature.getFeaturegroup(), feature.getVersion());
         featuregroups.put(feature.getFeaturegroup(), featuregroup);
         result.add(featuregroup);
       }
@@ -305,13 +305,12 @@ public class HopsFSProvenanceController {
     return result;
   }
   
-  private ProvFeaturegroupDTO.Extended fromFeaturegroup(FeaturegroupDTO featuregroup) {
+  private ProvFeaturegroupDTO.Featuregroup fromFeaturegroup(FeaturegroupDTO featuregroup) {
     List<String> features = new LinkedList<>();
     for(FeatureDTO feature : featuregroup.getFeatures()) {
       features.add(feature.getName());
     }
-    return new ProvFeaturegroupDTO.Extended(featuregroup.getFeaturestoreId(), featuregroup.getName(),
-      featuregroup.getVersion(), featuregroup.getDescription(), featuregroup.getCreated(), featuregroup.getCreator(),
-      features);
+    return new ProvFeaturegroupDTO.Featuregroup(featuregroup.getFeaturestoreId(), featuregroup.getDescription(),
+      featuregroup.getCreated(), featuregroup.getCreator(), features);
   }
 }

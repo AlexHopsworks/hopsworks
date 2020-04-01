@@ -34,11 +34,11 @@ public class ProvFeaturegroupDTO {
   
     public Base() {}
   
-    public Base(Integer featurestoreId, String name, Integer version) {
-      this(featurestoreId, name, version, new LinkedList<>());
+    public Base(Integer featurestoreId) {
+      this(featurestoreId, new LinkedList<>());
     }
   
-    public Base(Integer featurestoreId, String name, Integer version, List<String> features) {
+    public Base(Integer featurestoreId, List<String> features) {
       this.featurestoreId = featurestoreId;
       this.features = features;
     }
@@ -73,7 +73,7 @@ public class ProvFeaturegroupDTO {
   }
   
   @XmlRootElement
-  public static class Extended extends Base {
+  public static class Featuregroup extends Base {
     @XmlElement(nillable = true, name = ProvXAttrs.Featurestore.DESCRIPTION)
     private String description;
     @XmlElement(nillable = true, name = ProvXAttrs.Featurestore.CREATE_DATE)
@@ -81,16 +81,17 @@ public class ProvFeaturegroupDTO {
     @XmlElement(nillable = true, name = ProvXAttrs.Featurestore.CREATOR)
     private String creator;
   
-    public Extended() {}
-  
-    public Extended(Integer featurestoreId, String name, Integer version, String description,
-      Date createDate, String creator) {
-      this(featurestoreId, name, version, description, createDate, creator, new LinkedList<>());
+    public Featuregroup() {
+      super();
     }
   
-    public Extended(Integer featurestoreId, String name, Integer version, String description,
+    public Featuregroup(Integer featurestoreId, String description, Date createDate, String creator) {
+      this(featurestoreId, description, createDate, creator, new LinkedList<>());
+    }
+  
+    public Featuregroup(Integer featurestoreId, String description,
       Date createDate, String creator, List<String> features) {
-      super(featurestoreId, name, version, features);
+      super(featurestoreId, features);
       this.description = description;
       this.createDate = createDate.getTime();
       this.creator = creator;
@@ -127,6 +128,39 @@ public class ProvFeaturegroupDTO {
         ", createDate=" + createDate +
         ", creator='" + creator + '\'' +
         '}';
+    }
+  }
+  
+  @XmlRootElement
+  public static class TrainingDataset extends Base {
+    @XmlElement(nillable = false, name = ProvXAttrs.Featurestore.NAME)
+    private String name;
+    @XmlElement(nillable = false, name = ProvXAttrs.Featurestore.VERSION)
+    private Integer version;
+  
+    public TrainingDataset() {
+      super();
+    }
+    
+    public TrainingDataset(Integer featurestoreId, String name, Integer version) {
+      super(featurestoreId);
+      this.name = name;
+      this.version = version;
+    }
+    public String getName() {
+      return name;
+    }
+  
+    public void setName(String name) {
+      this.name = name;
+    }
+  
+    public Integer getVersion() {
+      return version;
+    }
+  
+    public void setVersion(Integer version) {
+      this.version = version;
     }
   }
 }

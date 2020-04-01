@@ -61,7 +61,7 @@ public class HopsworksJAXBContext {
           ProvCoreDTO.class,
           ProvTypeDTO.class,
           ProvFeaturegroupDTO.Base.class,
-          ProvFeaturegroupDTO.Extended.class,
+          ProvFeaturegroupDTO.Featuregroup.class,
           ProvTrainingDatasetDTO.class
         }, properties);
     } catch (JAXBException e) {

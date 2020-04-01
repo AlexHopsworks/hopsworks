@@ -39,12 +39,12 @@ public class ProvTrainingDatasetDTO {
   public ProvTrainingDatasetDTO() {
   }
   
-  public ProvTrainingDatasetDTO(Integer featurestoreId, String name, Integer version, String description,
+  public ProvTrainingDatasetDTO(Integer featurestoreId, String description,
     Date createDate, String creator) {
-    this(featurestoreId, name, version, description, createDate, creator, new LinkedList<>());
+    this(featurestoreId, description, createDate, creator, new LinkedList<>());
   }
   
-  public ProvTrainingDatasetDTO(Integer featurestoreId, String name, Integer version, String description,
+  public ProvTrainingDatasetDTO(Integer featurestoreId, String description,
     Date createDate, String creator, List<ProvFeaturegroupDTO.Base> features) {
     this.featurestoreId = featurestoreId;
     this.description = description;

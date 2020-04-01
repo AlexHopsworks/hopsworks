@@ -29,8 +29,6 @@ import io.hops.hopsworks.persistence.entity.user.Users;
 import org.elasticsearch.common.text.Text;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.fetch.subphase.highlight.HighlightField;
-import org.javatuples.Pair;
-
 
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
@@ -60,14 +58,14 @@ public class ElasticFeaturestoreBuilder {
     Project project = projectFacade.find(projectId);
     Map<FeaturestoreDocType, Set<Integer>> searchProjects
       = dataAccessCtrl.featurestoreSearchContext(project, req.getDocType());
-    Pair<SearchHit[], SearchHit[]> hits = elasticCtrl.featurestoreSearch(req.getTerm(), searchProjects);
-    return parseResult(req.getDocType(), hits.getValue1(), accessFromParentProject(project));
+    SearchHit[] hits = elasticCtrl.featurestoreSearch(req.getTerm(), searchProjects, req.getFrom(), req.getSize());
+    return parseResult(req.getDocType(), hits, accessFromParentProject(project));
   }
   
   public ElasticFeaturestoreDTO build(Users user,ElasticFeaturestoreRequest req)
     throws ElasticException, ServiceException, GenericException {
-    Pair<SearchHit[], SearchHit[]> hits = elasticCtrl.featurestoreSearch(req.getDocType(), req.getTerm());
-    return parseResult(req.getDocType(), hits.getValue1(), accessFromSharedProjects(user));
+    SearchHit[] hits = elasticCtrl.featurestoreSearch(req.getDocType(), req.getTerm(), req.getFrom(), req.getSize());
+    return parseResult(req.getDocType(), hits, accessFromSharedProjects(user));
   }
   
   private ElasticFeaturestoreDTO parseResult(FeaturestoreDocType docType, SearchHit[] hits,

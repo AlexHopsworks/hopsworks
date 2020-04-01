@@ -44,8 +44,8 @@ public class ElasticFeaturestoreItemDTO {
       switch (e.getKey()) {
         case ProvXAttrs.Featurestore.FEATURESTORE: {
           Gson gson = new Gson();
-          ProvFeaturegroupDTO.Extended fg
-            = converter.unmarshal(gson.toJson(e.getValue()), ProvFeaturegroupDTO.Extended.class);
+          ProvFeaturegroupDTO.Featuregroup fg
+            = converter.unmarshal(gson.toJson(e.getValue()), ProvFeaturegroupDTO.Featuregroup.class);
           item.featurestoreId = fg.getFeaturestoreId();
           item.description = fg.getDescription();
           item.created = new Date(fg.getCreateDate());

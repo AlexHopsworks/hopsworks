@@ -20,13 +20,17 @@ import io.hops.hopsworks.common.elastic.FeaturestoreDocType;
 public class ElasticFeaturestoreRequest {
   private String term;
   private FeaturestoreDocType docType;
+  private int from;
+  private int size;
   
   public ElasticFeaturestoreRequest() {
   }
   
-  public ElasticFeaturestoreRequest(String term, FeaturestoreDocType docType) {
+  public ElasticFeaturestoreRequest(String term, FeaturestoreDocType docType, int from, int size) {
     this.term = term;
     this.docType = docType;
+    this.from = from;
+    this.size = size;
   }
   
   public String getTerm() {
@@ -43,5 +47,21 @@ public class ElasticFeaturestoreRequest {
   
   public void setDocType(FeaturestoreDocType docType) {
     this.docType = docType;
+  }
+  
+  public int getFrom() {
+    return from;
+  }
+  
+  public void setFrom(int from) {
+    this.from = from;
+  }
+  
+  public int getSize() {
+    return size;
+  }
+  
+  public void setSize(int size) {
+    this.size = size;
   }
 }

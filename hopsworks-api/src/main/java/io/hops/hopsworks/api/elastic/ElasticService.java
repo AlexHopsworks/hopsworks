@@ -189,6 +189,8 @@ public class ElasticService {
   public Response globalFeaturestoreSearch(
     @PathParam("searchTerm") String searchTerm,
     @QueryParam("docType") @DefaultValue("ALL") FeaturestoreDocType docType,
+    @QueryParam("from") @DefaultValue("0") Integer from,
+    @QueryParam("size") @DefaultValue("100") Integer size,
     @Context SecurityContext sc)
     throws ServiceException, ElasticException, GenericException {
     if (Strings.isNullOrEmpty(searchTerm)) {
@@ -197,7 +199,7 @@ public class ElasticService {
     Users user = jWTHelper.getUserPrincipal(sc);
   
     ElasticFeaturestoreDTO dto
-      = elasticFeaturestoreBuilder.build(user, new ElasticFeaturestoreRequest(searchTerm, docType));
+      = elasticFeaturestoreBuilder.build(user, new ElasticFeaturestoreRequest(searchTerm, docType, from, size));
     return Response.ok().entity(dto).build();
   }
   
@@ -217,6 +219,8 @@ public class ElasticService {
     @PathParam("projectId") Integer projectId,
     @PathParam("searchTerm") String searchTerm,
     @QueryParam("docType") @DefaultValue("ALL") FeaturestoreDocType docType,
+    @QueryParam("from") @DefaultValue("0") Integer from,
+    @QueryParam("size") @DefaultValue("100") Integer size,
     @Context SecurityContext sc)
     throws ServiceException, ElasticException, GenericException {
     
@@ -225,7 +229,7 @@ public class ElasticService {
     }
   
     ElasticFeaturestoreDTO dto
-      = elasticFeaturestoreBuilder.build(new ElasticFeaturestoreRequest(searchTerm, docType), projectId);
+      = elasticFeaturestoreBuilder.build(new ElasticFeaturestoreRequest(searchTerm, docType, from, size), projectId);
     return Response.ok().entity(dto).build();
   }
   

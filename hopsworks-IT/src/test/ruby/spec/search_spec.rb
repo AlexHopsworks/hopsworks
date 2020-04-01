@@ -19,7 +19,7 @@ describe "On #{ENV['OS']}" do
     with_valid_session
   end
   after(:all) do
-    # clean_all_test_projects
+    clean_all_test_projects
   end
 
   def s_create_featuregroup_checked(project, featurestore_id, featuregroup_name)
