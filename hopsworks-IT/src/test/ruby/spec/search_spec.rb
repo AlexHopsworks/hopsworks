@@ -269,8 +269,8 @@ describe "On #{ENV['OS']}" do
       [td1_name, td2_name, td3_name, td4_name, td5_name, td6_name]
     end
     it "search featuregroup, training datasets with name, features, xattr" do
-      project1 = get_project
-      project2 = get_project
+      project1 = create_project
+      project2 = create_project
       fgs = featuregroups_setup(project1)
       tds = trainingdataset_setup(project1)
       sleep(1)
