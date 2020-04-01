@@ -299,7 +299,7 @@ describe "On #{ENV['OS']}" do
           if result[:trainingdatasets].length == 4
             array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{tds[1]}"}
             array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{tds[2]}"}
-            array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{tds[3]}"}
+            array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{tds[4]}"}
             array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{tds[5]}"}
             true
           else
