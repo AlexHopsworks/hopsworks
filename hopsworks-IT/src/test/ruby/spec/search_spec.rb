@@ -191,7 +191,6 @@ describe "On #{ENV['OS']}" do
 
   context "featurestore" do
     before(:each) do
-      with_valid_project
     end
 
     def featuregroups_setup(project)
@@ -270,12 +269,14 @@ describe "On #{ENV['OS']}" do
       [td1_name, td2_name, td3_name, td4_name, td5_name, td6_name]
     end
     it "search featuregroup, training datasets with name, features, xattr" do
-      fgs = featuregroups_setup(@project)
-      tds = trainingdataset_setup(@project)
+      project1 = get_project
+      project2 = get_project
+      fgs = featuregroups_setup(project1)
+      tds = trainingdataset_setup(project1)
       sleep(1)
       time_this do
         wait_for_me(15) do
-          result = local_featurestore_search(@project, "FEATUREGROUP", "dog")
+          result = local_featurestore_search(project1, "FEATUREGROUP", "dog")
           pp result
           if result[:featuregroups].length == 6
             array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs[1]}"}
@@ -294,7 +295,7 @@ describe "On #{ENV['OS']}" do
       sleep(1)
       time_this do
         wait_for_me(15) do
-          result = local_featurestore_search(@project, "TRAININGDATASET", "dog")
+          result = local_featurestore_search(project1, "TRAININGDATASET", "dog")
           pp result
           if result[:trainingdatasets].length == 4
             array_contains_one_of(result[:trainingdatasets]) {|r| r[:name] == "#{tds[1]}"}
@@ -311,10 +312,10 @@ describe "On #{ENV['OS']}" do
       sleep(1)
       time_this do
         wait_for_me(15) do
-          result = local_featurestore_search(@project, "FEATURE", "dog")
+          result = local_featurestore_search(project1, "FEATURE", "dog")
           pp result
           if result[:features].length == 1
-            array_contains_one_of(result[:features]) {|r| r[:featuregroup] == "#{fgs[2]}"}
+            array_contains_one_of(result[:features]) {|r| r[:featuregroup] == "#{fgs[3]}"}
             true
           else
             pp "received:#{result[:features].length}"
