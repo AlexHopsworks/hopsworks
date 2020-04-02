@@ -411,7 +411,7 @@ describe "On #{ENV['OS']}" do
       sleep(1)
       time_this do
         wait_for_me(15) do
-          result = local_featurestore_search(project1, "FEATURE", "dog")
+          result = global_featurestore_search("FEATURE", "dog")
           pp result
           r_aux = true
           if result[:features].length >= 2
