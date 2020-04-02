@@ -56,6 +56,7 @@ import io.hops.hopsworks.exceptions.GenericException;
 import io.hops.hopsworks.exceptions.ServiceException;
 import io.hops.hopsworks.jwt.annotation.JWTRequired;
 import io.hops.hopsworks.persistence.entity.user.Users;
+import io.hops.hopsworks.restutils.RESTCodes;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 
@@ -189,8 +190,8 @@ public class ElasticService {
   public Response globalFeaturestoreSearch(
     @PathParam("searchTerm") String searchTerm,
     @QueryParam("docType") @DefaultValue("ALL") FeaturestoreDocType docType,
-    @QueryParam("from") @DefaultValue("0") Integer from,
-    @QueryParam("size") @DefaultValue("100") Integer size,
+    @QueryParam("from") @DefaultValue("0") String from,
+    @QueryParam("size") @DefaultValue("100") String size,
     @Context SecurityContext sc)
     throws ServiceException, ElasticException, GenericException {
     if (Strings.isNullOrEmpty(searchTerm)) {
@@ -198,8 +199,18 @@ public class ElasticService {
     }
     Users user = jWTHelper.getUserPrincipal(sc);
   
+    int fromI;
+    int sizeI;
+  
+    try {
+      fromI = Integer.parseInt(from);
+      sizeI = Integer.parseInt(size);
+    } catch (NumberFormatException e) {
+      throw new GenericException(RESTCodes.GenericErrorCode.ILLEGAL_ARGUMENT,
+        Level.INFO, "bad pagination params.");
+    }
     ElasticFeaturestoreDTO dto
-      = elasticFeaturestoreBuilder.build(user, new ElasticFeaturestoreRequest(searchTerm, docType, from, size));
+      = elasticFeaturestoreBuilder.build(user, new ElasticFeaturestoreRequest(searchTerm, docType, fromI, sizeI));
     return Response.ok().entity(dto).build();
   }
   
@@ -219,8 +230,8 @@ public class ElasticService {
     @PathParam("projectId") Integer projectId,
     @PathParam("searchTerm") String searchTerm,
     @QueryParam("docType") @DefaultValue("ALL") FeaturestoreDocType docType,
-    @QueryParam("from") @DefaultValue("0") Integer from,
-    @QueryParam("size") @DefaultValue("100") Integer size,
+    @QueryParam("from") @DefaultValue("0") String from,
+    @QueryParam("size") @DefaultValue("100") String size,
     @Context SecurityContext sc)
     throws ServiceException, ElasticException, GenericException {
     
@@ -228,8 +239,18 @@ public class ElasticService {
       throw new IllegalArgumentException("One or more required parameters were not provided.");
     }
   
+    int fromI;
+    int sizeI;
+    
+    try {
+      fromI = Integer.parseInt(from);
+      sizeI = Integer.parseInt(size);
+    } catch (NumberFormatException e) {
+      throw new GenericException(RESTCodes.GenericErrorCode.ILLEGAL_ARGUMENT,
+        Level.INFO, "bad pagination params.");
+    }
     ElasticFeaturestoreDTO dto
-      = elasticFeaturestoreBuilder.build(new ElasticFeaturestoreRequest(searchTerm, docType, from, size), projectId);
+      = elasticFeaturestoreBuilder.build(new ElasticFeaturestoreRequest(searchTerm, docType, fromI, sizeI), projectId);
     return Response.ok().entity(dto).build();
   }
   

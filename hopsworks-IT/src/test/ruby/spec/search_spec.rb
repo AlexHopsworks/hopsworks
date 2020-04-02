@@ -269,6 +269,10 @@ describe "On #{ENV['OS']}" do
       [td1_name, td2_name, td3_name, td4_name, td5_name, td6_name]
     end
 
+    def check_searched_fg(result, name, project_name, highlight_type)
+      result[:name] == name && result[:parentProjectName] == project_name && defined?(result[:highlights].key(highlight_type))
+    end
+
     it "search featuregroup, training datasets with name, features, xattr" do
       project1 = create_project
       project2 = create_project
@@ -283,12 +287,12 @@ describe "On #{ENV['OS']}" do
           result = local_featurestore_search(project1, "FEATUREGROUP", "dog")
           pp result
           if result[:featuregroups].length == 6
-            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs1[1]}"}
-            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs1[3]}"}
-            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs1[5]}"}
-            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs1[6]}"}
-            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs1[7]}"}
-            array_contains_one_of(result[:featuregroups]) {|r| r[:name] == "#{fgs1[8]}"}
+            array_contains_one_of(result[:featuregroups]) {|r| check_searched_fg(r, fgs[1], project1[:projectname],"name")}
+            array_contains_one_of(result[:featuregroups]) {|r| check_searched_fg(r, fgs[3], project1[:projectname],"features")}
+            array_contains_one_of(result[:featuregroups]) {|r| check_searched_fg(r, fgs[5], project1[:projectname], "otherXattrs")}
+            array_contains_one_of(result[:featuregroups]) {|r| check_searched_fg(r, fgs[6], project1[:projectname], "tags")}
+            array_contains_one_of(result[:featuregroups]) {|r| check_searched_fg(r, fgs[7], project1[:projectname], "tags")}
+            array_contains_one_of(result[:featuregroups]) {|r| check_searched_fg(r, fgs[8], project1[:projectname], "tags")}
             true
           else
             pp "received:#{result[:featuregroups].length}"
