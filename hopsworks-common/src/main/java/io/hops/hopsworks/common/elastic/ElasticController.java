@@ -39,6 +39,7 @@
 
 package io.hops.hopsworks.common.elastic;
 
+import io.hops.hopsworks.common.featurestore.query.Query;
 import io.hops.hopsworks.common.provenance.core.ProvXAttrs;
 import io.hops.hopsworks.persistence.entity.dataset.Dataset;
 import io.hops.hopsworks.persistence.entity.dataset.DatasetSharedWith;
@@ -55,6 +56,8 @@ import io.hops.hopsworks.common.util.Settings;
 import org.apache.http.util.EntityUtils;
 import org.apache.lucene.search.join.ScoreMode;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.elasticsearch.action.search.MultiSearchRequest;
+import org.elasticsearch.action.search.MultiSearchResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Request;
@@ -68,6 +71,8 @@ import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
+import org.javatuples.Pair;
+import org.javatuples.Triplet;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -255,7 +260,15 @@ public class ElasticController {
         Level.SEVERE, "index: " + Settings.FEATURESTORE_INDEX);
     }
   
-    QueryBuilder query = globalFeaturestoreSearchQuery(docType, searchTerm.toLowerCase());
+    Triplet<QueryBuilder, QueryBuilder, QueryBuilder> query = globalFeaturestoreSearchQuery(searchTerm.toLowerCase());
+    switch(docType) {
+      case FEATUREGROUP:
+      case TRAININGDATASET:
+      case FEATURE:
+      case ALL:
+      
+    }
+    
     SearchResponse response = executeFeaturestoreSearchQuery(client, query, featurestoreHighlighter(), from, size);
     return response;
   }
@@ -491,20 +504,24 @@ public class ElasticController {
     }
   }
   
-  private SearchResponse executeFeaturestoreSearchQuery(RestHighLevelClient client,
-    QueryBuilder searchQuery, HighlightBuilder searchQHighlighter, int from, int size)
+  private MultiSearchResponse executeSearchQuery(RestHighLevelClient client,
+    List<Pair<QueryBuilder, HighlightBuilder>> searchQB, int from, int size)
     throws ServiceException {
     //hit the indices - execute the queries
-    SearchRequest searchRequest = new SearchRequest(Settings.FEATURESTORE_INDEX);
-    SearchSourceBuilder sb = new SearchSourceBuilder();
-    sb.query(searchQuery);
-    sb.highlighter(searchQHighlighter);
-    sb.from(from).size(size);
-    searchRequest.source(sb);
-    LOG.log(Level.INFO, "Search Elastic query is: {0}", searchRequest);
+    MultiSearchRequest multiSearchRequest = new MultiSearchRequest();
+    for(Pair<QueryBuilder, HighlightBuilder> qb : searchQB) {
+      SearchRequest searchRequest = new SearchRequest(Settings.FEATURESTORE_INDEX);
+      SearchSourceBuilder sb = new SearchSourceBuilder();
+      sb.query(qb.getValue0());
+      sb.highlighter(qb.getValue1());
+      sb.from(from).size(size);
+      searchRequest.source(sb);
+      multiSearchRequest.add(searchRequest);
+    }
+    LOG.log(Level.INFO, "Search Elastic query is: {0}", multiSearchRequest);
     
     try {
-      return client.search(searchRequest, RequestOptions.DEFAULT);
+      return client.msearch(multiSearchRequest, RequestOptions.DEFAULT);
     } catch (IOException e) {
       throw new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_SERVER_NOT_FOUND,
         Level.SEVERE,"Error while executing search", e.getMessage());
@@ -581,17 +598,35 @@ public class ElasticController {
    * @param searchTerm
    * @return
    */
-  private QueryBuilder localFeaturestoreSearchQuery(String searchTerm,
+  private Triplet<QueryBuilder, QueryBuilder, QueryBuilder> localFeaturestoreSearchQuery(String searchTerm,
     Map<FeaturestoreDocType, Set<Integer>> docProjectIds) {
-    BoolQueryBuilder search = boolQuery();
-    for(Map.Entry<FeaturestoreDocType, Set<Integer>> e : docProjectIds.entrySet()) {
-      //for each docType
+    globalFeaturestoreSearchQuery(searchTerm);
+    BoolQueryBuilder fgQB = boolQuery();
+    BoolQueryBuilder tdQB = boolQuery();
+    BoolQueryBuilder fQB = boolQuery();
+    Triplet<QueryBuilder, QueryBuilder, QueryBuilder> globalQB = globalFeaturestoreSearchQuery(searchTerm);
+    if(docProjectIds.containsKey(FeaturestoreDocType.FEATUREGROUP)) {
+      Set<Integer> projectIds = docProjectIds.get(FeaturestoreDocType.FEATUREGROUP);
       QueryBuilder aux = boolQuery()
-        .must(termsQuery(Settings.FEATURESTORE_PROJECT_ID_FIELD, e.getValue()))
-        .must(globalFeaturestoreSearchQuery(e.getKey(), searchTerm));
-      search.should(aux);
+        .must(termsQuery(Settings.FEATURESTORE_PROJECT_ID_FIELD, projectIds))
+        .must(globalQB.getValue0());
+      fgQB.should(aux);
     }
-    return search;
+    if(docProjectIds.containsKey(FeaturestoreDocType.TRAININGDATASET)) {
+      Set<Integer> projectIds = docProjectIds.get(FeaturestoreDocType.TRAININGDATASET);
+      QueryBuilder aux = boolQuery()
+        .must(termsQuery(Settings.FEATURESTORE_PROJECT_ID_FIELD, projectIds))
+        .must(globalQB.getValue1());
+      tdQB.should(aux);
+    }
+    if(docProjectIds.containsKey(FeaturestoreDocType.FEATURE)) {
+      Set<Integer> projectIds = docProjectIds.get(FeaturestoreDocType.FEATURE);
+      QueryBuilder aux = boolQuery()
+        .must(termsQuery(Settings.FEATURESTORE_PROJECT_ID_FIELD, projectIds))
+        .must(globalQB.getValue2());
+      fQB.should(aux);
+    }
+    return Triplet.with(fgQB, tdQB, fQB);
   }
   
   /**
@@ -600,36 +635,34 @@ public class ElasticController {
    * @param searchTerm
    * @return
    */
-  private QueryBuilder globalFeaturestoreSearchQuery(FeaturestoreDocType docType, String searchTerm) {
-    switch(docType) {
-      case FEATUREGROUP:
-      case TRAININGDATASET: {
-        QueryBuilder docTypeQuery = termQuery("doc_type", docType.toString().toLowerCase());
-        QueryBuilder query = boolQuery()
-          .must(docTypeQuery)
-          .must(featurestoreTermQueryBuilder(searchTerm));
-        return query;
-      }
-      case ALL:
-        return featurestoreTermQueryBuilder(searchTerm);
-      default: {
-        LOG.warning("unhandled new featurestore doc type:" + docType);
-        return featurestoreTermQueryBuilder(searchTerm);
-      }
-    }
+  private Triplet<QueryBuilder, QueryBuilder, QueryBuilder> globalFeaturestoreSearchQuery(String searchTerm) {
+    QueryBuilder fg = featuregroupQueryB(searchTerm);
+    QueryBuilder td = trainingdatasetQueryB(searchTerm);
+    QueryBuilder f = featureQueryB(searchTerm);
+    return Triplet.with(fg, td, f);
   }
   
-  private HighlightBuilder featurestoreHighlighter() {
-    HighlightBuilder hb = new HighlightBuilder();
-    hb.field(new HighlightBuilder.Field(ProvXAttrs.Featurestore.NAME));
-    hb.field(new HighlightBuilder.Field(
-      ProvXAttrs.Featurestore.getFeaturestoreElasticKey(ProvXAttrs.Featurestore.DESCRIPTION)));
-    hb.field(new HighlightBuilder.Field(
-      ProvXAttrs.Featurestore.getFeaturestoreElasticKey(ProvXAttrs.Featurestore.FG_FEATURES)));
-    hb.field(new HighlightBuilder.Field(ProvXAttrs.Featurestore.getTagsElasticKey()));
-    hb.field(new HighlightBuilder.Field(ProvXAttrs.Featurestore.getTagsElasticValue()));
-    hb.field(new HighlightBuilder.Field(ProvXAttrs.ELASTIC_XATTR + ".*"));
-    return hb;
+  private QueryBuilder featuregroupQueryB(String searchTerm) {
+    QueryBuilder query = boolQuery()
+      .must(termQuery("doc_type", FeaturestoreDocType.FEATUREGROUP.toString().toLowerCase()))
+      .must(featurestoreTermQueryBuilder(searchTerm));
+    return query;
+  }
+  
+  private QueryBuilder trainingdatasetQueryB(String searchTerm) {
+    QueryBuilder query = boolQuery()
+      .must(termQuery("doc_type", FeaturestoreDocType.TRAININGDATASET.toString().toLowerCase()))
+      .must(featurestoreTermQueryBuilder(searchTerm));
+    return query;
+  }
+  
+  private QueryBuilder featureQueryB(String searchTerm) {
+    String xattrKey = ProvXAttrs.Featurestore.getFeaturestoreElasticKey(ProvXAttrs.Featurestore.FG_FEATURES) + ".*";
+    
+    QueryBuilder query = boolQuery()
+      .must(termQuery("doc_type", FeaturestoreDocType.FEATUREGROUP.toString().toLowerCase()))
+      .must(getXAttrQuery(xattrKey, searchTerm));
+    return query;
   }
   
   private QueryBuilder featurestoreTermQueryBuilder(String searchTerm) {
@@ -638,7 +671,49 @@ public class ElasticController {
       .should(getMetadataQuery(searchTerm));
     return termQuery;
   }
-
+  
+  private Triplet<HighlightBuilder, HighlightBuilder, HighlightBuilder> featuregroupHighlighter() {
+    HighlightBuilder fgHB = new HighlightBuilder();
+    
+    HighlightBuilder fHB = new HighlightBuilder();
+  
+    featuregroup
+    fgHB.field(new HighlightBuilder.Field(ProvXAttrs.Featurestore.NAME));
+    fgHB.field(new HighlightBuilder.Field(
+      ProvXAttrs.Featurestore.getFeaturestoreElasticKey(ProvXAttrs.Featurestore.DESCRIPTION)));
+    fgHB.field(new HighlightBuilder.Field(
+      ProvXAttrs.Featurestore.getFeaturestoreElasticKey(ProvXAttrs.Featurestore.FG_FEATURES)));
+    fgHB.field(new HighlightBuilder.Field(ProvXAttrs.Featurestore.getTagsElasticKey()));
+    fgHB.field(new HighlightBuilder.Field(ProvXAttrs.Featurestore.getTagsElasticValue()));
+    fgHB.field(new HighlightBuilder.Field(ProvXAttrs.ELASTIC_XATTR + ".*"));
+  
+    fgHB.field(new HighlightBuilder.Field(ProvXAttrs.Featurestore.NAME));
+    fgHB.field(new HighlightBuilder.Field(
+      ProvXAttrs.Featurestore.getFeaturestoreElasticKey(ProvXAttrs.Featurestore.DESCRIPTION)));
+    fgHB.field(new HighlightBuilder.Field(
+      ProvXAttrs.Featurestore.getFeaturestoreElasticKey(ProvXAttrs.Featurestore.FG_FEATURES)));
+    fgHB.field(new HighlightBuilder.Field(ProvXAttrs.Featurestore.getTagsElasticKey()));
+    fgHB.field(new HighlightBuilder.Field(ProvXAttrs.Featurestore.getTagsElasticValue()));
+    fgHB.field(new HighlightBuilder.Field(ProvXAttrs.ELASTIC_XATTR + ".*"));
+    return hb;
+  }
+  
+  private HighlightBuilder trainingDatasetHighlighter() {
+    HighlightBuilder hb = new HighlightBuilder();
+    hb.field(new HighlightBuilder.Field(ProvXAttrs.Featurestore.NAME));
+    hb.field(new HighlightBuilder.Field(
+      ProvXAttrs.Featurestore.getFeaturestoreElasticKey(ProvXAttrs.Featurestore.DESCRIPTION)));
+    String tdFeaturesKey = ProvXAttrs.Featurestore.getFeaturestoreElasticKey(ProvXAttrs.Featurestore.TD_FEATURES)
+      + "." + ProvXAttrs.Featurestore.FG_FEATURES;
+    hb.field(new HighlightBuilder.Field(tdFeaturesKey));
+    hb.field(new HighlightBuilder.Field(ProvXAttrs.Featurestore.getTagsElasticKey()));
+    hb.field(new HighlightBuilder.Field(ProvXAttrs.Featurestore.getTagsElasticValue()));
+    hb.field(new HighlightBuilder.Field(ProvXAttrs.ELASTIC_XATTR + ".*"));
+    return hb;
+  }
+  
+  private
+  
   /**
    * Creates the main query condition. Applies filters on the texts describing a
    * document i.e. on the description
