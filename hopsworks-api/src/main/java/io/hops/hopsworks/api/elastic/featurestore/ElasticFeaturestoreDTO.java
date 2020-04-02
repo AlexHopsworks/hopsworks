@@ -21,15 +21,15 @@ import java.util.List;
 
 @XmlRootElement
 public class ElasticFeaturestoreDTO {
-  private List<ElasticFeaturestoreItemDTO.Base> featuregroups;
-  private List<ElasticFeaturestoreItemDTO.Base> trainingdatasets;
-  private List<ElasticFeaturestoreItemDTO.Feature> features;
-  private Integer featuregroupsFrom;
-  private Long featuregroupsTotal;
-  private Integer trainingdatasetsFrom;
-  private Long trainingdatasetsTotal;
-  private Integer featuresFrom;
-  private Long featuresTotal;
+  private List<ElasticFeaturestoreItemDTO.Base> featuregroups = new LinkedList<>();
+  private List<ElasticFeaturestoreItemDTO.Base> trainingdatasets = new LinkedList<>();
+  private List<ElasticFeaturestoreItemDTO.Feature> features = new LinkedList<>();
+  private Integer featuregroupsFrom = 0;
+  private Long featuregroupsTotal = 0l;
+  private Integer trainingdatasetsFrom = 0;
+  private Long trainingdatasetsTotal = 0l;
+  private Integer featuresFrom = 0;
+  private Long featuresTotal = 0l;
   
   public ElasticFeaturestoreDTO() {
   }
@@ -107,23 +107,14 @@ public class ElasticFeaturestoreDTO {
   }
   
   public void addTrainingdataset(ElasticFeaturestoreItemDTO.Base trainingdataset) {
-    if(trainingdatasets == null) {
-      trainingdatasets = new LinkedList<>();
-    }
     trainingdatasets.add(trainingdataset);
   }
   
   public void addFeaturegroup(ElasticFeaturestoreItemDTO.Base featuregroup) {
-    if(featuregroups == null) {
-      featuregroups = new LinkedList<>();
-    }
     featuregroups.add(featuregroup);
   }
   
   public void addFeature(ElasticFeaturestoreItemDTO.Feature feature) {
-    if(features == null) {
-      features = new LinkedList<>();
-    }
     features.add(feature);
   }
 }
