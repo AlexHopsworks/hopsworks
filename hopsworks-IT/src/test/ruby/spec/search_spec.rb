@@ -369,7 +369,7 @@ describe "On #{ENV['OS']}" do
               check_searched(r, fgs2[7], project2[:projectname], "tags")}
             r_aux = r_aux && check_array_contains_one_of(result[:featuregroups]) {|r|
               check_searched(r, fgs2[8], project2[:projectname], "tags")}
-            expect(r_aux).to be true, "global search - hard to get exact results with contaminated index}"
+            expect(r_aux).to eq(true), "global search - hard to get exact results with contaminated index}"
             true
           else
             false
@@ -401,7 +401,7 @@ describe "On #{ENV['OS']}" do
             r_aux = r_aux && check_array_contains_one_of(result[:trainingdatasets]) {|r|
               check_searched(r, tds2[5], project2[:projectname], "features")}
             r_aux
-            expect(r_aux).to be true, "global search - hard to get exact results with contaminated index}"
+            expect(r_aux).to eq(true), "global search - hard to get exact results with contaminated index}"
             true
           else
             false
@@ -420,7 +420,7 @@ describe "On #{ENV['OS']}" do
 
             r_aux = r_aux && check_array_contains_one_of(result[:features]) {|r|
               check_searched_feature(r, fgs2[3], project2[:projectname])}
-            expect(r_aux).to be true, "global search - hard to get exact results with contaminated index}"
+            expect(r_aux).to eq(true), "global search - hard to get exact results with contaminated index}"
             true
           else
             false
