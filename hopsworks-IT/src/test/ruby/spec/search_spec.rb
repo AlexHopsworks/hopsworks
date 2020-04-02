@@ -293,18 +293,26 @@ describe "On #{ENV['OS']}" do
           result = local_featurestore_search(project1, "FEATUREGROUP", "dog")
           pp result
           r_aux = result.length == 6
-          r_aux = r_aux && check_array_contains_one_of(result[:featuregroups]) {|r|
-            check_searched(r, fgs1[1], project1[:projectname], "name")}
-          r_aux = r_aux && check_array_contains_one_of(result[:featuregroups]) {|r|
-            check_searched(r, fgs1[3], project1[:projectname], "features")}
-          r_aux = r_aux && check_array_contains_one_of(result[:featuregroups]) {|r|
-            check_searched(r, fgs1[5], project1[:projectname], "otherXattrs")}
-          r_aux = r_aux && check_array_contains_one_of(result[:featuregroups]) {|r|
-            check_searched(r, fgs1[6], project1[:projectname], "tags")}
-          r_aux = r_aux && check_array_contains_one_of(result[:featuregroups]) {|r|
-            check_searched(r, fgs1[7], project1[:projectname], "tags")}
-          r_aux = r_aux && check_array_contains_one_of(result[:featuregroups]) {|r|
-            check_searched(r, fgs1[8], project1[:projectname], "tags")}
+          if r_aux
+            r_aux = r_aux && check_array_contains_one_of(result[:featuregroups]) {|r|
+              check_searched(r, fgs1[1], project1[:projectname], "name")}
+            expect(r_aux).to be true
+            r_aux = r_aux && check_array_contains_one_of(result[:featuregroups]) {|r|
+              check_searched(r, fgs1[3], project1[:projectname], "features")}
+            expect(r_aux).to be true
+            r_aux = r_aux && check_array_contains_one_of(result[:featuregroups]) {|r|
+              check_searched(r, fgs1[5], project1[:projectname], "otherXattrs")}
+            expect(r_aux).to be true
+            r_aux = r_aux && check_array_contains_one_of(result[:featuregroups]) {|r|
+              check_searched(r, fgs1[6], project1[:projectname], "tags")}
+            expect(r_aux).to be true
+            r_aux = r_aux && check_array_contains_one_of(result[:featuregroups]) {|r|
+              check_searched(r, fgs1[7], project1[:projectname], "tags")}
+            expect(r_aux).to be true
+            r_aux = r_aux && check_array_contains_one_of(result[:featuregroups]) {|r|
+              check_searched(r, fgs1[8], project1[:projectname], "tags")}
+            expect(r_aux).to be true
+          end
           r_aux
         end
       end
