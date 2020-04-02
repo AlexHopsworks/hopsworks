@@ -26,6 +26,7 @@ import io.hops.hopsworks.exceptions.GenericException;
 import io.hops.hopsworks.exceptions.ServiceException;
 import io.hops.hopsworks.persistence.entity.project.Project;
 import io.hops.hopsworks.persistence.entity.user.Users;
+import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.common.text.Text;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.fetch.subphase.highlight.HighlightField;
@@ -58,14 +59,32 @@ public class ElasticFeaturestoreBuilder {
     Project project = projectFacade.find(projectId);
     Map<FeaturestoreDocType, Set<Integer>> searchProjects
       = dataAccessCtrl.featurestoreSearchContext(project, req.getDocType());
-    SearchHit[] hits = elasticCtrl.featurestoreSearch(req.getTerm(), searchProjects, req.getFrom(), req.getSize());
-    return parseResult(req.getDocType(), hits, accessFromParentProject(project));
+    SearchResponse response
+      = elasticCtrl.featurestoreSearch(req.getTerm(), searchProjects, req.getFrom(), req.getSize());
+    ElasticFeaturestoreDTO result
+      = parseResult(req.getDocType(), response.getHits().getHits(), accessFromParentProject(project));
+    result.setFeaturegroupsFrom(req.getFrom());
+    result.setFeaturegroupsTotal(response.getHits().getTotalHits().value);
+    result.setTrainingdatasetsFrom(req.getFrom());
+    result.setTrainingdatasetsTotal(response.getHits().getTotalHits().value);
+    result.setFeaturesFrom(req.getFrom());
+    result.setFeaturesTotal(response.getHits().getTotalHits().value);
+    return result;
   }
   
   public ElasticFeaturestoreDTO build(Users user,ElasticFeaturestoreRequest req)
     throws ElasticException, ServiceException, GenericException {
-    SearchHit[] hits = elasticCtrl.featurestoreSearch(req.getDocType(), req.getTerm(), req.getFrom(), req.getSize());
-    return parseResult(req.getDocType(), hits, accessFromSharedProjects(user));
+    SearchResponse response
+      = elasticCtrl.featurestoreSearch(req.getDocType(), req.getTerm(), req.getFrom(), req.getSize());
+    ElasticFeaturestoreDTO result
+      = parseResult(req.getDocType(), response.getHits().getHits(), accessFromSharedProjects(user));
+    result.setFeaturegroupsFrom(req.getFrom());
+    result.setFeaturegroupsTotal(response.getHits().getTotalHits().value);
+    result.setTrainingdatasetsFrom(req.getFrom());
+    result.setTrainingdatasetsTotal(response.getHits().getTotalHits().value);
+    result.setFeaturesFrom(req.getFrom());
+    result.setFeaturesTotal(response.getHits().getTotalHits().value);
+    return result;
   }
   
   private ElasticFeaturestoreDTO parseResult(FeaturestoreDocType docType, SearchHit[] hits,

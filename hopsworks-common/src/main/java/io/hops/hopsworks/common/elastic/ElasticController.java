@@ -246,7 +246,7 @@ public class ElasticController {
         Level.INFO,"Error while executing query, code: "+  response.status().getStatus());
   }
   
-  public SearchHit[] featurestoreSearch(FeaturestoreDocType docType, String searchTerm, int from, int size)
+  public SearchResponse featurestoreSearch(FeaturestoreDocType docType, String searchTerm, int from, int size)
     throws ElasticException, ServiceException {
     RestHighLevelClient client = getClient();
     //check if the indices are up and running
@@ -257,10 +257,10 @@ public class ElasticController {
   
     QueryBuilder query = globalFeaturestoreSearchQuery(docType, searchTerm.toLowerCase());
     SearchResponse response = executeFeaturestoreSearchQuery(client, query, featurestoreHighlighter(), from, size);
-    return getHits(response);
+    return response;
   }
   
-  public SearchHit[] featurestoreSearch(String searchTerm, Map<FeaturestoreDocType, Set<Integer>> docProjectIds,
+  public SearchResponse featurestoreSearch(String searchTerm, Map<FeaturestoreDocType, Set<Integer>> docProjectIds,
     int from, int size)
     throws ElasticException, ServiceException {
     RestHighLevelClient client = getClient();
@@ -272,7 +272,7 @@ public class ElasticController {
     
     QueryBuilder query = localFeaturestoreSearchQuery(searchTerm.toLowerCase(), docProjectIds);
     SearchResponse response = executeFeaturestoreSearchQuery(client, query, featurestoreHighlighter(), from, size);
-    return getHits(response);
+    return response;
   }
   
   private SearchHit[] getHits(SearchResponse response) throws ElasticException {

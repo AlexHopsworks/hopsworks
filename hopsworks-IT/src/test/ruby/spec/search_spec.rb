@@ -19,7 +19,9 @@ describe "On #{ENV['OS']}" do
     with_valid_session
   end
   after(:all) do
-    clean_all_test_projects
+  begin
+    # clean_all_test_projects
+  end
   end
 
   def s_create_featuregroup_checked(project, featurestore_id, featuregroup_name)
@@ -279,14 +281,10 @@ describe "On #{ENV['OS']}" do
           defined?(result[:highlights].key("name"))
     end
 
-    it "search featuregroup, training datasets with name, features, xattr" do
+    it "local search featuregroup, training datasets with name, features, xattr" do
       project1 = create_project
-      project2 = create_project
       fgs1 = featuregroups_setup(project1)
-      fgs2 = featuregroups_setup(project2)
       tds1 = trainingdataset_setup(project1)
-      tds2 = trainingdataset_setup(project2)
-      #local search - project1
       sleep(1)
       time_this do
         wait_for_me(15) do
@@ -336,7 +334,78 @@ describe "On #{ENV['OS']}" do
           r_aux
         end
       end
-      #global search
+    end
+
+    it "local search featuregroup, training datasets with name, features, xattr with shared featurestore" do
+      project1 = create_project
+      project2 = create_project
+      featurestore_name = project1[:projectname].downcase + "_featurestore.db"
+      featurestore_dataset = get_dataset(project1, featurestore_name)
+      request_access(project1, featurestore_dataset, project2)
+      share_dataset(project1, featurestore_name, project[:projectname], "")
+      fgs1 = featuregroups_setup(project1)
+      fgs2 = featuregroups_setup(project2)
+      tds1 = trainingdataset_setup(project1)
+      tds2 = trainingdataset_setup(project2)
+      sleep(1)
+      time_this do
+        wait_for_me(15) do
+          result = local_featurestore_search(project1, "FEATUREGROUP", "dog")
+          pp result
+          r_aux = result[:featuregroups].length == 6
+          r_aux = r_aux && check_array_contains_one_of(result[:featuregroups]) {|r|
+            check_searched(r, fgs1[1], project1[:projectname], "name")}
+          r_aux = r_aux && check_array_contains_one_of(result[:featuregroups]) {|r|
+            check_searched(r, fgs1[3], project1[:projectname], "features")}
+          r_aux = r_aux && check_array_contains_one_of(result[:featuregroups]) {|r|
+            check_searched(r, fgs1[5], project1[:projectname], "otherXattrs")}
+          r_aux = r_aux && check_array_contains_one_of(result[:featuregroups]) {|r|
+            check_searched(r, fgs1[6], project1[:projectname], "tags")}
+          r_aux = r_aux && check_array_contains_one_of(result[:featuregroups]) {|r|
+            check_searched(r, fgs1[7], project1[:projectname], "tags")}
+          r_aux = r_aux && check_array_contains_one_of(result[:featuregroups]) {|r|
+            check_searched(r, fgs1[8], project1[:projectname], "tags")}
+          r_aux
+        end
+      end
+      sleep(1)
+      time_this do
+        wait_for_me(15) do
+          result = local_featurestore_search(project1, "TRAININGDATASET", "dog")
+          pp result
+          r_aux = result[:trainingdatasets].length == 4
+          r_aux = r_aux && check_array_contains_one_of(result[:trainingdatasets]) {|r|
+            check_searched(r, tds1[1], project1[:projectname], "name")}
+          r_aux = r_aux && check_array_contains_one_of(result[:trainingdatasets]) {|r|
+            check_searched(r, tds1[2], project1[:projectname], "name")}
+          r_aux = r_aux && check_array_contains_one_of(result[:trainingdatasets]) {|r|
+            check_searched(r, tds1[4], project1[:projectname], "features")}
+          r_aux = r_aux && check_array_contains_one_of(result[:trainingdatasets]) {|r|
+            check_searched(r, tds1[5], project1[:projectname], "features")}
+          r_aux
+        end
+      end
+      sleep(1)
+      time_this do
+        wait_for_me(15) do
+          result = local_featurestore_search(project1, "FEATURE", "dog")
+          pp result
+          r_aux = result[:features].length == 1
+          r_aux = r_aux && check_array_contains_one_of(result[:features]) {|r|
+            check_searched_feature(r, fgs1[3], project1[:projectname])}
+          r_aux
+        end
+      end
+    end
+
+    it "global search featuregroup, training datasets with name, features, xattr" do
+      project1 = create_project
+      project2 = create_project
+      fgs1 = featuregroups_setup(project1)
+      fgs2 = featuregroups_setup(project2)
+      tds1 = trainingdataset_setup(project1)
+      tds2 = trainingdataset_setup(project2)
+
       sleep(1)
       time_this do
         wait_for_me(15) do

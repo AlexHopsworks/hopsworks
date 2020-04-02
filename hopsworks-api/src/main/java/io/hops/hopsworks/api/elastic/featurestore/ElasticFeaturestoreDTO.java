@@ -21,18 +21,17 @@ import java.util.List;
 
 @XmlRootElement
 public class ElasticFeaturestoreDTO {
-  private List<ElasticFeaturestoreItemDTO.Base> featuregroups = new LinkedList<>();
-  private List<ElasticFeaturestoreItemDTO.Base> trainingdatasets = new LinkedList<>();
-  private List<ElasticFeaturestoreItemDTO.Feature> features = new LinkedList<>();
+  private List<ElasticFeaturestoreItemDTO.Base> featuregroups;
+  private List<ElasticFeaturestoreItemDTO.Base> trainingdatasets;
+  private List<ElasticFeaturestoreItemDTO.Feature> features;
+  private Integer featuregroupsFrom;
+  private Long featuregroupsTotal;
+  private Integer trainingdatasetsFrom;
+  private Long trainingdatasetsTotal;
+  private Integer featuresFrom;
+  private Long featuresTotal;
   
   public ElasticFeaturestoreDTO() {
-  }
-  
-  public ElasticFeaturestoreDTO(List<ElasticFeaturestoreItemDTO.Base> featuregroups,
-    List<ElasticFeaturestoreItemDTO.Base> trainingdatasets, List<ElasticFeaturestoreItemDTO.Feature> features) {
-    this.featuregroups = featuregroups;
-    this.trainingdatasets = trainingdatasets;
-    this.features = features;
   }
   
   public List<ElasticFeaturestoreItemDTO.Base> getFeaturegroups() {
@@ -55,20 +54,76 @@ public class ElasticFeaturestoreDTO {
     return features;
   }
   
-  public void setFeatures(
-    List<ElasticFeaturestoreItemDTO.Feature> features) {
+  public void setFeatures(List<ElasticFeaturestoreItemDTO.Feature> features) {
     this.features = features;
   }
   
+  public Integer getFeaturegroupsFrom() {
+    return featuregroupsFrom;
+  }
+  
+  public void setFeaturegroupsFrom(Integer featuregroupsFrom) {
+    this.featuregroupsFrom = featuregroupsFrom;
+  }
+  
+  public Long getFeaturegroupsTotal() {
+    return featuregroupsTotal;
+  }
+  
+  public void setFeaturegroupsTotal(Long featuregroupsTotal) {
+    this.featuregroupsTotal = featuregroupsTotal;
+  }
+  
+  public Integer getTrainingdatasetsFrom() {
+    return trainingdatasetsFrom;
+  }
+  
+  public void setTrainingdatasetsFrom(Integer trainingdatasetsFrom) {
+    this.trainingdatasetsFrom = trainingdatasetsFrom;
+  }
+  
+  public Long getTrainingdatasetsTotal() {
+    return trainingdatasetsTotal;
+  }
+  
+  public void setTrainingdatasetsTotal(Long trainingdatasetsTotal) {
+    this.trainingdatasetsTotal = trainingdatasetsTotal;
+  }
+  
+  public Integer getFeaturesFrom() {
+    return featuresFrom;
+  }
+  
+  public void setFeaturesFrom(Integer featuresFrom) {
+    this.featuresFrom = featuresFrom;
+  }
+  
+  public Long getFeaturesTotal() {
+    return featuresTotal;
+  }
+  
+  public void setFeaturesTotal(Long featuresTotal) {
+    this.featuresTotal = featuresTotal;
+  }
+  
   public void addTrainingdataset(ElasticFeaturestoreItemDTO.Base trainingdataset) {
+    if(trainingdatasets == null) {
+      trainingdatasets = new LinkedList<>();
+    }
     trainingdatasets.add(trainingdataset);
   }
   
   public void addFeaturegroup(ElasticFeaturestoreItemDTO.Base featuregroup) {
+    if(featuregroups == null) {
+      featuregroups = new LinkedList<>();
+    }
     featuregroups.add(featuregroup);
   }
   
   public void addFeature(ElasticFeaturestoreItemDTO.Feature feature) {
+    if(features == null) {
+      features = new LinkedList<>();
+    }
     features.add(feature);
   }
 }
