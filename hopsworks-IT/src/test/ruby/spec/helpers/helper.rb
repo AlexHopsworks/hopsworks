@@ -47,6 +47,11 @@ module Helper
     selected[0]
   end
 
+  def check_array_contains_one_of(array, &predicate)
+    selected = array.select { |s| predicate.call(s) }
+    selected.length == 1
+  end
+
   def get_path_dataset(project, dataset)
     "/Projects/#{project[:projectname]}/#{dataset[:inode_name]}"
   end

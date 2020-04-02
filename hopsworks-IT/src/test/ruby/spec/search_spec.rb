@@ -292,24 +292,20 @@ describe "On #{ENV['OS']}" do
         wait_for_me(15) do
           result = local_featurestore_search(project1, "FEATUREGROUP", "dog")
           pp result
-          if result[:featuregroups].length == 6
-            array_contains_one_of(result[:featuregroups]) {|r|
-              check_searched(r, fgs1[1], project1[:projectname], "name")}
-            array_contains_one_of(result[:featuregroups]) {|r|
-              check_searched(r, fgs1[3], project1[:projectname], "features")}
-            array_contains_one_of(result[:featuregroups]) {|r|
-              check_searched(r, fgs1[5], project1[:projectname], "otherXattrs")}
-            array_contains_one_of(result[:featuregroups]) {|r|
-              check_searched(r, fgs1[6], project1[:projectname], "tags")}
-            array_contains_one_of(result[:featuregroups]) {|r|
-              check_searched(r, fgs1[7], project1[:projectname], "tags")}
-            array_contains_one_of(result[:featuregroups]) {|r|
-              check_searched(r, fgs1[8], project1[:projectname], "tags")}
-            true
-          else
-            pp "received:#{result[:featuregroups].length}"
-            false
-          end
+          r_aux = result.length == 6
+          r_aux = r_aux && array_contains_one_of(result[:featuregroups]) {|r|
+            check_searched(r, fgs1[1], project1[:projectname], "name")}
+          r_aux = r_aux && rray_contains_one_of(result[:featuregroups]) {|r|
+            check_searched(r, fgs1[3], project1[:projectname], "features")}
+          r_aux = r_aux && array_contains_one_of(result[:featuregroups]) {|r|
+            check_searched(r, fgs1[5], project1[:projectname], "otherXattrs")}
+          r_aux = r_aux && array_contains_one_of(result[:featuregroups]) {|r|
+            check_searched(r, fgs1[6], project1[:projectname], "tags")}
+          r_aux = r_aux && array_contains_one_of(result[:featuregroups]) {|r|
+            check_searched(r, fgs1[7], project1[:projectname], "tags")}
+          r_aux = r_aux && array_contains_one_of(result[:featuregroups]) {|r|
+            check_searched(r, fgs1[8], project1[:projectname], "tags")}
+          r_aux
         end
       end
       sleep(1)
@@ -317,20 +313,16 @@ describe "On #{ENV['OS']}" do
         wait_for_me(15) do
           result = local_featurestore_search(project1, "TRAININGDATASET", "dog")
           pp result
-          if result[:trainingdatasets].length == 4
-            array_contains_one_of(result[:trainingdatasets]) {|r|
-              check_searched(r, tds1[1], project1[:projectname], "name")}
-            array_contains_one_of(result[:trainingdatasets]) {|r|
-              check_searched(r, tds1[2], project1[:projectname], "name")}
-            array_contains_one_of(result[:trainingdatasets]) {|r|
-              check_searched(r, tds1[4], project1[:projectname], "features")}
-            array_contains_one_of(result[:trainingdatasets]) {|r|
-              check_searched(r, tds1[5], project1[:projectname], "features")}
-            true
-          else
-            pp "received:#{result[:trainingdatasets].length}"
-            false
-          end
+          r_aux = result.length == 4
+          r_aux = r_aux && array_contains_one_of(result[:trainingdatasets]) {|r|
+            check_searched(r, tds1[1], project1[:projectname], "name")}
+          r_aux = r_aux && array_contains_one_of(result[:trainingdatasets]) {|r|
+            check_searched(r, tds1[2], project1[:projectname], "name")}
+          r_aux = r_aux && array_contains_one_of(result[:trainingdatasets]) {|r|
+            check_searched(r, tds1[4], project1[:projectname], "features")}
+          r_aux = r_aux && array_contains_one_of(result[:trainingdatasets]) {|r|
+            check_searched(r, tds1[5], project1[:projectname], "features")}
+          r_aux
         end
       end
       sleep(1)
@@ -338,15 +330,10 @@ describe "On #{ENV['OS']}" do
         wait_for_me(15) do
           result = local_featurestore_search(project1, "FEATURE", "dog")
           pp result
-          if result[:features].length == 1
-            array_contains_one_of(result[:features]) {|r|
-              check_searched_feature(r, fgs1[3], project1[:projectname])}
-
-            true
-          else
-            pp "received:#{result[:features].length}"
-            false
-          end
+          r_aux = result.length == 1
+          r_aux = r_aux && array_contains_one_of(result[:features]) {|r|
+            check_searched_feature(r, fgs1[3], project1[:projectname])}
+          r_aux
         end
       end
       #global search
@@ -355,37 +342,36 @@ describe "On #{ENV['OS']}" do
         wait_for_me(15) do
           result = global_featurestore_search("FEATUREGROUP", "dog")
           pp result
-          if result[:featuregroups].length == 12
-            array_contains_one_of(result[:featuregroups]) {|r|
-              check_searched(r, fgs1[1], project1[:projectname], "name")}
-            array_contains_one_of(result[:featuregroups]) {|r|
-              check_searched(r, fgs1[3], project1[:projectname], "features")}
-            array_contains_one_of(result[:featuregroups]) {|r|
-              check_searched(r, fgs1[5], project1[:projectname], "otherXattrs")}
-            array_contains_one_of(result[:featuregroups]) {|r|
-              check_searched(r, fgs1[6], project1[:projectname], "tags")}
-            array_contains_one_of(result[:featuregroups]) {|r|
-              check_searched(r, fgs1[7], project1[:projectname], "tags")}
-            array_contains_one_of(result[:featuregroups]) {|r|
-              check_searched(r, fgs1[8], project1[:projectname], "tags")}
-
-            array_contains_one_of(result[:featuregroups]) {|r|
-              check_searched(r, fgs1[1], project2[:projectname], "name")}
-            array_contains_one_of(result[:featuregroups]) {|r|
-              check_searched(r, fgs1[3], project2[:projectname], "features")}
-            array_contains_one_of(result[:featuregroups]) {|r|
-              check_searched(r, fgs1[5], project2[:projectname], "otherXattrs")}
-            array_contains_one_of(result[:featuregroups]) {|r|
-              check_searched(r, fgs1[6], project2[:projectname], "tags")}
-            array_contains_one_of(result[:featuregroups]) {|r|
-              check_searched(r, fgs1[7], project2[:projectname], "tags")}
-            array_contains_one_of(result[:featuregroups]) {|r|
-              check_searched(r, fgs1[8], project2[:projectname], "tags")}
-            true
-          else
-            pp "received:#{result[:featuregroups].length}"
-            false
+          r_aux = result.length >= 12
+          if result.length > 12
+            pp "possible contamination of global search - more results than expected"
           end
+          r_aux = r_aux && array_contains_one_of(result[:featuregroups]) {|r|
+            check_searched(r, fgs1[1], project1[:projectname], "name")}
+          r_aux = r_aux && array_contains_one_of(result[:featuregroups]) {|r|
+            check_searched(r, fgs1[3], project1[:projectname], "features")}
+          r_aux = r_aux && array_contains_one_of(result[:featuregroups]) {|r|
+            check_searched(r, fgs1[5], project1[:projectname], "otherXattrs")}
+          r_aux = r_aux && array_contains_one_of(result[:featuregroups]) {|r|
+            check_searched(r, fgs1[6], project1[:projectname], "tags")}
+          r_aux = r_aux && array_contains_one_of(result[:featuregroups]) {|r|
+            check_searched(r, fgs1[7], project1[:projectname], "tags")}
+          r_aux = r_aux && array_contains_one_of(result[:featuregroups]) {|r|
+            check_searched(r, fgs1[8], project1[:projectname], "tags")}
+
+          r_aux = r_aux && array_contains_one_of(result[:featuregroups]) {|r|
+            check_searched(r, fgs1[1], project2[:projectname], "name")}
+          r_aux = r_aux && array_contains_one_of(result[:featuregroups]) {|r|
+            check_searched(r, fgs1[3], project2[:projectname], "features")}
+          r_aux = r_aux && array_contains_one_of(result[:featuregroups]) {|r|
+            check_searched(r, fgs1[5], project2[:projectname], "otherXattrs")}
+          r_aux = r_aux && array_contains_one_of(result[:featuregroups]) {|r|
+            check_searched(r, fgs1[6], project2[:projectname], "tags")}
+          r_aux = r_aux && array_contains_one_of(result[:featuregroups]) {|r|
+            check_searched(r, fgs1[7], project2[:projectname], "tags")}
+          r_aux = r_aux && array_contains_one_of(result[:featuregroups]) {|r|
+            check_searched(r, fgs1[8], project2[:projectname], "tags")}
+          r_aux
         end
       end
       sleep(1)
@@ -393,29 +379,28 @@ describe "On #{ENV['OS']}" do
         wait_for_me(15) do
           result = global_featurestore_search("TRAININGDATASET", "dog")
           pp result
-          if result[:trainingdatasets].length == 8
-            array_contains_one_of(result[:trainingdatasets]) {|r|
-              check_searched(r, tds1[1], project1[:projectname], "name")}
-            array_contains_one_of(result[:trainingdatasets]) {|r|
-              check_searched(r, tds1[2], project1[:projectname], "name")}
-            array_contains_one_of(result[:trainingdatasets]) {|r|
-              check_searched(r, tds1[4], project1[:projectname], "features")}
-            array_contains_one_of(result[:trainingdatasets]) {|r|
-              check_searched(r, tds1[5], project1[:projectname], "features")}
-
-            array_contains_one_of(result[:trainingdatasets]) {|r|
-              check_searched(r, tds1[1], project2[:projectname], "name")}
-            array_contains_one_of(result[:trainingdatasets]) {|r|
-              check_searched(r, tds1[2], project2[:projectname], "name")}
-            array_contains_one_of(result[:trainingdatasets]) {|r|
-              check_searched(r, tds1[4], project2[:projectname], "features")}
-            array_contains_one_of(result[:trainingdatasets]) {|r|
-              check_searched(r, tds1[5], project2[:projectname], "features")}
-            true
-          else
-            pp "received:#{result[:trainingdatasets].length}"
-            false
+          r_aux = result.length >= 8
+          if result.length > 8
+            pp "possible contamination of global search - more results than expected"
           end
+          r_aux = r_aux && array_contains_one_of(result[:trainingdatasets]) {|r|
+            check_searched(r, tds1[1], project1[:projectname], "name")}
+          r_aux = r_aux && array_contains_one_of(result[:trainingdatasets]) {|r|
+            check_searched(r, tds1[2], project1[:projectname], "name")}
+          r_aux = r_aux && array_contains_one_of(result[:trainingdatasets]) {|r|
+            check_searched(r, tds1[4], project1[:projectname], "features")}
+          r_aux = r_aux && array_contains_one_of(result[:trainingdatasets]) {|r|
+            check_searched(r, tds1[5], project1[:projectname], "features")}
+
+          r_aux = r_aux && array_contains_one_of(result[:trainingdatasets]) {|r|
+            check_searched(r, tds1[1], project2[:projectname], "name")}
+          r_aux = r_aux && array_contains_one_of(result[:trainingdatasets]) {|r|
+            check_searched(r, tds1[2], project2[:projectname], "name")}
+          r_aux = r_aux && array_contains_one_of(result[:trainingdatasets]) {|r|
+            check_searched(r, tds1[4], project2[:projectname], "features")}
+          r_aux = r_aux && array_contains_one_of(result[:trainingdatasets]) {|r|
+            check_searched(r, tds1[5], project2[:projectname], "features")}
+          r_aux
         end
       end
       sleep(1)
@@ -423,17 +408,16 @@ describe "On #{ENV['OS']}" do
         wait_for_me(15) do
           result = local_featurestore_search(project1, "FEATURE", "dog")
           pp result
-          if result[:features].length == 2
-            array_contains_one_of(result[:features]) {|r|
-              check_searched_feature(r, fgs1[3], project1[:projectname])}
-
-            array_contains_one_of(result[:features]) {|r|
-              check_searched_feature(r, fgs1[3], project2[:projectname])}
-            true
-          else
-            pp "received:#{result[:features].length}"
-            false
+          r_aux = result.length >= 2
+          if result.length > 12
+            pp "possible contamination of global search - more results than expected"
           end
+          r_aux = r_aux && array_contains_one_of(result[:features]) {|r|
+            check_searched_feature(r, fgs1[3], project1[:projectname])}
+
+          r_aux = r_aux && array_contains_one_of(result[:features]) {|r|
+            check_searched_feature(r, fgs1[3], project2[:projectname])}
+          r_aux
         end
       end
     end
