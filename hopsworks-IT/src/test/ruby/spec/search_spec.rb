@@ -287,12 +287,18 @@ describe "On #{ENV['OS']}" do
           result = local_featurestore_search(project1, "FEATUREGROUP", "dog")
           pp result
           if result[:featuregroups].length == 6
-            array_contains_one_of(result[:featuregroups]) {|r| check_searched_fg(r, fgs[1], project1[:projectname],"name")}
-            array_contains_one_of(result[:featuregroups]) {|r| check_searched_fg(r, fgs[3], project1[:projectname],"features")}
-            array_contains_one_of(result[:featuregroups]) {|r| check_searched_fg(r, fgs[5], project1[:projectname], "otherXattrs")}
-            array_contains_one_of(result[:featuregroups]) {|r| check_searched_fg(r, fgs[6], project1[:projectname], "tags")}
-            array_contains_one_of(result[:featuregroups]) {|r| check_searched_fg(r, fgs[7], project1[:projectname], "tags")}
-            array_contains_one_of(result[:featuregroups]) {|r| check_searched_fg(r, fgs[8], project1[:projectname], "tags")}
+            array_contains_one_of(result[:featuregroups]) {|r|
+              check_searched_fg(r, fgs1[1], project1[:projectname], "name")}
+            array_contains_one_of(result[:featuregroups]) {|r|
+              check_searched_fg(r, fgs1[3], project1[:projectname], "features")}
+            array_contains_one_of(result[:featuregroups]) {|r|
+              check_searched_fg(r, fgs1[5], project1[:projectname], "otherXattrs")}
+            array_contains_one_of(result[:featuregroups]) {|r|
+              check_searched_fg(r, fgs1[6], project1[:projectname], "tags")}
+            array_contains_one_of(result[:featuregroups]) {|r|
+              check_searched_fg(r, fgs1[7], project1[:projectname], "tags")}
+            array_contains_one_of(result[:featuregroups]) {|r|
+              check_searched_fg(r, fgs1[8], project1[:projectname], "tags")}
             true
           else
             pp "received:#{result[:featuregroups].length}"
