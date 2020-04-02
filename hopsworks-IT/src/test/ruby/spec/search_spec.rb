@@ -292,7 +292,7 @@ describe "On #{ENV['OS']}" do
         wait_for_me(15) do
           result = local_featurestore_search(project1, "FEATUREGROUP", "dog")
           pp result
-          r_aux = result.length == 6
+          r_aux = result[:featuregroups].length == 6
           if r_aux
             r_aux = r_aux && check_array_contains_one_of(result[:featuregroups]) {|r|
               check_searched(r, fgs1[1], project1[:projectname], "name")}
@@ -321,7 +321,7 @@ describe "On #{ENV['OS']}" do
         wait_for_me(15) do
           result = local_featurestore_search(project1, "TRAININGDATASET", "dog")
           pp result
-          r_aux = result.length == 4
+          r_aux = result[:trainingdatasets].length == 4
           r_aux = r_aux && check_array_contains_one_of(result[:trainingdatasets]) {|r|
             check_searched(r, tds1[1], project1[:projectname], "name")}
           r_aux = r_aux && check_array_contains_one_of(result[:trainingdatasets]) {|r|
@@ -338,7 +338,7 @@ describe "On #{ENV['OS']}" do
         wait_for_me(15) do
           result = local_featurestore_search(project1, "FEATURE", "dog")
           pp result
-          r_aux = result.length == 1
+          r_aux = result[:features].length == 1
           r_aux = r_aux && check_array_contains_one_of(result[:features]) {|r|
             check_searched_feature(r, fgs1[3], project1[:projectname])}
           r_aux
@@ -350,8 +350,8 @@ describe "On #{ENV['OS']}" do
         wait_for_me(15) do
           result = global_featurestore_search("FEATUREGROUP", "dog")
           pp result
-          r_aux = result.length >= 12
-          if result.length > 12
+          r_aux = result[:featuregroups].length >= 12
+          if result[:featuregroups].length > 12
             pp "possible contamination of global search - more results than expected"
           end
           r_aux = r_aux && check_array_contains_one_of(result[:featuregroups]) {|r|
@@ -387,8 +387,8 @@ describe "On #{ENV['OS']}" do
         wait_for_me(15) do
           result = global_featurestore_search("TRAININGDATASET", "dog")
           pp result
-          r_aux = result.length >= 8
-          if result.length > 8
+          r_aux = result[:trainingdatasets].length >= 8
+          if result[:trainingdatasets].length > 8
             pp "possible contamination of global search - more results than expected"
           end
           r_aux = r_aux && check_array_contains_one_of(result[:trainingdatasets]) {|r|
@@ -416,8 +416,8 @@ describe "On #{ENV['OS']}" do
         wait_for_me(15) do
           result = local_featurestore_search(project1, "FEATURE", "dog")
           pp result
-          r_aux = result.length >= 2
-          if result.length > 12
+          r_aux = result[:features].length >= 2
+          if result[:features].length > 12
             pp "possible contamination of global search - more results than expected"
           end
           r_aux = r_aux && check_array_contains_one_of(result[:features]) {|r|
