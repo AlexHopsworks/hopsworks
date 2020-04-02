@@ -19,7 +19,7 @@ describe "On #{ENV['OS']}" do
     with_valid_session
   end
   after(:all) do
-    clean_all_test_projects
+    # clean_all_test_projects
   end
 
   def s_create_featuregroup_checked(project, featurestore_id, featuregroup_name)
@@ -410,7 +410,7 @@ describe "On #{ENV['OS']}" do
           result = global_featurestore_search("FEATUREGROUP", "dog")
           pp result
           r_aux = true
-          if result[:featuregroups].length >= 12
+          if defined?(result[:featuregroups]) && result[:featuregroups].length >= 12
             r_aux = r_aux && check_array_contains_one_of(result[:featuregroups]) {|r|
               check_searched(r, fgs1[1], project1[:projectname], "name")}
             r_aux = r_aux && check_array_contains_one_of(result[:featuregroups]) {|r|
@@ -449,7 +449,7 @@ describe "On #{ENV['OS']}" do
           result = global_featurestore_search("TRAININGDATASET", "dog")
           pp result
           r_aux = true
-          if result[:trainingdatasets].length >= 8
+          if defined?(result[:trainingdatasets]) && result[:trainingdatasets].length >= 8
             r_aux = r_aux && check_array_contains_one_of(result[:trainingdatasets]) {|r|
               check_searched(r, tds1[1], project1[:projectname], "name")}
             r_aux = r_aux && check_array_contains_one_of(result[:trainingdatasets]) {|r|
@@ -481,7 +481,7 @@ describe "On #{ENV['OS']}" do
           result = global_featurestore_search("FEATURE", "dog")
           pp result
           r_aux = true
-          if result[:features].length >= 2
+          if defined?(result[:features]) && result[:features].length >= 2
             r_aux = r_aux && check_array_contains_one_of(result[:features]) {|r|
               check_searched_feature(r, fgs1[3], project1[:projectname])}
 
