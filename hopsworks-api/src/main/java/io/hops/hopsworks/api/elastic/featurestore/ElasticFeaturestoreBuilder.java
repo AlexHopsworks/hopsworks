@@ -59,70 +59,76 @@ public class ElasticFeaturestoreBuilder {
     Project project = projectFacade.find(projectId);
     Map<FeaturestoreDocType, Set<Integer>> searchProjects
       = dataAccessCtrl.featurestoreSearchContext(project, req.getDocType());
-    SearchResponse response
+    Map<FeaturestoreDocType, SearchResponse> response
       = elasticCtrl.featurestoreSearch(req.getTerm(), searchProjects, req.getFrom(), req.getSize());
-    ElasticFeaturestoreDTO result
-      = parseResult(req.getDocType(), response.getHits().getHits(), accessFromParentProject(project));
+    ElasticFeaturestoreDTO result = parseResult(response, accessFromParentProject(project));
     result.setFeaturegroupsFrom(req.getFrom());
-    result.setFeaturegroupsTotal(response.getHits().getTotalHits().value);
     result.setTrainingdatasetsFrom(req.getFrom());
-    result.setTrainingdatasetsTotal(response.getHits().getTotalHits().value);
     result.setFeaturesFrom(req.getFrom());
-    result.setFeaturesTotal(response.getHits().getTotalHits().value);
     return result;
   }
   
   public ElasticFeaturestoreDTO build(Users user,ElasticFeaturestoreRequest req)
     throws ElasticException, ServiceException, GenericException {
-    SearchResponse response
+    Map<FeaturestoreDocType, SearchResponse> response
       = elasticCtrl.featurestoreSearch(req.getDocType(), req.getTerm(), req.getFrom(), req.getSize());
-    ElasticFeaturestoreDTO result
-      = parseResult(req.getDocType(), response.getHits().getHits(), accessFromSharedProjects(user));
+    ElasticFeaturestoreDTO result = parseResult(response, accessFromSharedProjects(user));
     result.setFeaturegroupsFrom(req.getFrom());
-    result.setFeaturegroupsTotal(response.getHits().getTotalHits().value);
     result.setTrainingdatasetsFrom(req.getFrom());
-    result.setTrainingdatasetsTotal(response.getHits().getTotalHits().value);
     result.setFeaturesFrom(req.getFrom());
-    result.setFeaturesTotal(response.getHits().getTotalHits().value);
     return result;
   }
   
-  private ElasticFeaturestoreDTO parseResult(FeaturestoreDocType docType, SearchHit[] hits,
+  private ElasticFeaturestoreDTO parseResult(Map<FeaturestoreDocType, SearchResponse> resp,
     ProjectAccessCtrl accessCtrl)
     throws ElasticException, GenericException {
     ElasticFeaturestoreDTO result = new ElasticFeaturestoreDTO();
-    for(SearchHit hitAux : hits) {
-      FeaturestoreElasticHit hit = FeaturestoreElasticHit.instance(hitAux);
-      if(FeaturestoreDocType.TRAININGDATASET.toString().toLowerCase().equals(hit.getDocType())
-        && (FeaturestoreDocType.ALL.equals(docType) || FeaturestoreDocType.TRAININGDATASET.equals(docType))) {
-        ElasticFeaturestoreItemDTO.Base item = ElasticFeaturestoreItemDTO.fromTrainingDataset(hit, converter);
-        result.addTrainingdataset(item);
-        accessCtrl.accept(item, hit);
-        item.setHighlights(getHighlights(hitAux.getHighlightFields()));
-      }
-      if(FeaturestoreDocType.FEATUREGROUP.toString().toLowerCase().equals(hit.getDocType())
-        && (FeaturestoreDocType.ALL.equals(docType) || FeaturestoreDocType.FEATUREGROUP.equals(docType))) {
-        ElasticFeaturestoreItemDTO.Base item = ElasticFeaturestoreItemDTO.fromFeaturegroup(hit, converter);
-        result.addFeaturegroup(item);
-        accessCtrl.accept(item, hit);
-        item.setHighlights(getHighlights(hitAux.getHighlightFields()));
-      }
-      if(FeaturestoreDocType.FEATUREGROUP.toString().toLowerCase().equals(hit.getDocType())
-        && (FeaturestoreDocType.ALL.equals(docType) || FeaturestoreDocType.FEATURE.equals(docType))) {
-        ElasticFeaturestoreItemDTO.Base fgParent = ElasticFeaturestoreItemDTO.fromFeaturegroup(hit, converter);
-        Map<String, HighlightField> highlightFields = hitAux.getHighlightFields();
-        String featureField = Featurestore.getFeaturestoreElasticKey(Featurestore.FG_FEATURES);
-        if (highlightFields.containsKey(featureField)) {
-          for (Text e : highlightFields.get(featureField).fragments()) {
-            String feature = removeHighlightTags(e.toString());
-            ElasticFeaturestoreItemDTO.Feature item = ElasticFeaturestoreItemDTO.fromFeature(feature, fgParent);
-            result.addFeature(item);
+    for(Map.Entry<FeaturestoreDocType, SearchResponse> e : resp.entrySet()) {
+      switch(e.getKey()) {
+        case FEATUREGROUP: {
+          for (SearchHit hitAux : e.getValue().getHits()) {
+            FeaturestoreElasticHit hit = FeaturestoreElasticHit.instance(hitAux);
+            ElasticFeaturestoreItemDTO.Base item = ElasticFeaturestoreItemDTO.fromFeaturegroup(hit, converter);
+            item.setHighlights(getHighlights(hitAux.getHighlightFields()));
             accessCtrl.accept(item, hit);
-            ElasticFeaturestoreItemDTO.Highlights highlights = new ElasticFeaturestoreItemDTO.Highlights();
-            highlights.setName(e.toString());
-            item.setHighlights(highlights);
+            result.addFeaturegroup(item);
           }
-        }
+          result.setFeaturegroupsTotal(e.getValue().getHits().getTotalHits().value);
+        } break;
+        case TRAININGDATASET: {
+          for (SearchHit hitAux : e.getValue().getHits()) {
+            FeaturestoreElasticHit hit = FeaturestoreElasticHit.instance(hitAux);
+            ElasticFeaturestoreItemDTO.Base item = ElasticFeaturestoreItemDTO.fromTrainingDataset(hit, converter);
+            item.setHighlights(getHighlights(hitAux.getHighlightFields()));
+            accessCtrl.accept(item, hit);
+            result.addTrainingdataset(item);
+          }
+          result.setTrainingdatasetsTotal(e.getValue().getHits().getTotalHits().value);
+        } break;
+        case FEATURE: {
+          for (SearchHit hitAux : e.getValue().getHits()) {
+            FeaturestoreElasticHit hit = FeaturestoreElasticHit.instance(hitAux);
+            ElasticFeaturestoreItemDTO.Base fgParent = ElasticFeaturestoreItemDTO.fromFeaturegroup(hit, converter);
+            Map<String, HighlightField> highlightFields = hitAux.getHighlightFields();
+            String featureField = Featurestore.getFeaturestoreElasticKey(Featurestore.FG_FEATURES);
+            HighlightField hf = highlightFields.get(featureField);
+            if(hf == null) {
+              hf = highlightFields.get(featureField + ".keyword");
+            }
+            if (hf != null) {
+              for (Text ee : hf.fragments()) {
+                String feature = removeHighlightTags(ee.toString());
+                ElasticFeaturestoreItemDTO.Feature item = ElasticFeaturestoreItemDTO.fromFeature(feature, fgParent);
+                ElasticFeaturestoreItemDTO.Highlights highlights = new ElasticFeaturestoreItemDTO.Highlights();
+                highlights.setName(ee.toString());
+                item.setHighlights(highlights);
+                accessCtrl.accept(item, hit);
+                result.addFeature(item);
+              }
+            }
+          }
+          result.setFeaturesTotal(e.getValue().getHits().getTotalHits().value);
+        } break;
       }
     }
     return result;
