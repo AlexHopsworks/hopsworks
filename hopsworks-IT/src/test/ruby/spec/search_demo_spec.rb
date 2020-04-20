@@ -37,28 +37,30 @@ describe "On #{ENV['OS']}" do
 
   it 'simple 2 users, 3 projects with shared featurestores and training datasets' do
     user1_params = {}
-    user1_params[:email] = "demo1@logicalclocks.com"
-    user1_params[:password] = "demo123"
+    user1_params[:email] = "demo1_#{random_id}@logicalclocks.com"
+    user1_params[:chosenPassword]   = "demo123"
+    user1_params[:repeatedPassword] = "demo123"
     create_user(user1_params)
     user2_params = {}
-    user2_params[:email] = "demo2@logicalclocks.com"
-    user2_params[:password] = "demo123"
+    user2_params[:email] = "demo2_##{random_id}@logicalclocks.com"
+    user2_params[:chosenPassword]   = "demo123"
+    user2_params[:repeatedPassword] = "demo123"
     create_user(user2_params)
 
-    create_session(user1_params[:email], user1_params[:password])
+    create_session(user1_params[:email], user1_params[:chosenPassword])
     create_and_wait_for_featurestore_tour()
     project1 = @project
 
-    create_session(user2_params[:email], user2_params[:password])
+    create_session(user2_params[:email], user2_params[:chosenPassword])
     create_and_wait_for_featurestore_tour()
     project2 = @project
     featurestore2_name = project2[:projectname].downcase + "_featurestore.db"
     featurestore2 = get_dataset(project2, featurestore2_name)
 
     #share featurestore2 of user2 with user1
-    create_session(user1_params[:email], user1_params[:password])
+    create_session(user1_params[:email], user1_params[:chosenPassword])
     request_access_by_dataset(featurestore2, project1)
-    create_session(user2_params[:email], user2_params[:password])
+    create_session(user2_params[:email], user2_params[:chosenPassword])
     share_dataset_checked(project2, featurestore2_name, project1[:projectname], "FEATURESTORE")
   end
 end
