@@ -35,7 +35,7 @@ describe "On #{ENV['OS']}" do
     end
   end
 
-  it 'simple 2 users, 3 projects with shared featurestores and training datasets', demo: "#{@demo}" do
+  it 'simple 2 users, 3 projects with shared featurestores and training datasets' do
     user1_params = {}
     user1_params[:email] = "demo1@logicalclocks.com"
     user1_params[:password] = "demo123"
@@ -60,8 +60,5 @@ describe "On #{ENV['OS']}" do
     request_access_by_dataset(featurestore2, project1)
     create_session(user2_params[:email], user2_params[:password])
     share_dataset_checked(project2, featurestore2_name, project1[:projectname], "FEATURESTORE")
-  end
-  it 'clean demo', demo: "#{@demo}" do
-    
   end
 end
