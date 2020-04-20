@@ -117,6 +117,7 @@ RSpec.configure do |config|
   if ENV['SKIP_VM_TEST'] == "true" # Skip tests tagged with vm: true
     config.filter_run_excluding vm: true
   end
+  config.filter_run_excluding demo: true #Skip "tests" marked with demo: true - on demand running
   config.filter_run focus: true
   config.run_all_when_everything_filtered = true
 end
