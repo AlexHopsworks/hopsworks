@@ -48,20 +48,18 @@ describe "On #{ENV['OS']}" do
       context 'with authentication but without python enabled' do
         before :all do
           with_valid_project
+          serving_prefix = "/Projects/#{@project[:projectname]}/Models/IrisFlowerClassifier"
+          hdfs_owner = "#{@project[:projectname]}__#{@user[:username]}"
           # Make Serving Dir
-          mkdir("/Projects/#{@project[:projectname]}/Models/IrisFlowerClassifier/", "#{@user[:username]}",
-                "#{@project[:projectname]}__Models", 750)
+          mkdir(serving_prefix, hdfs_owner, "#{@project[:projectname]}__Models", 750)
           # Make Version Dir
-          mkdir("/Projects/#{@project[:projectname]}/Models/IrisFlowerClassifier/1", "#{@user[:username]}",
-                "#{@project[:projectname]}__Models", 750)
+          mkdir("#{serving_prefix}/1", hdfs_owner, "#{@project[:projectname]}__Models", 750)
           # Copy model to the servingversion dir
-          copy(SKLEARN_MODEL_TOUR_FILE_LOCATION, "/Projects/#{@project[:projectname]}/Models/IrisFlowerClassifier/1/",
-               "#{@user[:username]}",
-               "#{@project[:projectname]}__Models", 750, "#{@project[:projectname]}")
+          copy(SKLEARN_MODEL_TOUR_FILE_LOCATION, "#{serving_prefix}/1/", hdfs_owner,
+               "#{@project[:projectname]}__Models", 750)
           # Copy script to the servingversion dir
-          copy(SKLEARN_SCRIPT_TOUR_FILE_LOCATION, "/Projects/#{@project[:projectname]}/Models/IrisFlowerClassifier/1/",
-               "#{@user[:username]}",
-               "#{@project[:projectname]}__Models", 750, "#{@project[:projectname]}")
+          copy(SKLEARN_SCRIPT_TOUR_FILE_LOCATION, "#{serving_prefix}/1/", hdfs_owner,
+               "#{@project[:projectname]}__Models", 750)
           # Remove conda
           delete_conda_env(@project[:id])
         end
@@ -111,20 +109,18 @@ describe "On #{ENV['OS']}" do
           with_valid_project
           with_python_enabled(@project[:id], "3.6")
 
+          serving_prefix = "/Projects/#{@project[:projectname]}/Models/IrisFlowerClassifier"
+          hdfs_owner = "#{@project[:projectname]}__#{@user[:username]}"
           # Make Serving Dir
-          mkdir("/Projects/#{@project[:projectname]}/Models/IrisFlowerClassifier/", "#{@user[:username]}",
-                "#{@project[:projectname]}__Models", 750)
+          mkdir(serving_prefix, hdfs_owner, "#{@project[:projectname]}__Models", 750)
           # Make Version Dir
-          mkdir("/Projects/#{@project[:projectname]}/Models/IrisFlowerClassifier/1", "#{@user[:username]}",
-                "#{@project[:projectname]}__Models", 750)
+          mkdir("#{serving_prefix}/1", hdfs_owner, "#{@project[:projectname]}__Models", 750)
           # Copy model to the servingversion dir
-          copy(SKLEARN_MODEL_TOUR_FILE_LOCATION, "/Projects/#{@project[:projectname]}/Models/IrisFlowerClassifier/1/",
-               "#{@user[:username]}",
-               "#{@project[:projectname]}__Models", 750, "#{@project[:projectname]}")
+          copy(SKLEARN_MODEL_TOUR_FILE_LOCATION, "#{serving_prefix}/1/", hdfs_owner,
+               "#{@project[:projectname]}__Models", 750)
           # Copy script to the servingversion dir
-          copy(SKLEARN_SCRIPT_TOUR_FILE_LOCATION, "/Projects/#{@project[:projectname]}/Models/IrisFlowerClassifier/1/",
-               "#{@user[:username]}",
-               "#{@project[:projectname]}__Models", 750, "#{@project[:projectname]}")
+          copy(SKLEARN_SCRIPT_TOUR_FILE_LOCATION, "#{serving_prefix}/1/", hdfs_owner,
+               "#{@project[:projectname]}__Models", 750)
         end
 
         after :all do
@@ -507,20 +503,20 @@ describe "On #{ENV['OS']}" do
           with_valid_project
           with_python_enabled(@project[:id], "3.6")
 
+          serving_prefix = "/Projects/#{@project[:projectname]}/Models/IrisFlowerClassifier"
+          hdfs_owner = "#{@project[:projectname]}__#{@user[:username]}"
           # Make Serving Dir
-          mkdir("/Projects/#{@project[:projectname]}/Models/IrisFlowerClassifier/", "#{@user[:username]}",
+          mkdir(serving_prefix, hdfs_owner,
                 "#{@project[:projectname]}__Models", 750)
           # Make Version Dir
-          mkdir("/Projects/#{@project[:projectname]}/Models/IrisFlowerClassifier/1", "#{@user[:username]}",
+          mkdir("#{serving_prefix}/1", hdfs_owner,
                 "#{@project[:projectname]}__Models", 750)
           # Copy model to the servingversion dir
-          copy(SKLEARN_MODEL_TOUR_FILE_LOCATION, "/Projects/#{@project[:projectname]}/Models/IrisFlowerClassifier/1/",
-               "#{@user[:username]}",
-               "#{@project[:projectname]}__Models", 750, "#{@project[:projectname]}")
+          copy(SKLEARN_MODEL_TOUR_FILE_LOCATION, "#{serving_prefix}/1/", hdfs_owner,
+               "#{@project[:projectname]}__Models", 750)
           # Copy script to the servingversion dir
-          copy(SKLEARN_SCRIPT_TOUR_FILE_LOCATION, "/Projects/#{@project[:projectname]}/Models/IrisFlowerClassifier/1/",
-               "#{@user[:username]}",
-               "#{@project[:projectname]}__Models", 750, "#{@project[:projectname]}")
+          copy(SKLEARN_SCRIPT_TOUR_FILE_LOCATION, "#{serving_prefix}/1/", hdfs_owner,
+               "#{@project[:projectname]}__Models", 750)
         end
 
         after :all do

@@ -153,8 +153,10 @@ describe "On #{ENV['OS']}" do
       end
 
       it "should convert .ipynb file to .py file" do
-
-        copy("/user/hdfs/tensorflow_demo/notebooks/Experiment/Keras/mnist.ipynb", "/Projects/#{@project[:projectname]}/Resources", @user[:username], "#{@project[:projectname]}__Resources", 750, "#{@project[:projectname]}")
+        src = "/user/hdfs/tensorflow_demo/notebooks/Experiment/Keras/mnist.ipynb"
+        dst = "/Projects/#{@project[:projectname]}/Resources"
+        hdfs_owner = "#{@project[:projectname]}__#{@user[:username]}"
+        copy(src, dst, hdfs_owner,"#{@project[:projectname]}__Resources", 750)
 
         post "#{ENV['HOPSWORKS_API']}/project/#{@project[:id]}/python/environments/#{version}?action=create"
         expect_status(201)

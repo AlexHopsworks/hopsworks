@@ -24,10 +24,11 @@ module ModelHelper
        expect_status(201)
     end
 
-    if !test_file("/Projects/#{project[:projectname]}/Resources/" + job_name + ".ipynb")
-        copy_from_local("#{ENV['PROJECT_DIR']}/hopsworks-IT/src/test/ruby/spec/aux/export_model.ipynb",
-                        "/Projects/#{project[:projectname]}/Resources/" + job_name + ".ipynb", @user[:username],
-                        "#{@project[:projectname]}__Resources", 750, "#{@project[:projectname]}")
+    dst = "/Projects/#{project[:projectname]}/Resources/" + job_name + ".ipynb"
+    if !test_file(dst)
+      src = "#{ENV['PROJECT_DIR']}/hopsworks-IT/src/test/ruby/spec/aux/export_model.ipynb"
+      hdfs_owner = "#{@project[:projectname]}__#{@user[:username]}"
+      copy_from_local(src, dst, hdfs_owner, "#{@project[:projectname]}__Resources", 750)
     end
 
     job_conf = {

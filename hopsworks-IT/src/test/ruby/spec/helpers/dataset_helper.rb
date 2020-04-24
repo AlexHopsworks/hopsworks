@@ -192,18 +192,17 @@ module DatasetHelper
   def create_files
     chmod_local_dir("#{ENV['PROJECT_DIR']}".gsub("/hopsworks", ""), 701, false)
     chmod_local_dir("#{ENV['PROJECT_DIR']}/tools", 777)
-    copy_from_local("#{ENV['PROJECT_DIR']}/tools/metadata_designer/Sample.json",
-                    "/Projects/#{@project[:projectname]}/#{@dataset[:inode_name]}/Sample.json", @user[:username],
-                    "#{@project[:projectname]}__#{@dataset[:inode_name]}", 750, "#{@project[:projectname]}")
-    copy_from_local("#{ENV['PROJECT_DIR']}/tools/metadata_designer/Sample.json",
-                    "/Projects/#{@project[:projectname]}/#{@dataset[:inode_name]}/SampleCollection.json", @user[:username],
-                    "#{@project[:projectname]}__#{@dataset[:inode_name]}", 750, "#{@project[:projectname]}")
-    copy_from_local("#{ENV['PROJECT_DIR']}/tools/metadata_designer/Sample.json",
-                    "/Projects/#{@project[:projectname]}/#{@dataset[:inode_name]}/SampleCollection_Ext.json", @user[:username],
-                    "#{@project[:projectname]}__#{@dataset[:inode_name]}", 750, "#{@project[:projectname]}")
-    copy_from_local("#{ENV['PROJECT_DIR']}/tools/metadata_designer/Sample.json",
-                    "/Projects/#{@project[:projectname]}/#{@dataset[:inode_name]}/Study.json", @user[:username],
-                    "#{@project[:projectname]}__#{@dataset[:inode_name]}", 750, "#{@project[:projectname]}")
+    src = "#{ENV['PROJECT_DIR']}/tools/metadata_designer/Sample.json"
+    dst = "/Projects/#{@project[:projectname]}/#{@dataset[:inode_name]}"
+    hdfs_owner = "#{@project[:projectname]}__#{@user[:username]}"
+    copy_from_local(src, "#{dst}/Sample.json", hdfs_owner,
+                    "#{@project[:projectname]}__#{@dataset[:inode_name]}", 750)
+    copy_from_local(src, "#{dst}/SampleCollection.json", hdfs_owner,
+                    "#{@project[:projectname]}__#{@dataset[:inode_name]}", 750)
+    copy_from_local(src, "#{dst}/SampleCollection_Ext.json", hdfs_owner,
+                    "#{@project[:projectname]}__#{@dataset[:inode_name]}", 750)
+    copy_from_local(src, "#{dst}/Study.json", hdfs_owner,
+                    "#{@project[:projectname]}__#{@dataset[:inode_name]}", 750)
   end
 
   def create_dirs(project, path, num, searchable)

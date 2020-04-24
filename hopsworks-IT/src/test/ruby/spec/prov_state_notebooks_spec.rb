@@ -97,12 +97,11 @@ describe "On #{ENV['OS']}" do
         src_dir = "#{ENV['PROJECT_DIR']}/hopsworks-IT/src/test/ruby/spec/aux"
         src = "#{src_dir}/#{job_name}.ipynb"
         dst = "/Projects/#{project[:projectname]}/Resources"
-        user = @user[:username]
+        hdfs_owner = "#{project[:projectname]}__#{@user[:username]}"
         group = "#{project[:projectname]}__Jupyter"
-        project_name = "#{project[:projectname]}"
 
         chmod_local_dir("#{ENV['PROJECT_DIR']}", 777, true)
-        copy_from_local(src, dst, user, group, 750, project_name)
+        copy_from_local(src, dst, hdfs_owner, group, 750)
 
         job_conf = {
             "type":"sparkJobConfiguration",

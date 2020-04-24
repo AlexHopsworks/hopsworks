@@ -76,8 +76,10 @@ describe "On #{ENV['OS']}" do
         before :all do
           with_valid_project
 
-          mkdir("/Projects/#{@project[:projectname]}/Models/mnist/", @user[:username], "#{@project[:projectname]}__Models", 750)
-          copy(TF_MODEL_TOUR_FILE_LOCATION, "/Projects/#{@project[:projectname]}/Models/mnist/", @user[:username], "#{@project[:projectname]}__Models", 750, "#{@project[:projectname]}")
+          serving_prefix = "/Projects/#{@project[:projectname]}/Models/mnist/"
+          hdfs_owner = "#{@project[:projectname]}__#{@user[:username]}"
+          mkdir(serving_prefix, hdfs_owner, "#{@project[:projectname]}__Models", 750)
+          copy(TF_MODEL_TOUR_FILE_LOCATION, serving_prefix, hdfs_owner, "#{@project[:projectname]}__Models", 750)
         end
 
         it "should create the serving without Kafka topic" do
@@ -372,12 +374,12 @@ describe "On #{ENV['OS']}" do
       end
 
       it "should be able to update the path" do
-        mkdir("/Projects/#{@project[:projectname]}/Models/newMnist/", @user[:username],
-              "#{@project[:projectname]}__Models", 750)
+        serving_prefix1 = "/Projects/#{@project[:projectname]}/Models/mnist"
+        serving_prefix2 = "/Projects/#{@project[:projectname]}/Models/newMnist"
+        hdfs_owner = "#{@project[:projectname]}__#{@user[:username]}"
+        mkdir(serving_prefix2, hdfs_owner, "#{@project[:projectname]}__Models", 750)
 
-        copy("/Projects/#{@project[:projectname]}/Models/mnist/*",
-             "/Projects/#{@project[:projectname]}/Models/newMnist/",
-             @user[:username], "#{@project[:projectname]}__Models", 750, "#{@project[:projectname]}")
+        copy("#{serving_prefix1}/*", serving_prefix2, hdfs_owner, "#{@project[:projectname]}__Models", 750)
 
         put "#{ENV['HOPSWORKS_API']}/project/#{@project[:id]}/serving/",
             {id: @serving[:id],
@@ -511,9 +513,10 @@ describe "On #{ENV['OS']}" do
         system "pgrep -f tensorflow_model_server | xargs kill -9"
         with_valid_project
 
-
-        mkdir("/Projects/#{@project[:projectname]}/Models/mnist/", @user[:username], "#{@project[:projectname]}__Models", 750)
-        copy(TF_MODEL_TOUR_FILE_LOCATION, "/Projects/#{@project[:projectname]}/Models/mnist/", @user[:username], "#{@project[:projectname]}__Models", 750, "#{@project[:projectname]}")
+        serving_prefix = "/Projects/#{@project[:projectname]}/Models/mnist"
+        hdfs_owner = "#{@project[:projectname]}__#{@user[:username]}"
+        mkdir(serving_prefix, hdfs_owner, "#{@project[:projectname]}__Models", 750)
+        copy(TF_MODEL_TOUR_FILE_LOCATION, serving_prefix, hdfs_owner, "#{@project[:projectname]}__Models", 750)
       end
 
       before :each do

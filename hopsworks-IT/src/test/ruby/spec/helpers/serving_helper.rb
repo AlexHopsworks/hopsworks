@@ -26,28 +26,26 @@ module ServingHelper
 
   def with_tf_serving(project_id, project_name, user)
     # Copy model to the project directory
-    mkdir("/Projects/#{project_name}/Models/mnist/", "#{project_name}__#{user}", "#{project_name}__Models", 750)
-    copy(TF_MODEL_TOUR_FILE_LOCATION, "/Projects/#{project_name}/Models/mnist/", "#{project_name}__#{user}", "#{project_name}__Models", 750, "#{project_name}")
+    hdfs_owner = "#{project_name}__#{user}"
+    serving_prefix = "/Projects/#{project_name}/Models/mnist"
+    mkdir(serving_prefix, hdfs_owner, "#{project_name}__Models", 750)
+    copy(TF_MODEL_TOUR_FILE_LOCATION, serving_prefix, hdfs_owner, "#{project_name}__Models", 750)
 
     @serving ||= create_tf_serving(project_id, project_name)
     @topic = ProjectTopics.find(@serving[:kafka_topic_id])
   end
 
   def with_sklearn_serving(project_id, project_name, user)
+    hdfs_owner = "#{project_name}__#{user}"
+    serving_prefix = "/Projects/#{project_name}/Models/IrisFlowerClassifier"
     # Make Serving Dir
-    mkdir("/Projects/#{project_name}/Models/IrisFlowerClassifier/", "#{project_name}__#{user}",
-          "#{project_name}__Models", 750)
+    mkdir(serving_prefix, hdfs_owner, "#{project_name}__Models", 750)
     # Make Version Dir
-    mkdir("/Projects/#{project_name}/Models/IrisFlowerClassifier/1", "#{project_name}__#{user}",
-          "#{project_name}__Models", 750)
+    mkdir("#{serving_prefix}/1", hdfs_owner, "#{project_name}__Models", 750)
     # Copy model to the servingversion dir
-    copy(SKLEARN_MODEL_TOUR_FILE_LOCATION, "/Projects/#{project_name}/Models/IrisFlowerClassifier/1/",
-         "#{project_name}__#{user}",
-         "#{project_name}__Models", 750, "#{project_name}")
+    copy(SKLEARN_MODEL_TOUR_FILE_LOCATION, "#{serving_prefix}/1/", hdfs_owner, "#{project_name}__Models", 750)
     # Copy script to the servingversion dir
-    copy(SKLEARN_SCRIPT_TOUR_FILE_LOCATION, "/Projects/#{project_name}/Models/IrisFlowerClassifier/1/",
-         "#{project_name}__#{user}",
-         "#{project_name}__Models", 750, "#{project_name}")
+    copy(SKLEARN_SCRIPT_TOUR_FILE_LOCATION, "#{serving_prefix}/1/", hdfs_owner, "#{project_name}__Models", 750)
 
     @serving ||= create_sklearn_serving(project_id, project_name)
     @topic = ProjectTopics.find(@serving[:kafka_topic_id])

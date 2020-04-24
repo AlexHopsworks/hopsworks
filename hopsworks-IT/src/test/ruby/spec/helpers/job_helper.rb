@@ -77,10 +77,11 @@ module JobHelper
       put "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/jobs/#{job_name}", job_conf
 
     elsif type.eql? "py"
-
-      if !test_file("/Projects/#{project[:projectname]}/Resources/" + job_name + ".ipynb")
-        copy("/user/hdfs/tensorflow_demo/notebooks/Experiment/TensorFlow/minimal_mnist_classifier_on_hops.ipynb",
-              "/Projects/#{project[:projectname]}/Resources/" + job_name + ".ipynb", @user[:username], "#{project[:projectname]}__Resources", 750, "#{project[:projectname]}")
+      dst = "/Projects/#{project[:projectname]}/Resources/" + job_name + ".ipynb"
+      if !test_file(dst)
+        src = "/user/hdfs/tensorflow_demo/notebooks/Experiment/TensorFlow/minimal_mnist_classifier_on_hops.ipynb"
+        hdfs_owner = "#{project[:projectname]}__#{@user[:username]}"
+        copy(src, dst, hdfs_owner, "#{project[:projectname]}__Resources", 750)
       end
 
       get "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/jupyter/convertIPythonNotebook/Resources/" + job_name + ".ipynb"
@@ -109,9 +110,11 @@ module JobHelper
       put "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/jobs/#{job_name}", job_conf
 
     else
-        if !test_file("/Projects/#{project[:projectname]}/Resources/" + job_name + ".ipynb")
-          copy("/user/hdfs/tensorflow_demo/notebooks/Experiment/TensorFlow/minimal_mnist_classifier_on_hops.ipynb",
-          "/Projects/#{project[:projectname]}/Resources/" + job_name + ".ipynb", @user[:username], "#{project[:projectname]}__Resources", 750, "#{project[:projectname]}")
+        dst = "/Projects/#{project[:projectname]}/Resources/" + job_name + ".ipynb"
+        if !test_file(dst)
+          src = "/user/hdfs/tensorflow_demo/notebooks/Experiment/TensorFlow/minimal_mnist_classifier_on_hops.ipynb"
+          hdfs_owner = "#{project[:projectname]}__#{@user[:username]}"
+          copy(src, dst, hdfs_owner, "#{project[:projectname]}__Resources", 750)
         end
         if job_conf.nil?
           job_conf = {

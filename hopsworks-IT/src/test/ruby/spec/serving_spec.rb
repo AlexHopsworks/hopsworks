@@ -46,8 +46,10 @@ describe "On #{ENV['OS']}" do
         before :all do
           with_valid_project
 
-          mkdir("/Projects/#{@project[:projectname]}/Models/mnist/", @user[:username], "#{@project[:projectname]}__Models", 750)
-          copy(TF_MODEL_TOUR_FILE_LOCATION, "/Projects/#{@project[:projectname]}/Models/mnist/", @user[:username], "#{@project[:projectname]}__Models", 750, "#{@project[:projectname]}")
+          serving_prefix = "/Projects/#{@project[:projectname]}/Models/mnist"
+          hdfs_owner = "#{@project[:projectname]}__#{@user[:username]}"
+          mkdir(serving_prefix, hdfs_owner, "#{@project[:projectname]}__Models", 750)
+          copy(TF_MODEL_TOUR_FILE_LOCATION, serving_prefix, hdfs_owner, "#{@project[:projectname]}__Models", 750)
         end
 
         it "fail to create a serving with bad kafka configuration" do

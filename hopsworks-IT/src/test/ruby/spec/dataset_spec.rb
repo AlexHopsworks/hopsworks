@@ -1043,11 +1043,11 @@ describe "On #{ENV['OS']}" do
           before :all do
             with_valid_project
             with_valid_dataset
-            hdfs_user="#{@project[:inode_name]}__#{@user[:username]}"
+            hdfs_owner="#{@project[:inode_name]}__#{@user[:username]}"
             topDataset = "#{@dataset[:inode_name]}/top%3ADir"
-            mkdir("/Projects/#{@project[:inode_name]}/#{topDataset}", hdfs_user, hdfs_user, 755)
+            mkdir("/Projects/#{@project[:inode_name]}/#{topDataset}", hdfs_owner, hdfs_owner, 755)
             subDataset = "#{topDataset}/sub%20Dir"
-            mkdir("/Projects/#{@project[:inode_name]}/#{subDataset}", hdfs_user, hdfs_user, 755)
+            mkdir("/Projects/#{@project[:inode_name]}/#{subDataset}", hdfs_owner, hdfs_owner, 755)
           end
           it 'zip directory with url encoded char' do
             topDataset = "#{@dataset[:inode_name]}/top%253ADir"

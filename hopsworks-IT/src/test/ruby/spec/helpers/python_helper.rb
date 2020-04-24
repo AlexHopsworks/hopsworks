@@ -70,12 +70,11 @@ module PythonHelper
   def copy_python_it_tests_artifacts_to_project(project, user)
     test_artifacts = get_python_it_tests_artifacts
     test_artifacts.each do |file_name|
-      if !test_file(get_python_it_tests_project_dir(project.projectname) + file_name)
-        copy(get_python_it_tests_hdfs_dir + file_name,
-             get_python_it_tests_project_dir(project.projectname) + file_name, user.username,
-             "#{project.projectname}__Resources",
-             750,
-             "#{project.projectname}")
+      dst = get_python_it_tests_project_dir(project.projectname) + file_name
+      if !test_file(dst)
+        src = get_python_it_tests_hdfs_dir + file_name
+        hdfs_owner = "#{project.projectname}__#{user.username}"
+        copy(src, dst, hdfs_owner, "#{project.projectname}__Resources", 750)
       end
     end
   end

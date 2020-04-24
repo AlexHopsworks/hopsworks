@@ -25,9 +25,10 @@ module ExperimentHelper
     end
 
     if !test_file("/Projects/#{project[:projectname]}/Resources/" + job_name + ".ipynb")
-        copy_from_local("#{ENV['PROJECT_DIR']}/hopsworks-IT/src/test/ruby/spec/aux/run_experiment.ipynb",
-                        "/Projects/#{project[:projectname]}/Resources/" + job_name + ".ipynb", @user[:username],
-                        "#{@project[:projectname]}__Resources", 750, "#{@project[:projectname]}")
+      src = "#{ENV['PROJECT_DIR']}/hopsworks-IT/src/test/ruby/spec/aux/run_experiment.ipynb"
+      dst = "/Projects/#{project[:projectname]}/Resources/" + job_name + ".ipynb"
+      hdfs_owner = "#{@project[:projectname]}__#{@user[:username]}"
+      copy_from_local(src, dst, hdfs_owner, "#{@project[:projectname]}__Resources", 750)
     end
 
     job_conf = {
@@ -63,9 +64,10 @@ module ExperimentHelper
     end
 
     if !test_file("/Projects/#{project[:projectname]}/Resources/" + job_name + ".ipynb")
-        copy_from_local("#{ENV['PROJECT_DIR']}/hopsworks-IT/src/test/ruby/spec/aux/opt_experiment.ipynb",
-                        "/Projects/#{project[:projectname]}/Resources/" + job_name + ".ipynb", @user[:username],
-                        "#{@project[:projectname]}__Resources", 750, "#{@project[:projectname]}")
+      src = "#{ENV['PROJECT_DIR']}/hopsworks-IT/src/test/ruby/spec/aux/opt_experiment.ipynb"
+      dst = "/Projects/#{project[:projectname]}/Resources/" + job_name + ".ipynb"
+      hdfs_owner = "#{@project[:projectname]}__#{@user[:username]}"
+      copy_from_local(src, dst, hdfs_owner, "#{@project[:projectname]}__Resources", 750)
     end
 
     job_conf = {

@@ -22,14 +22,14 @@ module HopsFSHelper
   @@hadoop_home = Variables.find_by(id: "hadoop_dir").value
   @@hopsworks_user = Variables.find_by(id: "hopsworks_user").value
 
-  def mkdir(path, owner, group, mode)
+  def mkdir(path, hdfs_owner, group, mode)
     system "sudo su #{@@hdfs_user} /bin/bash -c \"#{@@hadoop_home}/bin/hdfs dfs -mkdir -p #{path}\""
     if $?.exitstatus > 0
       raise "Failed to create directory: #{path}"
     end
-    system "sudo su #{@@hdfs_user} /bin/bash -c \"#{@@hadoop_home}/bin/hdfs dfs -chown #{owner}:#{group} #{path}\""
+    system "sudo su #{@@hdfs_user} /bin/bash -c \"#{@@hadoop_home}/bin/hdfs dfs -chown #{hdfs_owner}:#{group} #{path}\""
     if $?.exitstatus > 0
-      raise "Failed to chown directory: #{path} to #{user}:#{group}"
+      raise "Failed to chown directory: #{path} to #{hdfs_owner}:#{group}"
     end
     system "sudo su #{@@hdfs_user} /bin/bash -c \"#{@@hadoop_home}/bin/hdfs dfs -chmod #{mode} #{path}\""
     if $?.exitstatus > 0
@@ -48,15 +48,15 @@ module HopsFSHelper
     end
   end
 
-  def copy_from_local(src, dest, owner, group, mode, name)
+  def copy_from_local(src, dest, hdfs_owner, group, mode)
     system "sudo su #{@@hdfs_user} /bin/bash -c \"#{@@hadoop_home}/bin/hdfs dfs -copyFromLocal #{src} #{dest}\""
     if $?.exitstatus > 0
       raise "Failed to copy: #{src} to #{dest} "
     end
 
-    system "sudo su #{@@hdfs_user} /bin/bash -c \"#{@@hadoop_home}/bin/hdfs dfs -chown -R #{name}__#{owner}:#{group} #{dest}\""
+    system "sudo su #{@@hdfs_user} /bin/bash -c \"#{@@hadoop_home}/bin/hdfs dfs -chown -R #{hdfs_owner}:#{group} #{dest}\""
     if $?.exitstatus > 0
-      raise "Failed to chown: #{dest} to #{owner}:#{group}"
+      raise "Failed to chown: #{dest} to #{hdfs_owner}:#{group}"
     end
 
     system "sudo su #{@@hdfs_user} /bin/bash -c \"#{@@hadoop_home}/bin/hdfs dfs -chmod -R #{mode} #{dest}\""
@@ -75,15 +75,15 @@ module HopsFSHelper
     return $?.exitstatus == 0
   end
 
-  def copy(src, dest, owner, group, mode, name)
+  def copy(src, dest, hdfs_owner, group, mode)
     system "sudo su #{@@hdfs_user} /bin/bash -c \"#{@@hadoop_home}/bin/hdfs dfs -cp #{src} #{dest}\""
     if $?.exitstatus > 0
       raise "Failed to chmod directory: #{dest} "
     end
 
-    system "sudo su #{@@hdfs_user} /bin/bash -c \"#{@@hadoop_home}/bin/hdfs dfs -chown -R #{name}__#{owner}:#{group} #{dest}\""
+    system "sudo su #{@@hdfs_user} /bin/bash -c \"#{@@hadoop_home}/bin/hdfs dfs -chown -R #{hdfs_owner}:#{group} #{dest}\""
     if $?.exitstatus > 0
-      raise "Failed to chown directory: #{dest} to #{owner}:#{group}"
+      raise "Failed to chown directory: #{dest} to #{hdfs_owner}:#{group}"
     end
 
     system "sudo su #{@@hdfs_user} /bin/bash -c \"#{@@hadoop_home}/bin/hdfs dfs -chmod -R #{mode} #{dest}\""
