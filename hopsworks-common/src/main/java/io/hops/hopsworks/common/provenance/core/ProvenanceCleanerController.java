@@ -29,6 +29,7 @@ import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.indices.GetIndexRequest;
 import org.elasticsearch.client.indices.GetIndexResponse;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.rest.RestStatus;
 import org.javatuples.Pair;
 
@@ -101,8 +102,12 @@ public class ProvenanceCleanerController {
       GetIndexResponse response = client.mngIndexGet(request);
       return response.getIndices();
     } catch(ElasticException e) {
-      throw new ProvenanceException(RESTCodes.ProvenanceErrorCode.INTERNAL_ERROR, Level.WARNING,
-        "error querying elastic", e.getMessage(), e);
+      if(e.getCause() instanceof IndexNotFoundException) {
+        return new String[0];
+      } else {
+        throw new ProvenanceException(RESTCodes.ProvenanceErrorCode.INTERNAL_ERROR, Level.WARNING,
+          "error querying elastic", e.getMessage(), e);
+      }
     }
   }
   

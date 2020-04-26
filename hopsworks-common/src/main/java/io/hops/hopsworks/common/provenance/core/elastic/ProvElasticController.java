@@ -41,6 +41,7 @@ import org.elasticsearch.client.indices.GetMappingsRequest;
 import org.elasticsearch.client.indices.GetMappingsResponse;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.javatuples.Pair;
 
 import javax.ejb.EJB;
@@ -73,6 +74,10 @@ public class ProvElasticController {
       String msg = "elastic index:" + request.indices() + "error during index get";
       LOG.log(Level.WARNING, msg, e);
       throw new ElasticException(RESTCodes.ElasticErrorCode.ELASTIC_INTERNAL_REQ_ERROR, Level.WARNING,
+        msg, e.getMessage(), e);
+    } catch (IndexNotFoundException e) {
+      String msg = "elastic index:" + request.indices() + " - index not found";
+      throw new ElasticException(RESTCodes.ElasticErrorCode.ELASTIC_INTERNAL_REQ_ERROR, Level.INFO,
         msg, e.getMessage(), e);
     }
     return response;
