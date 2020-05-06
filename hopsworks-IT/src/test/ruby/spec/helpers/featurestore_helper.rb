@@ -31,6 +31,7 @@ module FeaturestoreHelper
                                                      features: features, featuregroup_description: featuregroup_description)
     expect_status_details(201)
     parsed_json = JSON.parse(json_result, :symbolize_names => true)
+    pp parsed_json if (defined?(@debugOpt)) && @debugOpt
     parsed_json[:id]
   end
 
@@ -567,7 +568,17 @@ module FeaturestoreHelper
     get_featuregroup_endpoint = "#{ENV['HOPSWORKS_API']}/project/#{project_id}/featurestores/#{featurestore_id}/featuregroups/#{name}?version=#{version}"
     pp "get #{get_featuregroup_endpoint}" if defined?(@debugOpt) && @debugOpt
     result = get get_featuregroup_endpoint
-    expect_status(200)
+    expect_status_details(200)
+    parsed_result = JSON.parse(result)
+    pp parsed_result if (defined?(@debugOpt)) && @debugOpt
+    parsed_result
+  end
+
+  def delete_featuregroup(project_id, featurestore_id, fg_id)
+    delete_featuregroup_endpoint = "#{ENV['HOPSWORKS_API']}/project/#{project_id}/featurestores/#{featurestore_id}/featuregroups/#{fg_id}"
+    pp "delete #{delete_featuregroup_endpoint}" if defined?(@debugOpt) && @debugOpt
+    result = delete delete_featuregroup_endpoint
+    expect_status_details(200)
     parsed_result = JSON.parse(result)
     pp parsed_result if (defined?(@debugOpt)) && @debugOpt
     parsed_result
@@ -577,7 +588,7 @@ module FeaturestoreHelper
     get_trainingdataset_endpoint = "#{ENV['HOPSWORKS_API']}/project/#{project_id}/featurestores/#{featurestore_id}/trainingdatasets/#{name}?version=#{version}"
     pp "get #{get_trainingdataset_endpoint}" if defined?(@debugOpt) && @debugOpt
     result = get get_trainingdataset_endpoint
-    expect_status(200)
+    expect_status_details(200)
     parsed_result = JSON.parse(result)
     pp parsed_result if (defined?(@debugOpt)) && @debugOpt
     parsed_result

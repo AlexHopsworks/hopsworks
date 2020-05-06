@@ -15,6 +15,10 @@
 =end
 require 'pp'
 describe "On #{ENV['OS']}" do
+  before :all do
+    @debugOpt = false
+  end
+
   after :all do
     epipe_restart unless is_epipe_active
     clean_all_test_projects
