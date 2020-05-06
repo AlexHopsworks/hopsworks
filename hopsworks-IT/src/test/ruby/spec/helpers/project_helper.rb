@@ -36,6 +36,10 @@
  DAMAGES OR  OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 =end
+require 'pp'
+require 'typhoeus'
+require 'concurrent'
+
 module ProjectHelper
   def with_valid_project
     @project ||= create_project
@@ -149,5 +153,95 @@ module ProjectHelper
     if !json_body.empty?
       json_body.map{|project| project[:id]}.each{|i| post "#{ENV['HOPSWORKS_API']}/project/#{i}/delete" }
     end
+  end
+
+  def clean_projects
+    with_valid_session
+    get "#{ENV['HOPSWORKS_API']}/project/getAll"
+    if !json_body.empty?
+      json_body.map{|project| project[:id]}.each{|i| post "#{ENV['HOPSWORKS_API']}/project/#{i}/delete" }
+    end
+  end
+
+  def on_complete(request)
+    request.on_complete do |response|
+      if response.success?
+        pp "Delete project response: " + response.code.to_s
+      elsif response.timed_out?
+        pp "Timed out deleting project"
+      elsif response.code == 0
+        pp response.return_message
+      else
+        pp "Delete project - HTTP request failed: " + response.code.to_s
+      end
+    end
+  end
+
+
+  def clean_test_project(project)
+    response, headers = login_user(project[:username], "Pass123")
+    if response.code != 200
+      pp "could not login and delete project:#{project[:projectname]} with user:#{project[:username]}"
+    end
+    request = raw_delete_project(project, response, headers)
+    on_complete(request)
+    return request
+  end
+
+
+  # This function must be added under the first describe of each .spec file to ensure test projects are cleaned up properly
+  def clean_all_test_projects
+    pp "Cleaning up test projects"
+
+    starting = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    hydra = Typhoeus::Hydra.new(max_concurrency: 10)
+
+    Project.where("projectname LIKE ?", 'project\_%').each{|project|
+      hydra.queue clean_test_project(project)
+    }
+
+    Project.where("projectname LIKE ?", 'ProJect\_%').each{|project|
+      hydra.queue clean_test_project(project)
+    }
+
+    Project.where("projectname LIKE ?", 'demo\_%').each{|project|
+      hydra.queue clean_test_project(project)
+    }
+
+    Project.where("projectname LIKE ?", 'HOPSWORKS256%').each{|project|
+      hydra.queue clean_test_project(project)
+    }
+
+    Project.where("projectname LIKE ?", 'hopsworks256%').each{|project|
+      hydra.queue clean_test_project(project)
+    }
+
+    Project.where("projectname LIKE ?", 'prov\_proj\_%').each{|project|
+      hydra.queue clean_test_project(project)
+    }
+
+    hydra.run
+    ending = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    elapsed = ending - starting
+
+    epipe_wait_on_mutations(10)
+    epipe_wait_on_provenance(10)
+    pp "Finished cleanup - time elapsed " + elapsed.to_s + "s"
+  end
+
+  def raw_delete_project(project, response, headers)
+    if !headers["set_cookie"].nil? && !headers["set_cookie"][1].nil?
+      cookie = headers["set_cookie"][1].split(';')[0].split('=')
+      cookies = {"SESSIONID"=> JSON.parse(response.body)["sessionID"], cookie[0] => cookie[1]}
+    else
+      cookies = {"SESSIONID"=> JSON.parse(response.body)["sessionID"]}
+    end
+    request = Typhoeus::Request.new(
+        "https://#{ENV['WEB_HOST']}:#{ENV['WEB_PORT']}#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/delete",
+        headers: {:cookies => cookies, 'Authorization' => headers["authorization"]},
+        method: "post",
+        followlocation: true,
+        ssl_verifypeer: false,
+        ssl_verifyhost: 0)
   end
 end

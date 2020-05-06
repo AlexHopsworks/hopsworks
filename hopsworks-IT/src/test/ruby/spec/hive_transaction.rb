@@ -16,6 +16,107 @@
 require 'pp'
 describe "On #{ENV['OS']}" do
   describe 'transactions' do
+    def wait_for_me_time(timeout=480)
+      start = Time.now
+      x = yield
+      until x["success"] == true
+        if Time.now - start > timeout
+          break
+        end
+        sleep(1)
+        x = yield
+      end
+      return x
+    end
+    
+    def epipe_stop
+      execute_remotely ENV['EPIPE_HOST'], "sudo systemctl stop epipe"
+    end
+    def epipe_restart
+      execute_remotely ENV['EPIPE_HOST'], "sudo systemctl restart epipe"
+    end
+
+    def epipe_active
+      output = execute_remotely ENV['EPIPE_HOST'], "systemctl is-active epipe"
+      expect(output.strip).to eq("active"), "epipe is down"
+    end
+
+    def is_epipe_active
+      output = execute_remotely ENV['EPIPE_HOST'], "systemctl is-active epipe"
+      output.strip.eql? "active"
+    end
+    def epipe_wait_on_mutations(repeat=3)
+      epipe_active
+      repeat.times do
+        result = wait_for_me_time(30) do
+          pending_mutations = HDFSMetadataLog.count
+          if pending_mutations == 0
+            { 'success' => true }
+          else
+            { 'success' => false, 'msg' => "hdfs_metadata_logs is not being consumed by epipe - pending:#{pending_mutations}" }
+          end
+        end
+        if result["success"] == true
+          break
+        else
+          pp "WARNING - #{result["msg"]}"
+          epipe_restart
+          sleep(1)
+          epipe_active
+        end
+      end
+      pending_mutations = HDFSMetadataLog.count
+      expect(pending_mutations).to eq(0), "hdfs_metadata_logs is not being consumed by epipe - pending:#{pending_mutations}"
+      #wait for epipe-elasticsearch propagation
+      sleep(3)
+    end
+
+    def epipe_wait_on_provenance(repeat=3)
+      epipe_active
+      repeat.times do
+        #check FileProv log table
+        result = wait_for_me_time(30) do
+          pending_prov = FileProv.count
+          if pending_prov == 0
+            { 'success' => true }
+          else
+            { 'success' => false, 'msg' => "hdfs_file_prov_logs is not being consumed by epipe - pending:#{pending_prov}" }
+          end
+        end
+        if result["success"] == true
+          #check AppProv log table
+          result = wait_for_me_time(30) do
+            pending_prov = AppProv.count
+            if pending_prov == 0
+              { 'success' => true }
+            else
+              { 'success' => false, 'msg' => "hdfs_app_prov_logs is not being consumed by epipe - pending:#{pending_prov}" }
+            end
+          end
+        end
+        if result["success"] == true
+          break
+        else
+          #restart epipe and try waiting again
+          pp "WARNING - #{result["msg"]}"
+          epipe_restart
+          sleep(1)
+          epipe_active
+        end
+      end
+      pending_prov = FileProv.count
+      expect(pending_prov).to eq(0), "hdfs_file_prov_logs is not being consumed by epipe - pending:#{pending_prov}"
+      pending_prov = AppProv.count
+      expect(pending_prov).to eq(0), "hdfs_app_prov_logs is not being consumed by epipe - pending:#{pending_prov}"
+      #wait for epipe-elasticsearch propagation
+      sleep(3)
+    end
+    def login_user(email, password)
+      reset_session
+      response = post "#{ENV['HOPSWORKS_API']}/auth/login", URI.encode_www_form({ email: email, password: password}), {content_type: 'application/x-www-form-urlencoded'}
+      return response, headers
+    end
+
     def del_featuregroup(user, project_id,  featurestore_id, fg_id)
       response, headers = login_user(user, "Pass123")
       delete_featuregroup_endpoint = "#{ENV['HOPSWORKS_API']}/project/#{project_id}/featurestores/#{featurestore_id}/featuregroups/#{fg_id}"
