@@ -28,7 +28,7 @@ describe "On #{ENV['OS']}" do
       end
       return x
     end
-    
+
     def epipe_stop
       execute_remotely ENV['EPIPE_HOST'], "sudo systemctl stop epipe"
     end
@@ -220,17 +220,17 @@ describe "On #{ENV['OS']}" do
       pp NDBTransactions.count
       featurestore_id = get_featurestore_id(project1[:id])
 
-      fgs_nr = 50
+      fgs_nr = 200
       q = Queue.new
       pp "create"
-      hydra = Typhoeus::Hydra.new(max_concurrency: 10)
+      hydra = Typhoeus::Hydra.new(max_concurrency: 20)
       fgs_nr.times do |i|
         hydra.queue cre_featuregroup(user_email, project1[:id], featurestore_id, "fg_a#{i}", q)
       end
       hydra.run
 
       pp "mix"
-      hydra = Typhoeus::Hydra.new(max_concurrency: 1)
+      hydra = Typhoeus::Hydra.new(max_concurrency: 20)
       fgs_nr.times do |i|
         hydra.queue cre_featuregroup(user_email, project1[:id], featurestore_id, "fg_b#{i}", q)
         hydra.queue del_featuregroup(user_email, project1[:id], featurestore_id, q.pop)
@@ -239,7 +239,7 @@ describe "On #{ENV['OS']}" do
 
       pp "deleting"
       pp NDBTransactions.count
-      hydra = Typhoeus::Hydra.new(max_concurrency: 10)
+      hydra = Typhoeus::Hydra.new(max_concurrency: 20)
       q.size.times do
         hydra.queue del_featuregroup(user_email, project1[:id], featurestore_id, q.pop)
       end
