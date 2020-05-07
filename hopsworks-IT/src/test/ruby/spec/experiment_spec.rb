@@ -14,7 +14,12 @@
  If not, see <https://www.gnu.org/licenses/>.
 =end
 describe "On #{ENV['OS']}" do
-  after(:all) {clean_all_test_projects}
+  after(:all) {
+    #clean_all_test_projects
+  }
+  before(:all) do
+    @debugOpt = true
+  end
   experiment_1 = "experiment_1"
   experiment_2 = "experiment_2"
   describe 'experiment' do
@@ -294,6 +299,32 @@ describe "On #{ENV['OS']}" do
           get_results(@project[:id], ml_id, "?expand=results")
         end
       end
+    end
+  end
+
+  describe "experiment sharing" do
+    it 'basic share and access' do
+      epipe_wait_on_mutations
+      with_valid_session
+      user1_email = @user["email"]
+
+      project1 = create_project
+      experiments_proj1 = get_dataset(project1, "Experiments")
+      experiment1_name = "exp_#{short_random_id}"
+      create_experiment_job(project1, experiment1_name)
+      run_experiment_blocking(project1, experiment1_name)
+      #get_experiments(project1[:id], nil)
+      #expect_status(200)
+      #expect(json_body[:items].count).to eq 2
+      #expect(json_body[:count]).to eq 2
+      #json_body[:items].each {|experiment| expect(URI(experiment[:state]).path).to eq "FINISHED"}
+
+      reset_and_create_session
+      user2_email = @user["email"]
+      project2 = create_project
+      request_access_by_dataset(experiments_proj1, project2)
+      create_session(user1_email, "Pass123")
+      share_dataset_checked(project1, "Experiments", project2[:projectname], "DATASET")
     end
   end
 end

@@ -27,7 +27,7 @@ module ModelHelper
     if !test_file("/Projects/#{project[:projectname]}/Resources/" + job_name + ".ipynb")
         copy_from_local("#{ENV['PROJECT_DIR']}/hopsworks-IT/src/test/ruby/spec/aux/export_model.ipynb",
                         "/Projects/#{project[:projectname]}/Resources/" + job_name + ".ipynb", @user[:username],
-                        "#{@project[:projectname]}__Resources", 750, "#{@project[:projectname]}")
+                        "#{project[:projectname]}__Resources", 750, "#{project[:projectname]}")
     end
 
     job_conf = {
