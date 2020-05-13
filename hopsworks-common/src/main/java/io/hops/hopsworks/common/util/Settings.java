@@ -3665,4 +3665,7 @@ public class Settings implements Serializable {
 
   public static final String FEATURESTORE_INDEX = "featurestore";
   public static final String FEATURESTORE_PROJECT_ID_FIELD = "project_id";
+  
+  public static final int HOPSFS_XATTR_VALUE_MAX_SIZE = 13500;
+  public static final int HOPSFS_XATTR_NAME_MAX_SIZE = 255;
 }
