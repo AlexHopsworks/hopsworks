@@ -72,7 +72,14 @@ describe "On #{ENV['OS']}" do
   end
 
   it 'test' do
-    epipe_restart_checked
+    epipe_restart
+    pp "restarted"
+    pp "#{Time.nopw}"
+    sleep(1)
+    pp "#{Time.nopw}"
+    output = execute_remotely ENV['EPIPE_HOST'], "systemctl is-active epipe"
+    pp output
+    epipe_active(msg: msg)
   end
 
   describe 'test provenance auxiliary mechanisms' do
