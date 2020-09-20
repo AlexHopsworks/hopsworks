@@ -18,7 +18,7 @@ require 'pp'
 
 describe "On #{ENV['OS']}" do
   before :all do
-    @old_provenance_type, @old_provenance_archive_size = setup_cluster_prov("MIN", "0")
+    # @old_provenance_type, @old_provenance_archive_size = setup_cluster_prov("MIN", "0")
     $stdout.sync = true
     with_valid_session
     @email = @user["email"]
@@ -63,16 +63,21 @@ describe "On #{ENV['OS']}" do
   end
 
   after :all do
-    clean_all_test_projects(spec: "prov_state")
-    wait_result = epipe_wait_on_provenance(repeat: 5)
-    expect(wait_result["success"]).to be(true), wait_result["msg"]
-
-    project_index_cleanup(@email)
-    restore_cluster_prov("MIN", "0", @old_provenance_type, @old_provenance_archive_size)
+    # clean_all_test_projects(spec: "prov_state")
+    # wait_result = epipe_wait_on_provenance(repeat: 5)
+    # expect(wait_result["success"]).to be(true), wait_result["msg"]
+    #
+    # project_index_cleanup(@email)
+    # restore_cluster_prov("MIN", "0", @old_provenance_type, @old_provenance_archive_size)
   end
 
   it 'test' do
-    pp is_epipe_active
+    Project.select('distinct(id), projectname, username')
+        .where("projectname LIKE ? or projectname LIKE ? or projectname LIKE ? or projectname LIKE ? or projectname LIKE ?
+                or projectname LIKE ? or projectname LIKE ?", 'online_fs', 'project\_%', 'ProJect\_%', 'demo\_%',
+               'HOPSWORKS256%', 'hopsworks256%', 'prov\_proj\_%').each do |proj|
+      pp proj[:id]
+    end
   end
 
   describe 'test provenance auxiliary mechanisms' do
