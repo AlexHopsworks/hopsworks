@@ -72,12 +72,7 @@ describe "On #{ENV['OS']}" do
   end
 
   it 'test' do
-    Project.select('distinct(id), projectname, username')
-        .where("projectname LIKE ? or projectname LIKE ? or projectname LIKE ? or projectname LIKE ? or projectname LIKE ?
-                or projectname LIKE ? or projectname LIKE ?", 'online_fs', 'project\_%', 'ProJect\_%', 'demo\_%',
-               'HOPSWORKS256%', 'hopsworks256%', 'prov\_proj\_%').each do |proj|
-      pp proj[:id]
-    end
+    epipe_restart_checked
   end
 
   describe 'test provenance auxiliary mechanisms' do
