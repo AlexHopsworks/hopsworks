@@ -63,7 +63,7 @@ describe "On #{ENV['OS']}" do
   end
 
   after :all do
-    clean_all_test_projects(spec: "prov_state")
+    # clean_all_test_projects(spec: "prov_state")
     # wait_result = epipe_wait_on_provenance(repeat: 5)
     # expect(wait_result["success"]).to be(true), wait_result["msg"]
     #
@@ -74,9 +74,9 @@ describe "On #{ENV['OS']}" do
   it 'test' do
     epipe_restart
     pp "restarted"
-    pp "#{Time.nopw}"
+    pp "#{Time.now}"
     sleep(1)
-    pp "#{Time.nopw}"
+    pp "#{Time.now}"
     output = execute_remotely ENV['EPIPE_HOST'], "systemctl is-active epipe"
     pp output
     epipe_active(msg: msg)
