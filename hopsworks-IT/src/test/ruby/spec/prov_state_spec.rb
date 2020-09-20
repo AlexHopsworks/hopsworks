@@ -23,7 +23,7 @@ describe "On #{ENV['OS']}" do
     with_valid_session
     @email = @user["email"]
     pp "user email: #{@email}"
-    @debugOpt = false
+    @debugOpt = true
     @project1_name = "prov_proj_#{short_random_id}"
     @project2_name = "prov_proj_#{short_random_id}"
     @app1_id = "application_#{short_random_id}_0001"
@@ -81,6 +81,8 @@ describe "On #{ENV['OS']}" do
     pp output.strip
     pp "#{output.strip == "active"}"
     epipe_active(msg: "lala")
+    epipe_wait_on_mutations
+    epipe_wait_on_provenance
   end
 
   describe 'test provenance auxiliary mechanisms' do
