@@ -78,8 +78,9 @@ describe "On #{ENV['OS']}" do
     sleep(1)
     pp "#{Time.now}"
     output = execute_remotely ENV['EPIPE_HOST'], "systemctl is-active epipe"
-    pp output
-    epipe_active(msg: msg)
+    pp output.strip
+    pp "#{output.strip == "active"}"
+    epipe_active(msg: "lala")
   end
 
   describe 'test provenance auxiliary mechanisms' do
