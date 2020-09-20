@@ -32,9 +32,12 @@ module EpipeHelper
   #on slow vms it can take 1-3s for epipe to restart
   #epipe_active expects epipe to be active and will fail if epipe is down
   def epipe_restart_checked(msg: "epipe is down")
-    epipe_restart
-    sleep(1)
-    epipe_active(msg: msg)
+    wait_result = 2.times do
+      epipe_restart
+      sleep(5)
+      break if is_epipe_active
+    end
+   epipe_active(msg: msg)
   end
 
   def epipe_restart
@@ -43,11 +46,13 @@ module EpipeHelper
 
   def epipe_active(msg: "epipe is down")
     output = execute_remotely ENV['EPIPE_HOST'], "systemctl is-active epipe"
+    pp "possibly missconfigured epipe ip" if output.strip == "unknown"
     expect(output.strip).to eq("active"), msg
   end
 
   def is_epipe_active
     output = execute_remotely ENV['EPIPE_HOST'], "systemctl is-active epipe"
+    pp "possibly missconfigured epipe ip" if output.strip == "unknown"
     output.strip.eql? "active"
   end
 
