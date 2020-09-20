@@ -71,6 +71,10 @@ describe "On #{ENV['OS']}" do
     restore_cluster_prov("MIN", "0", @old_provenance_type, @old_provenance_archive_size)
   end
 
+  it 'test' do
+    pp is_epipe_active
+  end
+
   describe 'test provenance auxiliary mechanisms' do
     it 'index cleaning' do
       wait_result = epipe_wait_on_provenance(repeat: 5)
