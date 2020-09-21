@@ -37,7 +37,7 @@ module EpipeHelper
       sleep(5)
       break if is_epipe_active
     end
-   epipe_active(msg: msg)
+    epipe_active(msg: msg)
   end
 
   def epipe_restart
@@ -45,9 +45,12 @@ module EpipeHelper
   end
 
   def epipe_active(msg: "epipe is down")
-    output = execute_remotely ENV['EPIPE_HOST'], "systemctl is-active epipe"
-    pp "possibly missconfigured epipe ip" if output.strip == "unknown"
-    expect(output.strip).to eq("active"), msg
+    wait_result = 1.times do
+      break if is_epipe_active
+      sleep(5)
+    end
+    is_epipe_active_val = is_epipe_active
+    expect(is_epipe_active_val).to be("true"), msg
   end
 
   def is_epipe_active
@@ -73,10 +76,19 @@ module EpipeHelper
       end
       pp "WARNING - #{result["msg"]}" if (result["pending"] > 0)
       if result["success"] == false
+        if result["pending"] > 200
+          sleep(20)
+        elsif result["pending"] > 50
+          sleep(10)
+        else
+          sleep(5)
         pending = log_size.call
-        if (result["pending"] - pending) < 10
-          pp "WARNING - no progress - restarting epipe"
+        if pending > 0
+          result = { "msg" => "logs are not being consumed by epipe - pending:#{pending}", "success" => false, "pending" => pending }
+          pp "WARNING - restarting epipe - not enough progress - maybe stuck"
           epipe_restart
+        else
+          result = { "success" => true, "pending" => 0 }
         end
       end
       output[0] = result
