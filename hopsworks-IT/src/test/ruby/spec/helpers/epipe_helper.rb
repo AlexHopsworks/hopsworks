@@ -78,19 +78,19 @@ module EpipeHelper
       if result["success"] == false
         r_p = result["pending"]
         if r_p > 200
-          pp "WARNING - epipe pending log:#{r_p} - long sleep"
+          pp "WARNING - epipe pending log:#{r_p} - long sleep - now:#{Time.now}"
           sleep(20)
         elsif r_p > 50
-          pp "WARNING - epipe pending log:#{r_p} - medium sleep"
+          pp "WARNING - epipe pending log:#{r_p} - medium sleep - now:#{Time.now}"
           sleep(10)
         else
-          pp "WARNING - epipe pending log:#{r_p} - short sleep"
+          pp "WARNING - epipe pending log:#{r_p} - short sleep - now:#{Time.now}"
           sleep(5)
         end
         pending = log_size.call
         if pending > 0
           result = { "msg" => "logs are not being consumed by epipe - pending:#{pending}", "success" => false, "pending" => pending }
-          pp "WARNING - restarting epipe - not enough progress - maybe stuck"
+          pp "WARNING - restarting epipe - not enough progress - maybe stuck - now:#{Time.now}"
           epipe_restart
         else
           result = { "success" => true, "pending" => 0 }
