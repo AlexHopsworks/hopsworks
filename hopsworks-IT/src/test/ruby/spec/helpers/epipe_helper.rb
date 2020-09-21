@@ -50,7 +50,7 @@ module EpipeHelper
       sleep(5)
     end
     is_epipe_active_val = is_epipe_active
-    pp "#{msg} - now:#{Time.now}" if if defined?(@debugOpt) && @debugOpt && !is_epipe_active_val
+    pp "#{msg} - now:#{Time.now}" if defined?(@debugOpt) && @debugOpt && !is_epipe_active_val
     expect(is_epipe_active_val).to be(true), msg
   end
 
@@ -75,7 +75,6 @@ module EpipeHelper
           { "msg" => "logs are not being consumed by epipe - pending:#{pending}", "success" => false, "pending" => pending }
         end
       end
-      pp "WARNING - #{result["msg"]}" if (result["pending"] > 0)
       if result["success"] == false
         r_p = result["pending"]
         if r_p > 200
