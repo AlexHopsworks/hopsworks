@@ -50,6 +50,7 @@ module EpipeHelper
       sleep(5)
     end
     is_epipe_active_val = is_epipe_active
+    pp "#{msg} - now:#{Time.now}" if if defined?(@debugOpt) && @debugOpt && !is_epipe_active_val
     expect(is_epipe_active_val).to be(true), msg
   end
 
