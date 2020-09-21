@@ -24,8 +24,6 @@ describe "On #{ENV['OS']}" do
     @email = @user["email"]
     pp "user email: #{@email}"
     @debugOpt = false
-    @project1_name = "prov_proj_#{short_random_id}"
-    @project2_name = "prov_proj_#{short_random_id}"
     @app1_id = "application_#{short_random_id}_0001"
     @app2_id = "application_#{short_random_id}_0001"
     @app3_id = "application_#{short_random_id}_0001"
@@ -84,20 +82,20 @@ describe "On #{ENV['OS']}" do
       wait_result = epipe_wait_on_provenance(repeat: 5)
       expect(wait_result["success"]).to be(true), wait_result["msg"]
 
+      @project1_name = "prov_proj_#{short_random_id}"
+      @project2_name = "prov_proj_#{short_random_id}"
+
       project_index_cleanup(@email)
-      # pp "create project: #{@project1_name}"
       @project1 = create_project_by_name(@project1_name)
-      # pp "create project: #{@project2_name}"
       @project2 = create_project_by_name(@project2_name)
     end
 
     after :all do
-      # pp "delete projects"
-      delete_project(@project1)
+      clean_all_test_projects(spec: "prov_state")
+      @project1_name = nil
+      @project2_name = nil
       @project1 = nil
-      delete_project(@project2)
       @project2 = nil
-
       wait_result = epipe_wait_on_provenance(repeat: 5)
       expect(wait_result["success"]).to be(true), wait_result["msg"]
       project_index_cleanup(@email)
@@ -465,14 +463,15 @@ describe "On #{ENV['OS']}" do
       wait_result = epipe_wait_on_provenance(repeat: 5)
       expect(wait_result["success"]).to be(true), wait_result["msg"]
 
+      @project1_name = "prov_proj_#{short_random_id}"
+
       project_index_cleanup(@email)
-    #pp "create project: #{@project1_name}"
       @project1 = create_project_by_name(@project1_name)
     end
 
     after :all do
-    #pp "delete projects"
-      delete_project(@project1)
+      clean_all_test_projects(spec: "prov_state")
+      @project1_name = nil
       @project1 = nil
       wait_result = epipe_wait_on_provenance(repeat: 5)
       expect(wait_result["success"]).to be(true), wait_result["msg"]
@@ -1266,13 +1265,14 @@ describe "On #{ENV['OS']}" do
       wait_result = epipe_wait_on_provenance(repeat: 5)
       expect(wait_result["success"]).to be(true), wait_result["msg"]
       project_index_cleanup(@email)
-    #pp "create project: #{@project1_name}"
+
+      @project1_name = "prov_proj_#{short_random_id}"
       @project1 = create_project_by_name(@project1_name)
     end
 
     after :all do
-    #pp "delete projects"
-      delete_project(@project1)
+      clean_all_test_projects(spec: "prov_state")
+      @project1_name = nil
       @project1 = nil
       wait_result = epipe_wait_on_provenance(repeat: 5)
       expect(wait_result["success"]).to be(true), wait_result["msg"]
@@ -1374,6 +1374,21 @@ describe "On #{ENV['OS']}" do
   end
 
   describe 'provenance state - cleanup' do
+    before :all do
+      @project1_name = "prov_proj_#{short_random_id}"
+      @project2_name = "prov_proj_#{short_random_id}"
+    end
+
+    after :all do
+      clean_all_test_projects(spec: "prov_state")
+      @project1_name = nil
+      @project2_name = nil
+      @project1 = nil
+      @project2 = nil
+      wait_result = epipe_wait_on_provenance(repeat: 5)
+      expect(wait_result["success"]).to be(true), wait_result["msg"]
+      project_index_cleanup(@email)
+    end
     it 'one project cleanup' do
       wait_result = epipe_wait_on_provenance(repeat: 5)
       expect(wait_result["success"]).to be(true), wait_result["msg"]
