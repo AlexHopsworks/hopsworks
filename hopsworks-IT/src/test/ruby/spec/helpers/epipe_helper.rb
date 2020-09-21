@@ -76,11 +76,15 @@ module EpipeHelper
       end
       pp "WARNING - #{result["msg"]}" if (result["pending"] > 0)
       if result["success"] == false
-        if result["pending"] > 200
+        r_p = result["pending"]
+        if r_p > 200
+          pp "WARNING - epipe pending log:#{r_p} - long sleep"
           sleep(20)
-        elsif result["pending"] > 50
+        elsif r_p > 50
+          pp "WARNING - epipe pending log:#{r_p} - medium sleep"
           sleep(10)
         else
+          pp "WARNING - epipe pending log:#{r_p} - short sleep"
           sleep(5)
         end
         pending = log_size.call
