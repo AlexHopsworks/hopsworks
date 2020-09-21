@@ -82,6 +82,7 @@ module EpipeHelper
           sleep(10)
         else
           sleep(5)
+        end
         pending = log_size.call
         if pending > 0
           result = { "msg" => "logs are not being consumed by epipe - pending:#{pending}", "success" => false, "pending" => pending }
