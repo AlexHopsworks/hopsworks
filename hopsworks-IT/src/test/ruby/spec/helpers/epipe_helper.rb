@@ -50,7 +50,7 @@ module EpipeHelper
       sleep(5)
     end
     is_epipe_active_val = is_epipe_active
-    expect(is_epipe_active_val).to be("true"), msg
+    expect(is_epipe_active_val).to be(true), msg
   end
 
   def is_epipe_active
