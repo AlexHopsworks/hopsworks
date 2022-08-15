@@ -30,7 +30,6 @@ import io.hops.hopsworks.common.dao.user.UserFacade;
 import io.hops.hopsworks.common.dataset.FilePreviewMode;
 import io.hops.hopsworks.common.dataset.util.DatasetHelper;
 import io.hops.hopsworks.common.dataset.util.DatasetPath;
-import io.hops.hopsworks.common.featurestore.FeaturestoreFacade;
 import io.hops.hopsworks.common.hdfs.HdfsUsersController;
 import io.hops.hopsworks.common.provenance.core.Provenance;
 import io.hops.hopsworks.common.provenance.state.ProvStateParamBuilder;
@@ -43,6 +42,7 @@ import io.hops.hopsworks.exceptions.DatasetException;
 import io.hops.hopsworks.exceptions.GenericException;
 import io.hops.hopsworks.exceptions.MetadataException;
 import io.hops.hopsworks.exceptions.ModelRegistryException;
+import io.hops.hopsworks.exceptions.NotSupportedException;
 import io.hops.hopsworks.exceptions.ProvenanceException;
 import io.hops.hopsworks.exceptions.SchematizedTagException;
 import io.hops.hopsworks.persistence.entity.dataset.DatasetType;
@@ -87,8 +87,6 @@ public class ModelsBuilder {
   private ProjectFacade projectFacade;
   @EJB
   private ProjectTeamFacade projectTeamFacade;
-  @EJB
-  private FeaturestoreFacade featurestoreFacade;
   @EJB
   private ModelsController modelsController;
   @EJB
@@ -138,7 +136,7 @@ public class ModelsBuilder {
                         Project userProject,
                         Project modelRegistryProject
   )
-          throws ModelRegistryException, GenericException, SchematizedTagException, MetadataException {
+    throws ModelRegistryException, GenericException, SchematizedTagException, MetadataException, NotSupportedException {
     ModelDTO dto = new ModelDTO();
     uri(dto, uriInfo, userProject, modelRegistryProject);
     expand(dto, resourceRequest);
@@ -194,7 +192,7 @@ public class ModelsBuilder {
                         Project modelRegistryProject,
                         ProvStateDTO fileProvenanceHit,
                         String modelsFolder) throws DatasetException, ModelRegistryException, SchematizedTagException,
-      MetadataException {
+    MetadataException, NotSupportedException {
     ModelDTO modelDTO = new ModelDTO();
     uri(modelDTO, uriInfo, userProject, modelRegistryProject, fileProvenanceHit);
     if (expand(modelDTO, resourceRequest).isExpand()) {

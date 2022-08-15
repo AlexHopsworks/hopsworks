@@ -2355,4 +2355,39 @@ public class RESTCodes {
       return range;
     }
   }
+  
+  public enum NotSupportedErrorCode implements RESTErrorCode {
+    ENTERPRISE_FEATURE(0, "API not supported in the community edition",
+      Response.Status.NOT_IMPLEMENTED);
+  
+    private Integer code;
+    private String message;
+    private Response.Status respStatus;
+    public final int range = 600000;
+  
+    NotSupportedErrorCode(Integer code, String message, Response.Status respStatus) {
+      this.code = range + code;
+      this.message = message;
+      this.respStatus = respStatus;
+    }
+  
+    @Override
+    public Integer getCode() {
+      return code;
+    }
+  
+    @Override
+    public String getMessage() {
+      return message;
+    }
+  
+    public Response.StatusType getRespStatus() {
+      return respStatus;
+    }
+  
+    @Override
+    public int getRange() {
+      return range;
+    }
+  }
 }

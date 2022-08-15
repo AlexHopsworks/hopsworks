@@ -46,6 +46,7 @@ import io.hops.hopsworks.exceptions.DatasetException;
 import io.hops.hopsworks.exceptions.FeaturestoreException;
 import io.hops.hopsworks.exceptions.GenericException;
 import io.hops.hopsworks.exceptions.MetadataException;
+import io.hops.hopsworks.exceptions.NotSupportedException;
 import io.hops.hopsworks.exceptions.ProvenanceException;
 import io.hops.hopsworks.exceptions.SchematizedTagException;
 import io.hops.hopsworks.jwt.annotation.JWTRequired;
@@ -177,7 +178,7 @@ public class ProjectProvenanceResource {
     @BeanParam Pagination pagination,
     @Context HttpServletRequest req,
     @Context SecurityContext sc,
-    @Context UriInfo uriInfo) throws ProvenanceException, GenericException {
+    @Context UriInfo uriInfo) throws ProvenanceException, GenericException, NotSupportedException {
     ProvOpsDTO result = opsBuilder.build(project, params, pagination);
     return Response.ok().entity(result).build();
   }
@@ -195,7 +196,7 @@ public class ProjectProvenanceResource {
   public Response getLinks(
     @BeanParam ProvLinksBeanParams params,
     @BeanParam Pagination pagination,
-    @Context HttpServletRequest req) throws ProvenanceException, GenericException {
+    @Context HttpServletRequest req) throws ProvenanceException, GenericException, NotSupportedException {
     ProvLinksDTO result = linksBuilder.build(project, params, pagination);
     return Response.ok().entity(result).build();
   }
@@ -215,7 +216,8 @@ public class ProjectProvenanceResource {
     @BeanParam ProvUsageBeanParams params,
     @Context UriInfo uriInfo,
     @Context SecurityContext sc)
-    throws ProvenanceException, GenericException, DatasetException, MetadataException, SchematizedTagException {
+    throws ProvenanceException, GenericException, DatasetException, MetadataException, SchematizedTagException,
+    NotSupportedException {
     Users user = jWTHelper.getUserPrincipal(sc);
     if(artifactId == null) {
       throw new GenericException(RESTCodes.GenericErrorCode.ILLEGAL_ARGUMENT, Level.FINE,

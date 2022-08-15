@@ -42,6 +42,7 @@ import io.hops.hopsworks.exceptions.DatasetException;
 import io.hops.hopsworks.exceptions.FeaturestoreException;
 import io.hops.hopsworks.exceptions.HopsSecurityException;
 import io.hops.hopsworks.exceptions.MetadataException;
+import io.hops.hopsworks.exceptions.NotSupportedException;
 import io.hops.hopsworks.exceptions.ProjectException;
 import io.hops.hopsworks.exceptions.ProvenanceException;
 import io.hops.hopsworks.exceptions.SchematizedTagException;
@@ -56,6 +57,7 @@ import io.hops.hopsworks.persistence.entity.user.security.apiKey.ApiScope;
 import io.hops.hopsworks.restutils.RESTCodes;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import lombok.SneakyThrows;
 
 import javax.ejb.EJB;
 import javax.ejb.TransactionAttribute;
@@ -153,7 +155,7 @@ public class DatasetResource {
                       @BeanParam DatasetBeanParam datasetBeanParam,
                       @Context HttpServletRequest req,
                       @Context UriInfo uriInfo, @Context SecurityContext sc)
-      throws ProjectException, DatasetException, MetadataException, SchematizedTagException {
+    throws ProjectException, DatasetException, MetadataException, SchematizedTagException, NotSupportedException {
     Users user = jWTHelper.getUserPrincipal(sc);
     ResourceRequest resourceRequest = new ResourceRequest(ResourceRequest.Name.DATASET);
     resourceRequest.setOffset(pagination.getOffset());
@@ -191,7 +193,7 @@ public class DatasetResource {
                             @Context UriInfo uriInfo,
                             @Context HttpServletRequest req,
                             @Context SecurityContext sc)
-      throws DatasetException, ProjectException, MetadataException, SchematizedTagException {
+    throws DatasetException, ProjectException, MetadataException, SchematizedTagException, NotSupportedException {
     Users user = jwtHelper.getUserPrincipal(sc);
     ResourceRequest resourceRequest = new ResourceRequest(ResourceRequest.Name.INODES);
     resourceRequest.setExpansions(datasetExpansionBeanParam.getResources());
@@ -247,8 +249,8 @@ public class DatasetResource {
                              @QueryParam("destination_path") String destPath,
                              @QueryParam("destination_type") DatasetType destDatasetType,
                              @DefaultValue("READ_ONLY") @QueryParam("permission") DatasetAccessPermission permission)
-      throws DatasetException, ProjectException, HopsSecurityException, ProvenanceException, MetadataException,
-      SchematizedTagException, FeaturestoreException {
+    throws DatasetException, ProjectException, HopsSecurityException, ProvenanceException, MetadataException,
+    SchematizedTagException, FeaturestoreException, NotSupportedException {
     Users user = jwtHelper.getUserPrincipal(sc);
     DatasetPath datasetPath;
     DatasetPath distDatasetPath;
@@ -288,7 +290,8 @@ public class DatasetResource {
           resourceRequest = new ResourceRequest(ResourceRequest.Name.INODES);
           Inode inode = inodeController.getInodeAtPath(datasetPath.getFullPath().toString());
           datasetPath.setInode(inode);
-          InodeDTO dto = inodeBuilder.buildStat(uriInfo, resourceRequest, user, datasetPath, inode);
+          InodeDTO dto;
+          dto = inodeBuilder.buildStat(uriInfo, resourceRequest, user, datasetPath, inode);
           return Response.created(dto.getHref()).entity(dto).build();
         }
       case COPY:
@@ -364,6 +367,7 @@ public class DatasetResource {
     return Response.noContent().build();
   }
   
+  @SneakyThrows
   @PUT
   @Path("{path: .+}")
   @Produces(MediaType.APPLICATION_JSON)
@@ -379,8 +383,7 @@ public class DatasetResource {
                   @DefaultValue("READ_ONLY") @QueryParam("permissions") DatasetAccessPermission datasetPermissions,
                   @QueryParam("target_project") String targetProjectName,
                   @Context UriInfo uriInfo,
-                  @Context SecurityContext sc)
-      throws DatasetException, ProjectException, MetadataException, SchematizedTagException, FeaturestoreException {
+                  @Context SecurityContext sc) {
     Project project = this.getProject();
     DatasetPath datasetPath = datasetHelper.getDatasetPath(project, path, datasetType);
     ResourceRequest resourceRequest = new ResourceRequest(ResourceRequest.Name.DATASET);
@@ -394,8 +397,8 @@ public class DatasetResource {
         break;
       case SHARE_PERMISSION:
         checkIfDataOwner(project, user);
-        datasetController.updateSharePermission(datasetPath.getDataset(), datasetPermissions, project, targetProjectName
-          , user);
+        datasetController.updateSharePermission(datasetPath.getDataset(), datasetPermissions, project,
+          targetProjectName, user);
         dto = datasetBuilder.build(uriInfo, resourceRequest, user, datasetPath, null, null, false);
         break;
       case DESCRIPTION:

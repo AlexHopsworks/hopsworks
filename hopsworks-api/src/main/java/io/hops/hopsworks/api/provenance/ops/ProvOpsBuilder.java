@@ -21,6 +21,7 @@ import io.hops.hopsworks.common.provenance.ops.ProvOpsParamBuilder;
 import io.hops.hopsworks.common.provenance.ops.ProvOpsReturnType;
 import io.hops.hopsworks.common.provenance.ops.dto.ProvOpsDTO;
 import io.hops.hopsworks.exceptions.GenericException;
+import io.hops.hopsworks.exceptions.NotSupportedException;
 import io.hops.hopsworks.exceptions.ProvenanceException;
 import io.hops.hopsworks.persistence.entity.project.Project;
 import io.hops.hopsworks.restutils.RESTCodes;
@@ -38,7 +39,7 @@ public class ProvOpsBuilder {
   private ProvOpsControllerIface opsProvCtrl;
   
   public ProvOpsDTO build(Project project, ProvOpsBeanParams opsParams, PaginationParams pagParams)
-    throws ProvenanceException, GenericException {
+    throws ProvenanceException, GenericException, NotSupportedException {
     ProvOpsParamBuilder params = new ProvOpsParamBuilder()
       .filterByFields(opsParams.getFileOpsFilterBy())
       .sortByFields(opsParams.getFileOpsSortBy())
@@ -50,7 +51,7 @@ public class ProvOpsBuilder {
   }
   
   public ProvOpsDTO build(Project project, ProvOpsParamBuilder params, ProvOpsReturnType returnType)
-    throws ProvenanceException, GenericException {
+    throws ProvenanceException, GenericException, NotSupportedException {
     ProvOpsDTO result;
     switch(returnType){
       case LIST:

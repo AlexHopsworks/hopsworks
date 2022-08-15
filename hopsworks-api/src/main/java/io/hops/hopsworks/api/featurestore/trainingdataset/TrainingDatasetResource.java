@@ -34,6 +34,7 @@ import io.hops.hopsworks.exceptions.FeaturestoreException;
 import io.hops.hopsworks.exceptions.GenericException;
 import io.hops.hopsworks.exceptions.JobException;
 import io.hops.hopsworks.exceptions.MetadataException;
+import io.hops.hopsworks.exceptions.NotSupportedException;
 import io.hops.hopsworks.exceptions.ProjectException;
 import io.hops.hopsworks.exceptions.ProvenanceException;
 import io.hops.hopsworks.exceptions.SchematizedTagException;
@@ -146,7 +147,7 @@ public class TrainingDatasetResource {
       @BeanParam
           TrainingDatasetExpansionBeanParam param
   ) throws FeaturestoreException, ServiceException, MetadataException, DatasetException, SchematizedTagException,
-      IOException {
+    IOException, NotSupportedException {
     Users user = jWTHelper.getUserPrincipal(sc);
     List<TrainingDataset> trainingDatasets =
         trainingDatasetController.getTrainingDatasetByFeatureView(featureView);
@@ -178,7 +179,7 @@ public class TrainingDatasetResource {
       @PathParam("version")
           Integer version
   ) throws FeaturestoreException, ServiceException, MetadataException, DatasetException, SchematizedTagException,
-      IOException {
+    IOException, NotSupportedException {
     Users user = jWTHelper.getUserPrincipal(sc);
     TrainingDataset trainingDataset = trainingDatasetController.getTrainingDatasetByFeatureViewAndVersion(featureView,
         version);

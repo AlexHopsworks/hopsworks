@@ -17,18 +17,19 @@
 package io.hops.hopsworks.common.tags;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.hops.hopsworks.exceptions.NotSupportedException;
 import io.hops.hopsworks.exceptions.SchematizedTagException;
 import io.hops.hopsworks.persistence.entity.featurestore.tag.TagSchemas;
 
 import java.util.Map;
 
 public interface TagSchemasControllerIface {
-  void create(String name, String schema) throws SchematizedTagException;
-  void delete(String name);
-  void delete(TagSchemas tag);
-  Map<String, String> getAll();
+  void create(String name, String schema) throws SchematizedTagException, NotSupportedException;
+  void delete(String name) throws NotSupportedException;
+  void delete(TagSchemas tag) throws NotSupportedException;
+  Map<String, String> getAll() throws NotSupportedException;
   
-  boolean schemaHasNestedTypes(String schema) throws SchematizedTagException;
+  boolean schemaHasNestedTypes(String schema) throws SchematizedTagException, NotSupportedException;
   boolean schemaHasAdditionalRules(String name, String schema, ObjectMapper objectMapper)
-    throws SchematizedTagException;
+    throws SchematizedTagException, NotSupportedException;
 }

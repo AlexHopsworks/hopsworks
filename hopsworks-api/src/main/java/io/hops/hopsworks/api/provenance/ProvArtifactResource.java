@@ -25,6 +25,7 @@ import io.hops.hopsworks.common.dataset.util.DatasetPath;
 import io.hops.hopsworks.exceptions.DatasetException;
 import io.hops.hopsworks.exceptions.GenericException;
 import io.hops.hopsworks.exceptions.MetadataException;
+import io.hops.hopsworks.exceptions.NotSupportedException;
 import io.hops.hopsworks.exceptions.ProvenanceException;
 import io.hops.hopsworks.exceptions.SchematizedTagException;
 import io.hops.hopsworks.jwt.annotation.JWTRequired;
@@ -79,7 +80,8 @@ public class ProvArtifactResource {
     @BeanParam ProvUsageBeanParams params,
     @Context UriInfo uriInfo,
     @Context SecurityContext sc)
-    throws ProvenanceException, GenericException, DatasetException, MetadataException, SchematizedTagException {
+    throws ProvenanceException, GenericException, DatasetException, MetadataException, SchematizedTagException,
+    NotSupportedException {
     Users user = jWTHelper.getUserPrincipal(sc);
     ProvArtifactUsageParentDTO status = usageBuilder.buildAccessible(uriInfo, user, targetEndpoint, artifactId,
       params.getUsageType());

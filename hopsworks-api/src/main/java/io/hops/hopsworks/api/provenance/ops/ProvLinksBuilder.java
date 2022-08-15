@@ -20,6 +20,7 @@ import io.hops.hopsworks.common.provenance.ops.ProvLinksParamBuilder;
 import io.hops.hopsworks.common.provenance.ops.ProvOpsControllerIface;
 import io.hops.hopsworks.common.provenance.ops.dto.ProvLinksDTO;
 import io.hops.hopsworks.exceptions.GenericException;
+import io.hops.hopsworks.exceptions.NotSupportedException;
 import io.hops.hopsworks.exceptions.ProvenanceException;
 import io.hops.hopsworks.persistence.entity.project.Project;
 
@@ -35,7 +36,7 @@ public class ProvLinksBuilder {
   private ProvOpsControllerIface opsProvCtrl;
 
   public ProvLinksDTO build(Project project, ProvLinksBeanParams opsParams, PaginationParams pagParams)
-          throws ProvenanceException, GenericException {
+    throws ProvenanceException, GenericException, NotSupportedException {
     ProvLinksParamBuilder paramBuilder = new ProvLinksParamBuilder()
             .onlyApps(opsParams.isOnlyApps())
             .linkType(opsParams.isFullLink())
